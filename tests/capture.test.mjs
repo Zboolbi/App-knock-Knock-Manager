@@ -156,3 +156,21 @@ test("écrans du jeu reconnus à leur mise en page", async () => {
   assert.equal(gear.profil.equipementNiveau, 171);
   assert.equal(lireEcrans([el("Curio Vault:392 Lv.", 519, 1184)], dims).profil.coffreCurios, 392);
 });
+
+test("écran Value Pass : passe souscrit à gauche, Deluxe non souscrit à droite", async () => {
+  const { lireEcrans } = await import("../js/capture.js");
+  const el = (texte, x0, y0) => ({ texte, x0, y0, x1: x0 + 300, y1: y0 + 40 });
+  const dims = { largeur: 1800, hauteur: 3900 };
+  const r = lireEcrans([el("MB value Pa", 13, 1162), el("Deluxe Pass", 997, 1232), el("Claimable for: 16 days", 150, 3200), el("Renew", 339, 3343), el("Net Subsarocs]", 1110, 3204), el("$10.99", 1200, 3340)], dims);
+  assert.deepEqual(r.abonnements, { "value-pass": { actif: true, jours: 16 }, "deluxe-pass": { actif: false } });
+  const sansJours = lireEcrans([el("Value Pass", 13, 1162), el("Deluxe Pass", 997, 1232), el("Renew", 339, 3343), el("Not Subscribed", 1110, 3204)], dims);
+  assert.deepEqual(sansJours.abonnements["value-pass"], { actif: true });
+});
+
+test("écran Infinity Train : arrêt et tentatives du jour", async () => {
+  const { lireEcrans } = await import("../js/capture.js");
+  const el = (texte, x0, y0) => ({ texte, x0, y0, x1: x0 + 300, y1: y0 + 40 });
+  const r = lireEcrans([el("Infinity Train", 608, 323), el("Stop 128", 714, 613), el("Reward Attempts", 97, 1202), el("3/10", 420, 1203), el("Stage Attempts: 10/10", 95, 1285)], { largeur: 1800, hauteur: 3900 });
+  assert.equal(r.profil.arretTrain, 128);
+  assert.deepEqual(r.profil.tentativesTrain, { restantes: 3, total: 10 });
+});

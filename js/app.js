@@ -151,7 +151,9 @@ function basculerEquipe(id, oui) {
 }
 
 const TACHES = ["Récupérer le revenu du Lit", "Faire les missions quotidiennes", "Invocations et coffres gratuits",
-  "Vider la Stamina sur l'étape la plus haute battue", "Matériaux du jour sur les 5 héros de l'équipe", "Récompenses des passes et de la guilde"];
+  "Vider la Stamina sur l'étape la plus haute battue", "Matériaux du jour sur les 5 héros de l'équipe", "Récompenses des passes et de la guilde",
+  "Infinity Train : utiliser les 10 tentatives (Sweep)"];
+const TACHE_TRAIN = TACHES.length - 1;
 
 /* ---------- Accueil (tableau de bord) ---------- */
 
@@ -179,8 +181,8 @@ function vueAccueil() {
       <div class="chiffre"><small>Porte / Lit</small><b>${esc(j.porte || "—")} / ${esc(j.lit || "—")}</b></div>
       <div class="chiffre"><small>Puissance</small><b>${esc(fmt(j.puissance))}</b></div>
       <div class="chiffre"><small>Curio Vault</small><b>${esc(j.coffreCurios || "—")}</b></div>
-      <div class="chiffre"><small>Gear</small><b>${j.equipementNiveau ? `+${esc(j.equipementNiveau)}` : "—"}</b></div>
-      <div class="chiffre"><small>Palier Gear</small><b>${esc(j.palierEquipement ? `T${j.palierEquipement}` : "—")}</b></div>
+      <div class="chiffre"><small>Gear</small><b>${j.equipementNiveau ? `+${esc(j.equipementNiveau)}${j.palierEquipement ? ` · T${esc(j.palierEquipement)}` : ""}` : "—"}</b></div>
+      <div class="chiffre"><small>Infinity Train</small><b>${j.arretTrain ? `Stop ${esc(j.arretTrain)}` : "—"}</b></div>
     </div>
     <div class="actions">
       <button class="btn or" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer</button>
@@ -416,7 +418,7 @@ const imp = { etat: "attente", message: "", part: 0, propositions: null, textes:
 function viderImport() { imp.etat = "attente"; imp.message = ""; imp.part = 0; imp.propositions = null; imp.textes = []; }
 
 const LIBELLES_PROFIL = { pseudo: "Pseudo", idJoueur: "ID joueur", niveau: "Niveau", guilde: "Guilde", puissance: "Puissance", vip: "VIP", etape: "Étape", porte: "Porte", lit: "Lit", recherche: "Room Research",
-  coffreCurios: "Curio Vault", equipementNiveau: "Gear (amélioration)", palierEquipement: "Palier Gear", serveur: "Serveur" };
+  coffreCurios: "Curio Vault", equipementNiveau: "Gear (amélioration)", palierEquipement: "Palier Gear", serveur: "Serveur", arretTrain: "Infinity Train (Stop)" };
 
 function feuilleImport() {
   if (imp.etat === "lecture") {
@@ -428,7 +430,7 @@ function feuilleImport() {
   if (imp.etat === "resultats") {
     const p = imp.propositions;
     const champsProfil = Object.keys(p.profil);
-    const nb = champsProfil.length + Object.keys(p.stock).length + p.heros.length + p.artefacts.length + p.skins.length + p.pieges.length + p.betes.length;
+    const nb = champsProfil.length + Object.keys(p.stock).length + p.heros.length + p.artefacts.length + p.skins.length + p.pieges.length + p.betes.length + p.abonnements.length + (p.tentativesTrain ? 1 : 0);
     const coche = (cle, x) => `<input type="checkbox" class="coche" data-imp-coche="${cle}" ${x.garder ? "checked" : ""} aria-label="Garder">`;
     const nombre = (cle, v, label) => `<label style="min-width:0;display:block"><small style="color:var(--texte-2);font-size:12px">${label}</small><input type="number" inputmode="numeric" min="0" data-imp="${cle}" value="${v ?? ""}" placeholder="—" style="${champSaisie}"></label>`;
     const choixHero = (cle, id) => `<select data-imp="${cle}" aria-label="Héros" style="${champSaisie}"><option value="">Héros ?</option>${herosDe(etat).map((h) => `<option value="${h.id}" ${h.id === id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select>`;
@@ -437,6 +439,12 @@ function feuilleImport() {
       <p class="pied" style="padding-top:8px">${nb ? "Décochez ce qui est faux, corrigez si besoin, puis enregistrez. Les champs vides ne changent rien." : ""}</p>
       ${!nb ? section("", `<div class="note alerte">Rien de reconnu. Essayez une capture plus nette, en plein écran, sans recadrer les textes.</div>`) : ""}
       ${champsProfil.length ? section("Compte", champsProfil.map((k) => `<div class="ligne">${coche(`profil.${k}`, p.profil[k])}<span class="corps"><small>${LIBELLES_PROFIL[k]}</small>${champLibre(`profil.${k}`, p.profil[k].valeur, LIBELLES_PROFIL[k])}</span></div>`).join("")) : ""}
+      ${p.abonnements.length ? section("Passes", p.abonnements.map((x, i) => {
+        const o = cat().offres.find((y) => y.id === x.id);
+        return `<div class="ligne">${coche(`abonnements.${i}`, x)}<span class="corps"><b>${esc(o?.nom || x.id)}</b><small>${x.actif ? `Souscrit${x.jours ? ` · encore ${x.jours} j` : " · durée non lue"}` : "Non souscrit"}</small></span>
+          ${x.actif ? `<div style="width:82px">${nombre(`abonnements.${i}.jours`, x.jours, "Jours")}</div>` : ""}</div>`;
+      }).join("")) : ""}
+      ${p.tentativesTrain ? section("Infinity Train", `<div class="ligne"><span class="corps"><b>Tentatives du jour : ${p.tentativesTrain.restantes}/${p.tentativesTrain.total}</b><small>${p.tentativesTrain.restantes === 0 ? "La tâche du jour sera cochée." : "La tâche du jour reste à faire."}</small></span></div>`) : ""}
       ${Object.keys(p.stock).length ? section("Ressources", Object.entries(p.stock).map(([k, x]) => `<div class="ligne">${coche(`stock.${k}`, x)}<span class="corps"><small>${esc(RESSOURCES.find((r) => r.id === k)?.nom)}</small>${champLibre(`stock.${k}`, x.valeur, k)}</span></div>`).join("")) : ""}
       ${p.heros.length ? section(`Héros (${p.heros.length})`, p.heros.map((x, i) => `<div class="ligne" style="align-items:flex-start">${coche(`heros.${i}`, x)}<span class="corps">
         ${choixHero(`heros.${i}.heroId`, x.heroId)}<small style="margin:4px 0 6px">Lu : « ${esc(x.lu)} »${x.sim < 1 ? ` · ressemblance ${Math.round(x.sim * 100)} %` : ""}${x.douteux ? ` · niveau lu « ${x.douteux} » écarté, à vérifier` : ""}</small>
@@ -459,7 +467,9 @@ function feuilleImport() {
       <div class="note or">My Heroes : faites défiler et capturez chaque page (niveaux des héros).</div>
       <div class="note or">Curio Codex : les onglets R, SSR, UR et CR (curios possédés, Curio Vault).</div>
       <div class="note or">Gear : niveau d'amélioration, palier, Leather, Or, Soul Flame.</div>
-      <div class="note or">Trap et Beast : niveaux et éléments débloqués.</div>`,
+      <div class="note or">Trap et Beast : niveaux et éléments débloqués.</div>
+      <div class="note or">Value Pass : passes souscrits et jours restants.</div>
+      <div class="note or">Infinity Train : arrêt atteint et tentatives du jour.</div>`,
       { pied: "Anglais et français. Vous pouvez choisir plusieurs captures à la fois." })}
     <label class="btn or plein" style="margin-top:14px">${ic("photo", 20)} Choisir des captures<input type="file" accept="image/*" multiple data-import-captures class="cache"></label>
     ${section("Confidentialité", `<div class="note ok">La lecture se fait sur le téléphone : rien n'est envoyé.</div><div class="note ok">Les captures ne sont pas conservées : seules les infos validées sont enregistrées.</div>`,
@@ -484,7 +494,13 @@ async function lancerImport(fichiers) {
     imp.textes = lus.map((t) => t.texte);
     const prop = analyserTexte(ordonne, cat());
     const compte = lireProfil(brut, RESSOURCES);
-    for (const t of lus) { const e = lireEcrans(t.elements, { largeur: t.largeur, hauteur: t.hauteur }); Object.assign(compte.profil, e.profil); Object.assign(compte.stock, e.stock); }
+    const abonnementsLus = {};
+    let tentativesTrain = null;
+    for (const t of lus) {
+      const e = lireEcrans(t.elements, { largeur: t.largeur, hauteur: t.hauteur });
+      if (e.profil.tentativesTrain) { tentativesTrain = e.profil.tentativesTrain; delete e.profil.tentativesTrain; }
+      Object.assign(compte.profil, e.profil); Object.assign(compte.stock, e.stock); Object.assign(abonnementsLus, e.abonnements);
+    }
     for (const k of ["heros", "artefacts", "skins", "pieges", "betes"]) for (const x of prop[k]) x.garder = true;
     // Niveau incohérent avec le reste de l'import (« Lv.675 » ou « Lv.6 » pour 67) : écarté, à saisir.
     const niv = prop.heros.map((h) => h.niveau).filter((v) => v !== null).sort((a, b) => a - b);
@@ -494,6 +510,8 @@ async function lancerImport(fichiers) {
       ...prop,
       profil: Object.fromEntries(Object.entries(compte.profil).map(([k, v]) => [k, { valeur: v, garder: true }])),
       stock: Object.fromEntries(Object.entries(compte.stock).map(([k, v]) => [k, { valeur: v, garder: true }])),
+      abonnements: Object.entries(abonnementsLus).map(([id, a]) => ({ id, ...a, garder: true })),
+      tentativesTrain,
     };
     imp.etat = "resultats";
   } catch (e) {
@@ -511,7 +529,7 @@ function appliquerImport() {
   let n = 0;
   for (const [k, x] of Object.entries(p.profil)) {
     if (!x.garder || x.valeur === "" || x.valeur == null) continue;
-    const nombre = ["niveau", "porte", "lit", "recherche", "vip", "puissance", "coffreCurios", "equipementNiveau", "palierEquipement"].includes(k);
+    const nombre = ["niveau", "porte", "lit", "recherche", "vip", "puissance", "coffreCurios", "equipementNiveau", "palierEquipement", "arretTrain"].includes(k);
     const v = nombre ? Number(String(x.valeur).replace(/[\s  ]/g, "")) : String(x.valeur).trim();
     if (nombre && !Number.isFinite(v)) continue;
     etat.joueur[k] = v; n++;
@@ -558,6 +576,16 @@ function appliquerImport() {
     etat[sorte][x.id] = { ...actuel, possede: !x.verrouille || actuel.possede, ...(x.niveau !== null && x.niveau !== "" && Number.isFinite(Number(x.niveau)) ? { niveau: Math.max(1, Number(x.niveau)) } : {}) };
     n++;
   }
+  for (const x of p.abonnements || []) {
+    if (!x.garder) continue;
+    const fin = x.actif && Number(x.jours) > 0 ? new Date(Date.now() + Number(x.jours) * 86400000).toISOString().slice(0, 10) : etat.abonnements[x.id]?.fin || "";
+    etat.abonnements[x.id] = { ...(etat.abonnements[x.id] || {}), actif: !!x.actif, fin: x.actif ? fin : "" };
+    n++;
+  }
+  if (p.tentativesTrain) {
+    if (etat.quotidien.date !== aujourdhui()) etat.quotidien = { date: aujourdhui(), coches: {} };
+    etat.quotidien.coches[TACHE_TRAIN] = p.tentativesTrain.restantes === 0;
+  }
   etat.joueur.majImport = new Date().toISOString();
   viderImport();
   fermer(); enregistrer();
@@ -580,7 +608,7 @@ const FEUILLES = {
     return ["Profil du joueur", `
       ${section("Identité", `${champTexte("p-pseudo", "Pseudo", "pseudo", j.pseudo, { ph: "Votre pseudo" })}${champTexte("p-id", "ID joueur", "idJoueur", j.idJoueur, { mode: "numeric", ph: "—" })}${champTexte("p-guilde", "Guilde", "guilde", j.guilde, { ph: "Aucune" })}`)}
       ${section("Progression", `${champStepper("Niveau", "joueur.niveau", j.niveau, 1)}${champTexte("p-etape", "Étape", "etape", j.etape, { ph: "Ex. 24-5" })}${champTexte("p-puiss", "Puissance", "puissance", j.puissance, { type: "number", mode: "numeric", ph: "—" })}${champTexte("p-vip", "VIP", "vip", j.vip, { type: "number", mode: "numeric", ph: "—" })}`)}
-      ${section("Équipement", `${champTexte("p-vault", "Curio Vault (niv.)", "coffreCurios", j.coffreCurios, { type: "number", mode: "numeric", ph: "—" })}${champTexte("p-gear", "Gear (amélioration)", "equipementNiveau", j.equipementNiveau, { type: "number", mode: "numeric", ph: "+—" })}${champTexte("p-tier", "Palier Gear (Tier)", "palierEquipement", j.palierEquipement, { type: "number", mode: "numeric", ph: "—" })}${champTexte("p-serveur", "Serveur", "serveur", j.serveur, { ph: "Ex. Europe" })}`,
+      ${section("Équipement", `${champTexte("p-vault", "Curio Vault (niv.)", "coffreCurios", j.coffreCurios, { type: "number", mode: "numeric", ph: "—" })}${champTexte("p-gear", "Gear (amélioration)", "equipementNiveau", j.equipementNiveau, { type: "number", mode: "numeric", ph: "+—" })}${champTexte("p-tier", "Palier Gear (Tier)", "palierEquipement", j.palierEquipement, { type: "number", mode: "numeric", ph: "—" })}${champTexte("p-train", "Infinity Train (Stop)", "arretTrain", j.arretTrain, { type: "number", mode: "numeric", ph: "—" })}${champTexte("p-serveur", "Serveur", "serveur", j.serveur, { ph: "Ex. Europe" })}`,
         { pied: `Curio Vault : ${esc(CURIO_VAULT.bonusParNiveau)}. Niveau 400 : ${esc(CURIO_VAULT.paliers[0].bonus)}.` })}
       ${section("Pièce", `${champStepper("Porte", "joueur.porte", j.porte)}${champStepper("Lit", "joueur.lit", j.lit)}${champStepper("Room Research", "joueur.recherche", j.recherche || 0)}${champStepper("Emplacements d'artefact", "joueur.emplacements", j.emplacements, 1)}`,
         { pied: "La Porte plafonne le Lit. Room Research relève les plafonds des deux. Les héros portent 4 curios : un set complet." })}`];

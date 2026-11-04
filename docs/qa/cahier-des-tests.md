@@ -120,6 +120,9 @@ Légende priorité : P1 bloquant, P2 majeur, P3 mineur.
 | BOU-01 | Activer une option et saisir sa date de fin | Jours restants affichés, conservé | P2 |
 | BOU-02 | Cocher un code cadeau, le copier | Coche conservée ; copie ou repli sans erreur | P3 |
 | BOU-03 | Ajouter une option personnalisée | Listée, avantages pris en compte par la Stratégie | P3 |
+| BOU-04 | Value Pass actif | Gains quotidiens cumulés, conseils Sweep, suggestion du Deluxe Pass | P3 |
+| TRN-01 | Infinity Train | Arrêt dans le profil et sur la carte, tâche « 10 tentatives » dans la routine | P3 |
+| REEL-02 | Vraies captures Value Pass et Infinity Train (local) | Passes souscrits / non souscrits, arrêt et tentatives lus | P2 |
 
 ### 4.8 Import par capture d'écran
 | ID | Cas | Attendu | P |

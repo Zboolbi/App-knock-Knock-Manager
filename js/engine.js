@@ -403,6 +403,22 @@ export function conseilsOffres(etat, aujourdhui = new Date()) {
   if (av.has("vitesse2x")) c.push({ niveau: "ok", texte: `${AVANTAGES.vitesse2x} : deux fois plus de combats par session, pensez à vider l'énergie.` });
   if (av.has("ressourcesQuotidiennes")) c.push({ niveau: "ok", texte: "Pass actif : connectez-vous chaque jour, une récompense manquée est perdue." });
   if (av.has("tirages")) c.push({ niveau: "ok", texte: "Tirages en réserve : visez la bannière qui a l'amplificateur ou le carry qui manque à votre équipe." });
+  if (av.has("sweep")) c.push({ niveau: "ok", texte: `${AVANTAGES.sweep} : balayez les étapes déjà battues et l'Infinity Train au lieu de les rejouer.` });
+  if (av.has("idle") || av.has("idle30")) c.push({ niveau: "ok", texte: "AFK amélioré : récupérez les gains avant que le plafond soit atteint, au moins deux fois par jour." });
+  if (av.has("staminaMax")) c.push({ niveau: "ok", texte: `${AVANTAGES.staminaMax} : la Stamina déborde moins, mais videz-la quand même chaque jour.` });
+  if (av.has("guildeTech")) c.push({ niveau: "ok", texte: `${AVANTAGES.guildeTech} : gardez deux recherches de guilde en cours.` });
+  // Gains quotidiens cumulés des passes actifs.
+  const parJour = {};
+  for (const o of actives) for (const [k, v] of Object.entries(o.journalier || {})) parJour[k] = (parJour[k] || 0) + v;
+  const NOMS = { diamants: "diamants", or: "or", endurance: "Stamina" };
+  if (Object.keys(parJour).length) {
+    const jours = Math.max(0, ...actives.filter((o) => o.journalier && o.joursRestants != null).map((o) => o.joursRestants));
+    c.push({ niveau: "or", texte: `Passes : chaque jour ${Object.entries(parJour).map(([k, v]) => `${v} ${NOMS[k] || k}`).join(", ")} à récupérer${jours ? ` (encore ${jours} j, soit ${parJour.diamants ? parJour.diamants * jours : 0} diamants)` : ""}.` });
+  }
+  const offres = catalogue(etat).offres || [];
+  const deluxe = offres.find((o) => o.id === "deluxe-pass");
+  if (deluxe && !actives.some((o) => o.id === "deluxe-pass") && actives.some((o) => o.id === "value-pass"))
+    c.push({ niveau: "info", texte: `Deluxe Pass non souscrit (${deluxe.prix}) : il ajoute le combat AFK, +20 de Stamina max, +30 % de gains d'AFK, 600 diamants puis 20 par jour.` });
   if (!actives.length) c.push({ niveau: "info", texte: "Aucune option payante : misez sur les codes cadeaux, les tâches quotidiennes et la boutique d'événement." });
   else if (!av.has("auto")) c.push({ niveau: "info", texte: "Sans combat auto, gardez les combats manuels pour les boss et faites les étapes faciles en série." });
   return c;

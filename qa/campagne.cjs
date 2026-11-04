@@ -441,7 +441,7 @@ async function main() {
   });
   await cas("STR-06", "Abonnement qui expire", async () => {
     const fin = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
-    const p = await page(avec((e) => { e.abonnements.abonnement = { actif: true, fin }; }));
+    const p = await page(avec((e) => { e.abonnements["deluxe-pass"] = { actif: true, fin }; }));
     await p.click(".onglets [data-onglet=strategie]");
     const ok = await p.getByText("expire dans", { exact: false }).count() >= 1 && await p.getByText("Combat automatique", { exact: false }).count() >= 1;
     verifier(ok, "alerte ou conseil auto absent");
@@ -677,7 +677,7 @@ async function main() {
     await cas("REEL-01", "16 vraies captures du jeu (anglais)", async () => {
       const p = await page(null);
       await p.click("#actions-haut [data-f=import]");
-      const fichiers = fs.readdirSync(dossierReel).filter((f) => /\.png$/i.test(f)).map((f) => path.join(dossierReel, f));
+      const fichiers = fs.readdirSync(dossierReel).filter((f) => /^\d{2}\.png$/i.test(f)).map((f) => path.join(dossierReel, f));
       await p.setInputFiles(".feuille input[data-import-captures]", fichiers);
       await p.waitForSelector(".feuille [data-act=import-recommencer]", { timeout: 600000 });
       await p.click("[data-act=import-appliquer]");
@@ -691,6 +691,39 @@ async function main() {
       return `31 héros (${niveaux} avec le bon niveau 67), 29 curios, 5 pièges, 4 bêtes, ressources et profil justes`;
     });
   }
+
+  if (fs.existsSync(path.join(dossierReel, "17-value-pass.png"))) {
+    await cas("REEL-02", "Vraies captures Value Pass et Infinity Train", async () => {
+      const p = await page(null);
+      await p.click("#actions-haut [data-f=import]");
+      await p.setInputFiles(".feuille input[data-import-captures]", ["17-value-pass.png", "18-infinity-train.png"].map((f) => path.join(dossierReel, f)));
+      await p.waitForSelector(".feuille [data-act=import-recommencer]", { timeout: 300000 });
+      const texte = await p.textContent(".feuille");
+      await p.click("[data-act=import-appliquer]");
+      const e = await p.etat();
+      const ok = e.abonnements["value-pass"]?.actif === true && e.abonnements["deluxe-pass"]?.actif === false && Number(e.joueur.arretTrain) > 0 && /Tentatives du jour : \d+\/10/.test(texte);
+      verifier(ok, JSON.stringify({ ab: e.abonnements, stop: e.joueur.arretTrain }));
+      await p.ctx.close();
+      return "Value Pass souscrit, Deluxe non souscrit, arrêt et tentatives du train lus";
+    });
+  }
+  await cas("BOU-04", "Passes : gains quotidiens et suggestion du Deluxe", async () => {
+    const fin = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
+    const p = await page(avec((e) => { e.abonnements["value-pass"] = { actif: true, fin }; }));
+    await p.click(".onglets [data-onglet=strategie]");
+    const t = await p.textContent("main");
+    verifier(/chaque jour 10 diamants/.test(t) && /Deluxe Pass non souscrit/.test(t) && /Quick Sweeps/.test(t), "conseils de passes absents");
+    await p.ctx.close();
+  });
+  await cas("TRN-01", "Infinity Train : champ du profil et tâche du jour", async () => {
+    const p = await page(null);
+    await p.click(".carte-profil [data-f=profil]");
+    await p.fill("#p-train", "40"); await p.press("#p-train", "Tab"); await p.fermerFeuille();
+    const carte = await p.textContent(".carte-profil");
+    const tache = await p.getByText("Infinity Train : utiliser les 10 tentatives", { exact: false }).count();
+    verifier(carte.includes("Stop 40") && tache === 1, `carte « ${carte.replace(/\s+/g, " ").slice(0, 120)} », tâche ${tache}`);
+    await p.ctx.close();
+  });
 
   /* ---------- 4.9 Données ---------- */
   await cas("DON-01", "Rechargement", async () => {

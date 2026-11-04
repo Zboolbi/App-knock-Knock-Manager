@@ -10,7 +10,7 @@ export function etatInitial() {
     version: 2,
     joueur: { pseudo: "", idJoueur: "", niveau: 1, guilde: "", puissance: "", vip: "", etape: "", chapitre: "",
       porte: 1, lit: 1, recherche: "", emplacements: 4, majImport: "",
-      coffreCurios: "", equipementNiveau: "", palierEquipement: "", serveur: "" },
+      coffreCurios: "", equipementNiveau: "", palierEquipement: "", serveur: "", arretTrain: "" },
     pieges: {},           // { idPiege: { possede, niveau, etoiles, deploye } }
     betes: {},
     stock: {},            // ressources du compte : { diamants: 1234, ... }

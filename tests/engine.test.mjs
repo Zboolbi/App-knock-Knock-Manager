@@ -109,7 +109,7 @@ test("skin à bonus : compte dans la puissance et est suggéré", () => {
 
 test("options payantes : conseils auto et alerte d'expiration", () => {
   const e = etatInitial();
-  e.abonnements.abonnement = { actif: true, fin: "2026-11-06" };
+  e.abonnements["deluxe-pass"] = { actif: true, fin: "2026-11-06" };
   const c = conseilsOffres(e, new Date("2026-11-04"));
   assert.ok(c.some((x) => /auto/.test(x.texte)));
   assert.ok(c.some((x) => /expire dans 2 j/.test(x.texte)));
@@ -160,4 +160,15 @@ test("plan : Curio Vault 400 et 3e place de bête", () => {
   const plan = planProgression(e);
   assert.ok(plan.some((x) => /Curio Vault : 392 → 400/.test(x.titre)));
   assert.ok(plan.some((x) => /Main Stage 220/.test(x.titre)));
+});
+
+test("passes : gains quotidiens cumulés et suggestion du Deluxe", () => {
+  const e = etatInitial();
+  e.abonnements["value-pass"] = { actif: true, fin: "2026-11-14" };
+  const c = conseilsOffres(e, new Date("2026-11-04"));
+  assert.ok(c.some((x) => /chaque jour 10 diamants, 30 Stamina, 100 or/.test(x.texte) && /10 j, soit 100 diamants/.test(x.texte)));
+  assert.ok(c.some((x) => /Deluxe Pass non souscrit/.test(x.texte)));
+  assert.ok(c.some((x) => /Quick Sweeps/.test(x.texte)));
+  e.abonnements["deluxe-pass"] = { actif: true, fin: "2026-11-14" };
+  assert.ok(conseilsOffres(e, new Date("2026-11-04")).some((x) => /chaque jour 30 diamants, 30 Stamina, 300 or/.test(x.texte)));
 });

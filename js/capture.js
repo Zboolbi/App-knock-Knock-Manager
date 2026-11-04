@@ -319,7 +319,7 @@ export function ordonnerParCartes(elements, catalogue) {
  */
 export function lireEcrans(elements, dims) {
   const p = {}, stock = {};
-  if (!elements?.length || !dims?.hauteur) return { profil: p, stock };
+  if (!elements?.length || !dims?.hauteur) return { profil: p, stock, abonnements: {} };
   const W = dims.largeur, H = dims.hauteur;
   const tout = elements.map((e) => e.texte).join(" ");
   const n = normaliser(tout);
@@ -344,8 +344,27 @@ export function lireEcrans(elements, dims) {
     if (ordre.length >= 3) { stock.cuir = ordre[0].q; stock.or = ordre[1].q; stock.flammeAme = ordre[2].q; }
   }
   const vault = n.match(/curio vault\s*[:.]?\s*(\d{1,4})/); if (vault) p.coffreCurios = Number(vault[1]);
+  // Écran des passes : colonne de gauche = Value Pass, droite = Deluxe Pass.
+  const abonnements = {};
+  if (/value pa/.test(n) && /deluxe/.test(n)) {
+    for (const [id, gauche] of [["value-pass", true], ["deluxe-pass", false]]) {
+      const col = normaliser(elements.filter((e) => (e.x0 + e.x1) / 2 < W / 2 === gauche && e.y0 > H * 0.5).map((e) => e.texte).join(" "));
+      const actif = /\b(renew|claimable|renouveler)\b/.test(col);
+      const inactif = /(not\s*sub|\bnet\s*sub|\$\s*\d|non souscrit)/.test(col);
+      if (actif || inactif) {
+        const jours = col.match(/(\d{1,3})\s*(?:days?|jours?)\b/);
+        abonnements[id] = { actif: actif && !inactif, ...(jours && actif ? { jours: Number(jours[1]) } : {}) };
+      }
+    }
+  }
+  // Infinity Train : arrêt atteint et tentatives du jour.
+  const tri = normaliser([...elements].sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0).map((e) => e.texte).join(" "));
+  if (/infinity train/.test(tri)) {
+    const stop = tri.match(/\bstop\s*(\d{1,5})/); if (stop) p.arretTrain = Number(stop[1]);
+    const rec = tri.match(/reward attempts?\s*:?\s*(\d{1,2})\s*\/\s*(\d{1,2})/); if (rec) p.tentativesTrain = { restantes: Number(rec[1]), total: Number(rec[2]) };
+  }
   const serveur = n.match(/online_(\w+?)_(\w+?)_/); if (serveur) p.serveur = `${serveur[2]} (${serveur[1]})`;
-  return { profil: p, stock };
+  return { profil: p, stock, abonnements };
 }
 
 /** Quantité lue : « 12,500 », « 12 500 », « 12.5K », « 1,2 M », « 3B ». */

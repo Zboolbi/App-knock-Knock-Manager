@@ -33,8 +33,8 @@
 | `js/capture.js` | Analyse du texte des captures (héros, curios, pièges, bêtes, profil, ressources, écrans à chiffres sans libellé) |
 | `js/ocr.js` | Tesseract.js embarqué (`vendor/`, eng+fra), **2 passes** (textes clairs / textes colorés), image jamais conservée |
 | `js/app.js` | Interface (vues, feuilles, import, événements) |
-| `tests/*.mjs` | 31 tests unitaires (`npm test`) |
-| `qa/campagne.cjs` | 77 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
+| `tests/*.mjs` | 34 tests unitaires (`npm test`) |
+| `qa/campagne.cjs` | 80 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
 | `docs/qa/` | Cahier des tests, résultats, anomalies, diagnostic |
 | `outils/build.py` | Page unique + archive PWA (`dist/`) |
 
@@ -46,13 +46,15 @@
 - **Pièges** : Iron Fist (Stun), Blood Hammer, Molten Furnace (Burn), Lethal Fence (Paralyze), Demon Spike ; verrouillés : Doomsday Cyborg, Calamity Altar, Metarooster (50 fragments). 3 déployés max.
 - **Bêtes** : Titan Mammoth, Dreamweaver Spider, Colossal Ape, Alien Critter ; verrouillées : Wings of Death, Cyanic Tyrant, Scavenger Kraken, Storm Griffin. 2 places, 3e à **Main Stage 220**.
 - **Ressources** : Diamants, Or, Stamina (viande), Leather (amélioration Gear), Soul Flame (orbe violet), Hero Pact. Tirage ×10 = 2 200 diamants.
-- **Modes** : Main Stage, AFK, Infinity Fort, Dimension Link, Capital Defense, Phantom Killzone (12-14 h), Arena, événements.
+- **Modes** : Main Stage, AFK, Infinity Fort, **Infinity Train** (arrêts « Stop N », 10 tentatives de récompense + 10 d'étape par jour, Sweep, Exchange Shop, récompenses vagues 1-5), Dimension Link, Capital Defense, Phantom Killzone (12-14 h), Arena, événements.
+- **Passes** : **Value Pass** (300 diamants, vitesse x2, AFK +4 h, Quick Sweeps illimités, Multi-Stamina Sweep ; par jour 10 diamants, 30 Stamina, 100 or) · **Deluxe Pass** 10,99 $ (600 diamants, Battle AFK Mode, Stamina max +20, AFK +30 %, 2e Guild Tech ; par jour 20 diamants, 1 parchemin, 200 or). La vitesse x2 et l'AFK viennent des passes, pas de Privileges.
 - **Offres** (écran principal) : Privileges, Ad-Free, Super Value Fund, 1st Top-Up, Midnight Gift, Shadow Recruitment, Link Celebration, Community Offers, Check-In, Featured Events.
 
 ## 6. Profil réel de l'utilisateur (dernier import)
 Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 18) · Diamants 352 · Or 16,63 K · Stamina 274 · Leather 5,55 K · Soul Flame 925 · 31 héros (niv. 67-68) · 29 curios (Wild Rhapsody 0/4) · 5 pièges · 4 bêtes.
 
 ## 7. Import par capture — état de la lecture (16 vraies captures)
+- ✔ Écran Value Pass (souscrit si « Renew » / « Claimable » dans la colonne, non souscrit si « Not Subscribed » / prix ; jours restants si lisibles), écran Infinity Train (arrêt, tentatives du jour → coche la tâche si 0 restante).
 - ✔ Noms des 31 héros, niveaux (« Lv.67 » au-dessus du nom), curios possédés (les non possédés, grisés, ne sont pas lus), pièges et bêtes (verrous « 0/50 »), écran principal (chiffres sans libellé repérés par position), écran Gear, Curio Vault, serveur.
 - ✘ Non lisible : **étoiles** (icônes), **promotion** (chiffre du losange vert), noms des 5 héros de l'équipe principale, niveaux de certaines bêtes. Niveaux incohérents écartés automatiquement.
 - Durée : ~7 s par capture sur ordinateur (2 passes).
@@ -69,4 +71,5 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 | 04/11 | V1 : PWA 6 onglets (plan, héros, boss, artefacts, ressources, données). |
 | 04/11 | V2 : refonte façon Instagram, import OCR (eng+fra), publication GitHub Pages. |
 | 04/11 | V3 : refonte Apple noir/blanc/or, import complet du profil, campagne QA 71 cas (10 anomalies corrigées). |
+| 04/11 | V5 : Value Pass / Deluxe Pass (contenu, gains quotidiens, import de l'écran), Infinity Train (mode, arrêt dans le profil, tâche du jour, import), QA 80/80. Valeurs du joueur non figées dans les tests. |
 | 04/11 | V4 : données réelles du jeu (curios et sets, pièges, bêtes, 31 héros, raretés R/SSR/UR/CR), OCR 2 passes, écrans sans libellé, logo original, QA 77/77 avec 16 vraies captures. |

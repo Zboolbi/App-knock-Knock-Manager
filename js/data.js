@@ -223,10 +223,16 @@ export const SKINS_DEPART = [];
 
 // Options payantes repérées. Les prix ne sont publiés que pour deux packs.
 export const OFFRES_DEPART = [
+  { id: "value-pass", nom: "Value Pass", categorie: "pass", prix: "Boutique du jeu (renouvelable)",
+    contenu: "À la souscription : 300 diamants. Vitesse de combat x2, plafond d'AFK +4 h, Quick Sweeps illimités, Multi-Stamina Sweep. Chaque jour : 10 diamants, 30 Stamina, 100 or.",
+    avantages: ["vitesse2x", "sweep", "idle", "ressourcesQuotidiennes"], journalier: { diamants: 10, endurance: 30, or: 100 }, bonusSouscription: { diamants: 300 }, source: "Écran Value Pass" },
+  { id: "deluxe-pass", nom: "Deluxe Pass", categorie: "pass", prix: "10,99 $",
+    contenu: "À la souscription : 600 diamants. Battle AFK Mode (combat automatique), Story Stamina cap +20, Story idle rewards +30 %, 2e emplacement de Guild Tech. Chaque jour : 20 diamants, 1 parchemin, 200 or.",
+    avantages: ["auto", "staminaMax", "idle30", "guildeTech", "ressourcesQuotidiennes"], journalier: { diamants: 20, or: 200 }, bonusSouscription: { diamants: 600 }, source: "Écran Value Pass" },
   { id: "abonnement", nom: "Privileges", categorie: "abonnement", prix: "Mensuel, 3 mois ou 1 an : prix dans la boutique du jeu",
-    contenu: "Selon un avis App Store, débloque la vitesse x2 et le combat automatique.", avantages: ["auto", "vitesse2x"], source: "Écran principal, fiche Google Play" },
+    contenu: "Avantages détaillés dans la boutique du jeu. La vitesse x2 et le combat AFK viennent des passes (Value Pass, Deluxe Pass).", avantages: [], source: "Écran principal, fiche Google Play" },
   { id: "ad-free", nom: "Ad-Free", categorie: "abonnement", prix: "Boutique du jeu", contenu: "Supprime les publicités.", avantages: ["sansPub"], source: "Écran principal" },
-  { id: "value-pass", nom: "Super Value Fund", categorie: "pass", prix: "Boutique du jeu", contenu: "Fonds à récompenses progressives.", avantages: ["ressourcesQuotidiennes"], source: "Écran principal" },
+  { id: "super-value-fund", nom: "Super Value Fund", categorie: "pass", prix: "Boutique du jeu", contenu: "Fonds à récompenses progressives.", avantages: ["ressourcesQuotidiennes"], source: "Écran principal" },
   { id: "first-top-up", nom: "1st Top-Up", categorie: "pack", prix: "Premier achat", contenu: "Bonus du premier achat.", avantages: ["tirages"], source: "Écran principal" },
   { id: "midnight-gift", nom: "Midnight Gift", categorie: "pack", prix: "Boutique du jeu", contenu: "", avantages: [], source: "Écran principal" },
   { id: "shadow-recruitment", nom: "Shadow Recruitment", categorie: "evenement", prix: "Variable", contenu: "Recrutement de héros en événement.", avantages: ["tirages"], source: "Écran principal" },
@@ -247,6 +253,11 @@ export const AVANTAGES = {
   materiaux: "Matériaux de progression",
   tirages: "Tirages de héros",
   sansPub: "Sans publicité",
+  sweep: "Quick Sweeps illimités",
+  idle: "Plafond d'AFK +4 h",
+  staminaMax: "Stamina max +20",
+  idle30: "Gains d'AFK +30 %",
+  guildeTech: "2e emplacement Guild Tech",
 };
 
 export const CONSEILS_SOURCES = [
@@ -290,6 +301,7 @@ export const MODES = [
   { id: "campagne", nom: "Campagne (Main Stage)", note: "Débloque les autres modes. Main Stage 220 ouvre la 3e place de bête." },
   { id: "afk", nom: "AFK", note: "Gains passifs : récupérez-les plusieurs fois par jour." },
   { id: "infinity-fort", nom: "Infinity Fort", note: "Mode à étages." },
+  { id: "infinity-train", nom: "Infinity Train", note: "Arrêts (« Stop ») successifs. Chaque jour : 10 tentatives de récompense et 10 tentatives d'étape, remises à zéro au rafraîchissement. Sweep pour les arrêts déjà battus. Récompenses de progression aux vagues 1 à 5 (flammes, tickets, parchemin) ; tickets à dépenser dans l'Exchange Shop." },
   { id: "dimension-link", nom: "Dimension Link", note: "" },
   { id: "capital-defense", nom: "Capital Defense", note: "Mode saisonnier." },
   { id: "phantom-killzone", nom: "Phantom Killzone", note: "Ouvert de 12:00 à 14:00." },
