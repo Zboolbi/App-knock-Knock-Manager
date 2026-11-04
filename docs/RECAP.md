@@ -13,7 +13,7 @@
 ## 2. Design (demandé par l'utilisateur)
 - Style **Apple** (listes groupées, grands titres, feuilles modales, contrôle segmenté), pratique comme une app de gestion.
 - **Fond noir, textes blancs, titres dorés** (`--or: #d8b45a`). Thème unique sombre.
-- Logo : **logo du jeu fourni par l'utilisateur** (`assets/logo-jeu.png`, détouré) à la place du titre, « MANAGER » dessous. Fond : tête-citrouille (`assets/fond.jpg`) en transparence (22 %). Icône d'app « K » : fournie mais **pas encore reçue en fichier** (icône actuelle : porte).
+- Logo : **logo du jeu fourni par l'utilisateur** (`assets/logo-jeu.png`, détouré) à la place du titre, « MANAGER » dessous. Fond : tête-citrouille (`assets/fond.jpg`) en transparence (22 %). Icône d'app (écran d'accueil uniquement) : « K » orange + tête-citrouille (`icons/`, 180/192/512 + maskable Android, coins comblés en #1f2125).
 
 ## 3. Onglets
 | Onglet | Contenu |
@@ -75,6 +75,7 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 | 04/11 | V1 : PWA 6 onglets (plan, héros, boss, artefacts, ressources, données). |
 | 04/11 | V2 : refonte façon Instagram, import OCR (eng+fra), publication GitHub Pages. |
 | 04/11 | V3 : refonte Apple noir/blanc/or, import complet du profil, campagne QA 71 cas (10 anomalies corrigées). |
+| 04/11 | V7.1 : icône d'app « K » (iPhone, Android, favicon). |
 | 04/11 | V7 : étoiles des curios et niveaux des pièges/bêtes lus sur l'image, bouton « Enregistrer » fixe dans les résultats, coches non barrées, clavier iOS géré, barre d'onglets fixe, carte joueur lisible (Train/Gear), Porte/Lit inconnus détectés, logo du jeu + fond citrouille, QA 87/87. |
 | 04/11 | V6.1 : correction de l'adresse (404) : le chemin GitHub Pages respecte la casse du dépôt → `/App-knock-Knock-Manager/` ; l'app utilise désormais son adresse réelle. |
 | 04/11 | V6 : bouton « Installer l'app » adapté à l'appareil (Android natif, iPhone guidé, navigateurs intégrés), QA 84/84. |
