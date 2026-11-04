@@ -33,8 +33,8 @@
 | `js/capture.js` | Analyse du texte des captures (héros, curios, pièges, bêtes, profil, ressources, écrans à chiffres sans libellé) |
 | `js/ocr.js` | Tesseract.js embarqué (`vendor/`, eng+fra), **2 passes** (textes clairs / textes colorés), image jamais conservée |
 | `js/app.js` | Interface (vues, feuilles, import, événements) |
-| `tests/*.mjs` | 38 tests unitaires (`npm test`) |
-| `qa/campagne.cjs` | 92 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
+| `tests/*.mjs` | 39 tests unitaires (`npm test`) |
+| `qa/campagne.cjs` | 99 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
 | `docs/qa/` | Cahier des tests, résultats, anomalies, diagnostic |
 | `outils/build.py` | Page unique + archive PWA (`dist/`) |
 
@@ -75,6 +75,7 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 | 04/11 | V1 : PWA 6 onglets (plan, héros, boss, artefacts, ressources, données). |
 | 04/11 | V2 : refonte façon Instagram, import OCR (eng+fra), publication GitHub Pages. |
 | 04/11 | V3 : refonte Apple noir/blanc/or, import complet du profil, campagne QA 71 cas (10 anomalies corrigées). |
+| 04/11 | V8.2 : revue de code (10 corrections) : « Équiper ces sets » ne vide plus un héros sans pièce, moteur OCR toujours remis en lecture normale, plan d'accueil et pastille sur le même calcul (`curiosAChanger`), date locale (routine à minuit), héros joués marqués obtenus, code mort retiré. QA 99/99 (feuilles, routine, déploiements, limite d'équipe, mauvais écran d'équipe). |
 | 04/11 | V8.1 : interrupteurs (Je l'ai, Dans mon équipe…) remis à la taille iOS 51×31 (étirés par `.champ input`), QA 92/92. |
 | 04/11 | V8 : Stratégie refondue en coaching long terme (Noyau, Curios, Boss, Investir ; « Prochaines étapes » retirée), import de la capture d'équipe, choix d'équipe parmi tous les héros (Archmage, Cannon Girl, Poseidon, Frosthealer…), Cannon Girl ajoutée, QA 91/91. |
 | 04/11 | V7.1 : icône d'app « K » (iPhone, Android, favicon). |

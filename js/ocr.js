@@ -123,10 +123,15 @@ export async function relireNiveau(m, canvas, e, sorte, debug) {
     ? [cx - W * 0.005, e.y0 - W * 0.24, W * 0.125, W * 0.07]
     : [cx - W * 0.12, e.y0 - W * 0.27, W * 0.24, W * 0.14];
   const petit = preparer(canvas, "clair", zone.map((v, i) => (i < 2 ? Math.max(0, v) : v)), 3);
-  await m.setParameters({ tessedit_pageseg_mode: sorte === "betes" ? "7" : "6", tessedit_char_whitelist: "Lv.0123456789 " });
-  const { data } = await m.recognize(petit);
-  await m.setParameters({ tessedit_pageseg_mode: "11", tessedit_char_whitelist: "" });
-  petit.width = petit.height = 0;
+  let data;
+  try {
+    await m.setParameters({ tessedit_pageseg_mode: sorte === "betes" ? "7" : "6", tessedit_char_whitelist: "Lv.0123456789 " });
+    ({ data } = await m.recognize(petit));
+  } finally {
+    // Toujours rendre au moteur sa lecture normale, sinon les captures suivantes ne liraient plus que des chiffres.
+    await m.setParameters({ tessedit_pageseg_mode: "11", tessedit_char_whitelist: "" });
+    petit.width = petit.height = 0;
+  }
   // « 1v10 » : le L de « Lv » est souvent lu comme un 1.
   const t = (data.text || "").replace(/\s+/g, " ").trim().replace(/(^|\s)[1lI|]v\.?/g, "$1Lv.");
   if (debug) debug.push(t);
@@ -211,6 +216,7 @@ export async function lireEquipe(fichier, progression) {
   const lus = (data.lines || []).filter((l) => l.bbox.y0 < H * 0.3).map((l) => ({ cx: (l.bbox.x0 + l.bbox.x1) / 2, v: niv(l.text) })).filter((x) => x.v !== null && x.v >= 10);
   // 5 cartes de même largeur sur toute la largeur de l'écran (géométrie fixe du jeu).
   const resultat = [];
+  try {
   await m.setParameters({ tessedit_pageseg_mode: "7", tessedit_char_whitelist: "Lv.0123456789 " });
   for (let k = 0; k < 5; k++) {
     const cx = W * (0.110 + k * 0.1935);
@@ -228,7 +234,9 @@ export async function lireEquipe(fichier, progression) {
     resultat.push({ vignette: v.toDataURL("image/jpeg", 0.8), niveau: deja ? deja.v : n ? Number(n[1]) : null });
     v.width = v.height = 0;
   }
-  await m.setParameters({ tessedit_pageseg_mode: "11", tessedit_char_whitelist: "" });
+  } finally {
+    await m.setParameters({ tessedit_pageseg_mode: "11", tessedit_char_whitelist: "" });
+  }
   // Niveau manquant : celui des autres cartes (une équipe est montée au même niveau), signalé « à vérifier ».
   const connus = resultat.map((r) => r.niveau).filter(Boolean).sort((a, b) => a - b);
   const median = connus.length ? connus[Math.floor(connus.length / 2)] : null;

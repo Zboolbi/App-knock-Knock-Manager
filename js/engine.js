@@ -342,8 +342,8 @@ export function planProgression(etat) {
     etapes.push({ priorite: 5, titre: `Arrêtez d'investir dans ${gaspilles.length} héros hors équipe`, detail: `${noms} : gardez-les pour les boss qui craignent leurs effets.` });
   }
 
-  const conf = configurationArtefacts(etat, coeur);
-  if (conf.aChanger) etapes.push({ priorite: 2, titre: `${conf.aChanger} héros avec de meilleurs curios disponibles`, detail: "Stratégie › Curios › « Appliquer »." });
+  const aChanger = curiosAChanger(etat).length;
+  if (aChanger) etapes.push({ priorite: 2, titre: `${aChanger} héros avec de meilleurs curios disponibles`, detail: "Stratégie › Curios › « Équiper ces sets »." });
 
   const coffre = Number(j.coffreCurios) || 0;
   for (const pal of CURIO_VAULT.paliers) {
@@ -482,6 +482,21 @@ export function coachCurios(etat) {
     const raison = set.affinite.effet ? (h.effet === set.affinite.effet ? `${h.nom} applique ${EFFETS[h.effet]} : le set en profite à chaque fois.` : "Meilleur set disponible pour ce héros.")
       : set.affinite.roles.includes(h.role) ? `Adapté à un héros ${ROLES[h.role].toLowerCase()}.` : "Meilleur set encore libre pour ce héros.";
     return { hero: h, set: meilleur.id, nomSet: set.nom, effet: set.effet, raison, pieces, complet: pieces.every((p) => p.possede) };
+  });
+}
+
+/** Héros de l'équipe qui ne portent pas les pièces possédées de leur set conseillé. */
+export function curiosAChanger(etat, plan = coachCurios(etat)) {
+  const refs = new Map((etat?.inventaire || []).map((i) => [i.id, i.ref]));
+  const parRef = new Map((etat?.inventaire || []).map((i) => [i.ref, i.id]));
+  const curios = (catalogue(etat).artefacts || []).filter((a) => a.set);
+  const emplacements = Number(etat?.joueur?.emplacements) || 4;
+  return plan.filter((x) => {
+    if (!x.set) return false;
+    const voulus = curios.filter((c) => c.set === x.set && parRef.has(c.id)).sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete)).slice(0, emplacements).map((c) => c.id);
+    if (!voulus.length) return false;
+    const portes = new Set(progression(etat, x.hero.id).artefacts.map((id) => refs.get(id)));
+    return voulus.some((ref) => !portes.has(ref));
   });
 }
 

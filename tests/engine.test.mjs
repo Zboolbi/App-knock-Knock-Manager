@@ -215,3 +215,15 @@ test("coaching : boss, diamants et jalons", async () => {
   const j = coachJalons(e).map((x) => x.titre);
   assert.ok(j.some((t) => /Curio Vault 392 → 400/.test(t)) && j.some((t) => /Main Stage 176 → 220/.test(t)));
 });
+
+test("curios à changer : même calcul pour le plan et la pastille, à zéro une fois les sets portés", async () => {
+  const { curiosAChanger } = await import("../js/engine.js");
+  const e = etatAvec(["bride-wraith", "ghost-captain"], { equipe: ["bride-wraith", "ghost-captain"] });
+  ["purgatory-oven", "ghost-lighter", "gore-grinder", "rusty-knife"].forEach((r, i) => e.inventaire.push({ id: `c${i}`, ref: r, etoiles: 2 }));
+  assert.equal(curiosAChanger(e).length, 2);
+  assert.ok(planProgression(e).some((x) => /2 héros avec de meilleurs curios/.test(x.titre) && /Équiper ces sets/.test(x.detail)));
+  e.roster["bride-wraith"].artefacts = ["c0", "c1"];
+  e.roster["ghost-captain"].artefacts = ["c2", "c3"];
+  assert.equal(curiosAChanger(e).length, 0);
+  assert.ok(!planProgression(e).some((x) => /meilleurs curios/.test(x.titre)));
+});

@@ -52,3 +52,15 @@ Passe 3 : 74/77. Passe 4 : **77/77**. Les nouveaux cas couvrent les curios (CUR-
 | AN-16 | « Or » suivi du montant à la ligne suivante n'était plus lu (régression). | Règle anti-faux positifs trop stricte. | Mot seul sur sa ligne accepté. Test unitaire ajouté. | Corrigé |
 | AN-17 | Chiffre de promotion (losange vert) lu de façon erratique. | Chiffre isolé sur un dessin. | Plus proposé (mieux vaut vide que faux). | Contourné |
 | AN-18 | Cas de test ART-01 et IMP-04 en échec. | Script resté sur l'ancienne interface (bouton déplacé, raretés renommées). | Script mis à jour. | Corrigé (test) |
+
+
+## Revue de code V8.2 (04/11)
+| # | Gravité | Anomalie | Correction |
+|---|---|---|---|
+| RC-01 | Majeure | « Équiper ces sets » vidait les curios d'un héros dont le set conseillé n'avait aucune pièce possédée | Héros ignoré s'il n'a aucune pièce du set (STR-11) |
+| RC-02 | Majeure | Erreur pendant une relecture en gros plan : le moteur OCR restait en « chiffres seulement » | `try/finally` dans `relireNiveau` et `lireEquipe` |
+| RC-03 | Mineure | Accueil : « N héros avec de meilleurs curios » restait affiché après avoir équipé les sets | Plan et pastille sur `curiosAChanger` |
+| RC-04 | Mineure | Routine remise à zéro à 1-2 h du matin (date UTC) | Date locale (ROU-01) |
+| RC-05 | Mineure | Héros d'une équipe appliquée par bouton restés « non obtenus » | `definirEquipe` (STR-12) |
+| RC-06 | Mineure | Texte « les étoiles ne se lisent pas » obsolète | Texte corrigé |
+| RC-07..10 | Code | Code mort, calculs répétés à chaque rendu, boucle inutile | Nettoyés |

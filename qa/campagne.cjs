@@ -485,6 +485,27 @@ async function main() {
     await p.ctx.close();
   });
 
+  await cas("STR-11", "« Équiper ces sets » ne vide pas un héros sans pièce de son set", async () => {
+    const p = await page(avec((e) => { possede(e, ["bride-wraith", "ghost-captain"]); e.equipe = ["bride-wraith", "ghost-captain"];
+      ["purgatory-oven", "ghost-lighter"].forEach((r, i) => e.inventaire.push({ id: `k${i}`, ref: r, etoiles: 2 }));
+      e.catalogue.artefacts.push({ id: "perso-anneau", nom: "Vieil anneau", stat: "patk", rarete: "R", effet: "" });
+      e.inventaire.push({ id: "autre", ref: "perso-anneau" }); e.roster["ghost-captain"].artefacts = ["autre"]; }));
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=curios]"); await p.click("[data-act=appliquer-sets]");
+    const e = await p.etat();
+    await p.click(".onglets [data-onglet=accueil]");
+    const plan = await p.textContent("main");
+    verifier(e.roster["bride-wraith"].artefacts.length === 2 && e.roster["ghost-captain"].artefacts.join() === "autre" && !/meilleurs curios/.test(plan),
+      JSON.stringify({ bw: e.roster["bride-wraith"].artefacts, gc: e.roster["ghost-captain"].artefacts }));
+    await p.ctx.close();
+  });
+  await cas("STR-12", "« Jouer cette équipe » marque les héros joués comme obtenus", async () => {
+    const p = await page(null);
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=boss]");
+    await p.click("[data-act=equipe-type] >> nth=0");
+    const e = await p.etat();
+    verifier(e.equipe.length === 5 && e.equipe.every((id) => e.roster[id]?.possede && e.roster[id].niveauInconnu), JSON.stringify(e.equipe));
+    await p.ctx.close();
+  });
   await cas("STR-09", "Noyau : ordre d'investissement et objectif de palier", async () => {
     const ids = ["cannon-girl", "spiker", "frosthealer", "poseidon", "archmage"];
     const p = await page(avec((e) => { possede(e, ids, { promotion: 5 }); e.equipe = ids; }));
@@ -521,6 +542,77 @@ async function main() {
     await p.waitForSelector(".feuille .interrupteur");
     const tailles = await p.$$eval(".feuille .interrupteur", (els) => els.map((e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; }));
     verifier(tailles.length >= 2 && tailles.every((t) => t === "51x31"), tailles.join());
+    await p.ctx.close();
+  });
+
+  await cas("FEU-01", "Chaque feuille de l'app s'ouvre sans erreur (profil vide et profil rempli)", async () => {
+    const feuilles = [["import"], ["import-equipe"], ["reglages"], ["profil"], ["ressources"], ["equipe"], ["hero", "spiker"], ["hero", "cannon-girl"],
+      ["fiche-hero", ""], ["fiche-hero", "spiker"], ["ajout-artefact"], ["artefact", "k0"], ["compagnon", "pieges:iron-fist"], ["compagnon", "betes:titan-mammoth"],
+      ["fiche-skin", ""], ["boss", "modele-vagues"], ["fiche-boss", ""], ["fiche-boss", "modele-vagues"], ["offre", "value-pass"], ["offre", ""],
+      ["cat-heros"], ["cat-artefacts"], ["promotions"], ["sauvegarde"], ["confidentialite"], ["installer"], ["connexion"]];
+    const ko = [];
+    for (const profil of [null, avec((e) => { possede(e, ["spiker", "frosthealer", "poseidon", "cannon-girl", "archmage"]); e.equipe = ["spiker", "frosthealer", "poseidon", "cannon-girl", "archmage"];
+      e.inventaire.push({ id: "k0", ref: "purgatory-oven", etoiles: 3 }); e.pieges["iron-fist"] = { possede: true, niveau: 20 }; e.abonnements["value-pass"] = { actif: true, fin: "2026-12-31" }; })]) {
+      const p = await page(profil);
+      for (const [f, id = ""] of feuilles) {
+        if (!profil && (f === "artefact")) continue;
+        await p.evaluate(([f, id]) => {
+          const b = document.createElement("button"); b.dataset.act = "ouvrir"; b.dataset.f = f;
+          b.dataset.id = id;
+          document.body.append(b); b.click(); b.remove();
+        }, [f, id]);
+        const titre = await p.locator(".feuille-tete h2").textContent().catch(() => "");
+        const corps = await p.locator(".feuille-corps").innerText().catch(() => "");
+        if (!titre || corps.trim().length < 2 || /undefined|NaN|\[object|introuvable/i.test(corps)) ko.push(`${profil ? "rempli" : "vide"}:${f}:${id} « ${titre} »`);
+        await p.evaluate(() => document.querySelector(".feuille-tete [data-act=fermer], .feuille-tete [data-act=retour]")?.click());
+      }
+      if (p.erreurs.length) ko.push(...p.erreurs);
+      await p.ctx.close();
+    }
+    verifier(!ko.length, ko.join(" | "));
+    return `${feuilles.length} feuilles × 2 profils`;
+  });
+  await cas("ROU-01", "Routine du jour : cochée, gardée, remise à zéro le lendemain (date locale)", async () => {
+    const hier = new Date(Date.now() - 86400000); const d = `${hier.getFullYear()}-${String(hier.getMonth() + 1).padStart(2, "0")}-${String(hier.getDate()).padStart(2, "0")}`;
+    const p = await page(avec((e) => { e.quotidien = { date: d, coches: { 0: true, 1: true } }; }));
+    const remise = await p.$$eval("[data-quotidien]:checked", (els) => els.length);
+    await p.check("[data-quotidien='2']");
+    await p.reload();
+    const apres = await p.$$eval("[data-quotidien]:checked", (els) => els.map((x) => x.dataset.quotidien));
+    const e = await p.etat();
+    const n = new Date(); const local = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+    verifier(remise === 0 && apres.join() === "2" && e.quotidien.date === local && /1\/7/.test(await p.textContent("main")), JSON.stringify({ remise, apres, date: e.quotidien.date }));
+    await p.ctx.close();
+  });
+  await cas("CMP-03", "Déploiement limité : 3 pièges, 2 bêtes avant Main Stage 220", async () => {
+    const p = await page(avec((e) => { for (const id of ["iron-fist", "blood-hammer", "molten-furnace", "lethal-fence"]) e.pieges[id] = { possede: true, niveau: 10 };
+      for (const id of ["titan-mammoth", "dreamweaver-spider", "colossal-ape"]) e.betes[id] = { possede: true, niveau: 5 }; e.joueur.etape = "150"; }));
+    const deployer = async (cle) => { await p.evaluate((c) => { const b = document.createElement("button"); b.dataset.act = "ouvrir"; b.dataset.f = "compagnon"; b.dataset.id = c; document.body.append(b); b.click(); b.remove(); }, cle);
+      const cb = p.locator(".feuille [data-comp-deploye]"); if (!(await cb.isChecked())) await cb.click(); const ok = await cb.isChecked(); await p.click(".feuille-tete [data-act=fermer]"); return ok; };
+    const pieges = []; for (const id of ["iron-fist", "blood-hammer", "molten-furnace", "lethal-fence"]) pieges.push(await deployer(`pieges:${id}`));
+    const betes = []; for (const id of ["titan-mammoth", "dreamweaver-spider", "colossal-ape"]) betes.push(await deployer(`betes:${id}`));
+    verifier(pieges.join() === "true,true,true,false" && betes.join() === "true,true,false", JSON.stringify({ pieges, betes }));
+    await p.ctx.close();
+  });
+  await cas("EQU-02", "Choix d'équipe : 6e héros refusé avec un message", async () => {
+    const ids = ["spiker", "frosthealer", "poseidon", "cannon-girl", "archmage", "lazerman"];
+    const p = await page(avec((e) => { possede(e, ids); e.equipe = ids.slice(0, 5); }));
+    await p.click(".onglets [data-onglet=heros]"); await p.click("[data-act=ouvrir][data-f=equipe] >> nth=0");
+    await p.click('.feuille [data-equipe="lazerman"]');
+    const toast = await p.textContent("#toast");
+    const e = await p.etat();
+    verifier(e.equipe.length === 5 && !e.equipe.includes("lazerman") && /Équipe complète/.test(toast) && !(await p.isChecked('.feuille [data-equipe="lazerman"]')), JSON.stringify({ eq: e.equipe, toast }));
+    await p.ctx.close();
+  });
+  await cas("EQU-03", "Import d'équipe : une image qui n'est pas l'écran d'équipe donne un message clair", async () => {
+    const p = await page(null);
+    await p.click(".onglets [data-onglet=heros]"); await p.click("[data-f=import-equipe] >> nth=0");
+    await p.setInputFiles(".feuille input[data-import-equipe]", path.join(__dirname, "..", "icons", "icon-512.png"));
+    await p.waitForSelector(".feuille .note.alerte", { timeout: 120000 });
+    const t = await p.textContent(".feuille .note.alerte");
+    await p.click(".feuille [data-act=import-equipe-recommencer]");
+    const retour = await p.locator(".feuille input[data-import-equipe]").count();
+    verifier(/pas l'écran d'équipe/.test(t) && retour === 1 && !p.erreurs.length, t + p.erreurs.join(" | "));
     await p.ctx.close();
   });
 

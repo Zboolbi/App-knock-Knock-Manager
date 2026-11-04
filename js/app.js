@@ -7,7 +7,7 @@ import {
   progression, herosDe, artefactsResolus, porteurs, skinEquipe, composerEquipe, classerContre, conseilsCombat,
   configurationArtefacts, statsIdeales, analyseEquipe, equipeActuelle, planProgression, prochainPalier,
   conseilsSkins, offresActives, conseilsOffres, TAILLE_EQUIPE, setsIdeaux,
-  coachNoyau, coachCurios, coachBoss, coachDiamants, coachJalons, herosPrincipaux,
+  coachNoyau, coachCurios, coachBoss, coachDiamants, coachJalons, herosPrincipaux, curiosAChanger,
 } from "./engine.js";
 import { charger, sauver, etatInitial, fusionner, nouvelId } from "./store.js";
 import { analyserTexte, ordonnerParCartes, lireProfil, lireEcrans } from "./capture.js";
@@ -35,7 +35,9 @@ const initiales = (nom) => String(nom || "?").split(/[\s-]+/).filter(Boolean).sl
 const cat = () => etat.catalogue;
 const heroParId = (id) => herosDe(etat).find((h) => h.id === id);
 const bossParId = (id) => cat().boss.find((b) => b.id === id);
-const aujourdhui = () => new Date().toISOString().slice(0, 10);
+// Date locale (et non UTC) : la routine se remet à zéro à minuit chez le joueur.
+const dateLocale = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const aujourdhui = () => dateLocale();
 const nomCible = (k) => EFFETS[k] || TYPES[k] || k;
 
 /** 1234 → « 1 234 », 1 250 000 → « 1,25 M ». */
@@ -439,7 +441,8 @@ function conseilsCompagnons() {
   const pieges = cat().pieges.map((x) => ({ ...x, ...(etat.pieges[x.id] || {}) }));
   const betes = cat().betes.map((x) => ({ ...x, ...(etat.betes[x.id] || {}) }));
   const effetsEquipe = new Set(equipeActuelle(etat).map((h) => h.effet).filter((e) => e !== "aucun"));
-  const setsEquipe = new Set(equipeActuelle(etat).flatMap((h) => progression(etat, h.id).artefacts).map((id) => artefactsResolus(etat).find((a) => a.id === id)?.set).filter(Boolean));
+  const setParId = new Map(artefactsResolus(etat).map((a) => [a.id, a.set]));
+  const setsEquipe = new Set(equipeActuelle(etat).flatMap((h) => progression(etat, h.id).artefacts).map((id) => setParId.get(id)).filter(Boolean));
   for (const p of pieges.filter((x) => x.possede && x.effet && x.effet !== "aucun")) {
     const setLie = Object.entries(SETS_CURIO).find(([, s]) => s.affinite.effet === p.effet);
     if (setLie && setsEquipe.has(setLie[0]) && !p.deploye) c.push({ niveau: "or", texte: `Déployez ${p.nom} (${EFFETS[p.effet]}) : chaque ${EFFETS[p.effet]} qu'il applique alimente votre set ${setLie[1].nom}.` });
@@ -546,7 +549,7 @@ function feuilleImport() {
         ${choixHero(`heros.${i}.heroId`, x.heroId)}<small style="margin:4px 0 6px">Lu : « ${esc(x.lu)} »${x.sim < 1 ? ` · ressemblance ${Math.round(x.sim * 100)} %` : ""}${x.douteux ? ` · niveau lu « ${x.douteux} » écarté, à vérifier` : ""}</small>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${nombre(`heros.${i}.niveau`, x.niveau, "Niveau")}${nombre(`heros.${i}.promotion`, x.promotion, "Promotion")}${nombre(`heros.${i}.etoiles`, x.etoiles, "Étoiles")}</div></span></div>`).join("")) : ""}
       ${p.artefacts.filter((x) => x.set).length ? section(`Curios (${p.artefacts.filter((x) => x.set).length})`, p.artefacts.map((x, i) => x.set ? `<div class="ligne">${coche(`artefacts.${i}`, x)}${pastilleRarete(x.rarete)}<span class="corps"><b>${esc(x.nom)}</b><small>${esc(SETS_CURIO[x.set]?.nom || "")}</small></span>
-        <div style="width:82px">${nombre(`artefacts.${i}.etoiles`, x.etoiles, "Étoiles")}</div></div>` : "").join(""), { pied: "Les étoiles ne se lisent pas sur la capture : indiquez-les si vous le souhaitez." }) : ""}
+        <div style="width:82px">${nombre(`artefacts.${i}.etoiles`, x.etoiles, "Étoiles")}</div></div>` : "").join(""), { pied: "Étoiles lues sur la capture : corrigez-les si besoin." }) : ""}
       ${p.artefacts.filter((x) => !x.set).length ? section(`Artefacts (${p.artefacts.filter((x) => !x.set).length})`, p.artefacts.map((x, i) => x.set ? "" : `<div class="ligne" style="align-items:flex-start">${coche(`artefacts.${i}`, x)}<span class="corps" style="display:grid;gap:6px">
         ${champLibre(`artefacts.${i}.nom`, x.nom, "Nom")}<small>${x.ref ? "Déjà au catalogue" : "Nouveau : sera ajouté au catalogue"}</small>
         <div style="display:grid;grid-template-columns:1fr 1fr 70px;gap:6px;align-items:end"><select data-imp="artefacts.${i}.stat" style="${champSaisie}" aria-label="Stat">${opts(STATS_ARTEFACT, x.stat)}</select>
@@ -678,7 +681,7 @@ function appliquerImport() {
   }
   for (const x of p.abonnements || []) {
     if (!x.garder) continue;
-    const fin = x.actif && Number(x.jours) > 0 ? new Date(Date.now() + Number(x.jours) * 86400000).toISOString().slice(0, 10) : etat.abonnements[x.id]?.fin || "";
+    const fin = x.actif && Number(x.jours) > 0 ? dateLocale(new Date(Date.now() + Number(x.jours) * 86400000)) : etat.abonnements[x.id]?.fin || "";
     etat.abonnements[x.id] = { ...(etat.abonnements[x.id] || {}), actif: !!x.actif, fin: x.actif ? fin : "" };
     n++;
   }
@@ -1041,10 +1044,8 @@ function rendre() {
   $actions.innerHTML = o.actions();
   $vue.innerHTML = o.vue();
   document.querySelectorAll(".onglets button").forEach((b) => b.toggleAttribute("aria-current", b.dataset.onglet === ui.onglet));
-  // Pastille : héros de l'équipe dont les curios équipés ne sont pas le set conseillé.
-  const parId = new Map(etat.inventaire.map((i) => [i.id, i.ref]));
-  const nb = etat.inventaire.length ? coachCurios(etat).filter((x) => x.set && x.pieces.some((pc) => pc.possede)
-    && !progression(etat, x.hero.id).artefacts.some((id) => cat().artefacts.find((c) => c.id === parId.get(id))?.set === x.set)).length : 0;
+  // Pastille : héros de l'équipe qui ne portent pas les pièces possédées de leur set conseillé (même calcul que le plan).
+  const nb = etat.inventaire.length && etat.equipe.length ? curiosAChanger(etat).length : 0;
   const c = document.getElementById("compteur-strategie");
   c.hidden = !nb; c.textContent = nb;
   if (idFocus) { const el = document.getElementById(idFocus); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
@@ -1085,7 +1086,7 @@ const minimumDe = (cle) => (/\.(niveau|emplacements)$/.test(cle) && !cle.startsW
 function basculerCurio(ref, oui) {
   const existant = etat.inventaire.find((i) => i.ref === ref);
   if (oui && !existant) etat.inventaire.push({ id: nouvelId("art"), ref, etoiles: 1, niveau: 0 });
-  if (!oui && existant) { etat.inventaire = etat.inventaire.filter((i) => i.ref !== ref); for (const i of [existant]) retirerArtefactPartout(i.id); }
+  if (!oui && existant) { etat.inventaire = etat.inventaire.filter((i) => i.ref !== ref); retirerArtefactPartout(existant.id); }
 }
 function basculerDeploiement(sorte, id, oui) {
   const max = sorte === "betes" ? placesBetes() : NOMS_COMPAGNONS[sorte][2];
@@ -1127,7 +1128,7 @@ document.addEventListener("change", (e) => {
   }
   if (d.equipe) {
     if (!basculerEquipe(d.equipe, t.checked)) t.checked = false;
-    else if (t.checked && !progression(etat, d.equipe).possede) { fiche(d.equipe).possede = true; fiche(d.equipe).niveauInconnu = true; }
+    else if (t.checked) definirEquipe(etat.equipe);
     return enregistrer();
   }
   if (d.skin) { etat.skinsPossedes[d.skin] = t.checked; return enregistrer(); }
@@ -1177,9 +1178,10 @@ function copierTexte(texte, zone) {
   const repli = () => { if (zone) { zone.focus(); zone.select(); toast("Texte sélectionné : copiez-le"); } else toast(texte); };
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(texte).then(() => toast("Copié"), repli); else repli();
 }
-function appliquerConfig(lignes) {
-  for (const l of lignes) fiche(l.hero.id).artefacts = [];
-  for (const l of lignes) l.optimaux.forEach((a, i) => equiper(l.hero.id, i, a.id));
+/** Équipe jouée : un héros qu'on joue est forcément obtenu (niveau à saisir s'il était inconnu). */
+function definirEquipe(ids) {
+  etat.equipe = ids.filter((id) => heroParId(id)).slice(0, TAILLE_EQUIPE);
+  for (const id of etat.equipe) if (!progression(etat, id).possede) { fiche(id).possede = true; fiche(id).niveauInconnu = true; }
 }
 
 const ACTIONS = {
@@ -1190,34 +1192,27 @@ const ACTIONS = {
   seg: (b) => { ui.segHeros = b.dataset.id; rendre(); },
   possedes: (b) => { ui.possedes = b.dataset.id === "1"; rendre(); },
   pas: (b) => { const cle = b.dataset.cle; setCle(cle, Math.max(minimumDe(cle), getCle(cle) + Number(b.dataset.pas))); enregistrer(); },
-  appliquer: (b) => {
-    const l = configurationArtefacts(etat, equipeActuelle(etat)).lignes.find((x) => x.hero.id === b.dataset.id);
-    if (!l) return;
-    fiche(l.hero.id).artefacts = [];
-    l.optimaux.forEach((a, i) => equiper(l.hero.id, i, a.id));
-    enregistrer(); toast(`Artefacts de ${l.hero.nom} mis à jour`);
-  },
-  "appliquer-tout": () => { appliquerConfig(configurationArtefacts(etat, equipeActuelle(etat)).lignes); enregistrer(); toast("Configuration appliquée : reproduisez-la dans le jeu"); },
   "seg-strat": (b) => { ui.segStrat = b.dataset.id; rendre(); remonter(); },
-  "equipe-type": (b) => { etat.equipe = b.dataset.id.split(",").filter((id) => heroParId(id)).slice(0, TAILLE_EQUIPE); enregistrer(); toast("Équipe mise à jour"); },
+  "equipe-type": (b) => { definirEquipe(b.dataset.id.split(",")); enregistrer(); toast("Équipe mise à jour"); },
   "appliquer-sets": () => {
     const empl = Number(etat.joueur.emplacements) || 4;
     const parRef = new Map(etat.inventaire.map((i) => [i.ref, i.id]));
     for (const x of coachCurios(etat)) {
-      if (!x.set) continue;
+      const pieces = x.set ? cat().artefacts.filter((c) => c.set === x.set && parRef.has(c.id)) : [];
+      if (!pieces.length) continue; // aucune pièce du set : on garde ce que le héros porte
       fiche(x.hero.id).artefacts = [];
-      cat().artefacts.filter((c) => c.set === x.set && parRef.has(c.id)).sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete))
-        .slice(0, empl).forEach((c, i) => equiper(x.hero.id, i, parRef.get(c.id)));
+      pieces.sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete)).slice(0, empl).forEach((c, i) => equiper(x.hero.id, i, parRef.get(c.id)));
     }
     enregistrer(); toast("Sets équipés : reproduisez-les dans le jeu");
   },
-  "equipe-proposee": (b) => { etat.equipe = b.dataset.id.split(",").filter((id) => heroParId(id)).slice(0, TAILLE_EQUIPE); enregistrer(); toast("Équipe enregistrée"); },
+  "equipe-proposee": (b) => { definirEquipe(b.dataset.id.split(",")); enregistrer(); toast("Équipe enregistrée"); },
   "mettre-skin": (b) => { fiche(b.dataset.id).skin = b.dataset.skin; enregistrer(); toast("Skin équipé"); },
   "prendre-equipe": (b) => { const eq = EQUIPES_REFERENCE.find((x) => x.nom === b.dataset.id); if (!eq) return;
+    // Équipe type : on ne prétend pas que le joueur possède les héros qui lui manquent (le compteur « x/5 » doit rester juste).
     etat.equipe = eq.heros.filter((id) => heroParId(id)).slice(0, TAILLE_EQUIPE); enregistrer(); toast(`Équipe ${eq.nom} sélectionnée`); },
   "equipe-boss": (b) => { const boss = bossParId(b.dataset.id);
     const aDesHeros = herosDe(etat).some((h) => progression(etat, h.id).possede);
-    etat.equipe = composerEquipe(herosDe(etat), boss, etat, { mesHerosSeulement: ui.mesHeros && aDesHeros }).map((e) => e.hero.id);
+    definirEquipe(composerEquipe(herosDe(etat), boss, etat, { mesHerosSeulement: ui.mesHeros && aDesHeros }).map((e) => e.hero.id));
     enregistrer(); toast("Équipe mise à jour"); },
   "suppr-hero": (b) => { supprimerCatalogue("heros", b.dataset.id); delete etat.roster[b.dataset.id]; etat.equipe = etat.equipe.filter((x) => x !== b.dataset.id); fermer(); enregistrer(); toast("Héros supprimé"); },
   "suppr-skin": (b) => { supprimerCatalogue("skins", b.dataset.id); delete etat.skinsPossedes[b.dataset.id];
