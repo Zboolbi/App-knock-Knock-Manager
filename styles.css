@@ -64,6 +64,7 @@ h1, h2, h3 { text-wrap: balance; }
 }
 .haut-int { height: 50px; display: flex; align-items: center; gap: 8px; max-width: 640px; margin: 0 auto; }
 .haut h1 { font: 800 1.35rem/1 var(--police-titre); letter-spacing: -0.03em; margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#actions-haut { display: flex; gap: 2px; }
 .icone-btn { width: 40px; height: 40px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; padding: 0; }
 .icone-btn:active { background: var(--surface-2); }
 svg.ic { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

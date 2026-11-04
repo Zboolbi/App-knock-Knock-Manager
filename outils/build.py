@@ -15,21 +15,26 @@ from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
 DIST = RACINE / "dist"
-MODULES = ["js/data.js", "js/engine.js", "js/store.js", "js/app.js"]
+MODULES = ["js/data.js", "js/engine.js", "js/store.js", "js/capture.js", "js/ocr.js", "js/app.js"]
 PWA = ["index.html", "styles.css", "manifest.webmanifest", "sw.js", "icon.svg",
-       "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", *MODULES]
+       "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", *MODULES,
+       *[str(p.relative_to(RACINE)) for p in sorted((RACINE / "vendor").rglob("*")) if p.is_file()]]
 
 
 def bundle_js():
-    morceaux = []
+    morceaux, vus = [], {}
     for f in MODULES:
         s = (RACINE / f).read_text(encoding="utf-8")
         s = re.sub(r'^import[\s\S]*?from\s+"[^"]+";\n', "", s, flags=re.M)
         s = re.sub(r"^export \{[^}]*\};\n", "", s, flags=re.M)
-        s = re.sub(r"^export (const|function|let)", r"\1", s, flags=re.M)
-        if re.search(r"^\s*(import|export)\b", s, flags=re.M):
+        s = re.sub(r"^export (async function|const|function|let)", r"\1", s, flags=re.M)
+        if re.search(r"^\s*(import\s[^:]*\bfrom\b|export\s)", s, flags=re.M):
             sys.exit(f"import/export restant dans {f}")
         morceaux.append(f"// ---- {f} ----\n{s}")
+        for nom in re.findall(r"^(?:const|let|function|async function|class)\s+([A-Za-z_$][\w$]*)", s, flags=re.M):
+            if nom in vus:
+                sys.exit(f"Nom déclaré deux fois une fois les modules réunis : {nom} ({vus[nom]} et {f})")
+            vus[nom] = f
     js = "\n".join(morceaux)
     # Pas de service worker dans la version une page.
     return re.sub(r'\nif \("serviceWorker" in navigator[\s\S]*?\n}\n', "\n", js)

@@ -8,6 +8,8 @@ import {
   conseilsSkins, offresActives, conseilsOffres, TAILLE_EQUIPE,
 } from "./engine.js";
 import { charger, sauver, etatInitial, fusionner, nouvelId } from "./store.js";
+import { analyserTexte, ordonnerParCartes } from "./capture.js";
+import { lireCaptures } from "./ocr.js";
 
 let etat = charger();
 const ui = { onglet: "profil", segment: "heros", filtre: "", possedes: false, mesHeros: true, feuille: null, rechercheBoss: "" };
@@ -43,6 +45,7 @@ const ICONES = {
   skin: '<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/>',
   chevron: '<path d="m9 6 6 6-6 6"/>',
   retour: '<path d="m15 6-6 6 6 6"/>',
+  photo: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
 };
 const ic = (nom, taille) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"${taille ? ` style="width:${taille}px;height:${taille}px"` : ""}>${ICONES[nom]}</svg>`;
 
@@ -116,6 +119,7 @@ function vueProfil() {
     <div class="actions-profil">
       <button class="btn" data-act="ouvrir" data-f="profil">Modifier le profil</button>
       <button class="btn" data-act="ouvrir" data-f="equipe">Modifier l'équipe</button>
+      <button class="btn plein" style="grid-column:1/-1" data-act="ouvrir" data-f="import">Importer depuis des captures d'écran</button>
     </div>
   </div>
   <div class="stories" aria-label="Mon équipe">
@@ -310,6 +314,7 @@ function vuePlus() {
     ${ligne("installer", "Installer sur l'iPhone", "Écran d'accueil, hors ligne")}
     ${ligne("connexion", "Connexion au compte du jeu", "Ce qui est possible ou non")}
     ${ligne("sauvegarde", "Sauvegarde et transfert", "Copier, coller, fichier")}
+    ${ligne("import", "Importer des captures d'écran", "Héros, artefacts, skins · anglais et français")}
   </div>
   <div class="titre-section gouttiere"><h2>Catalogue</h2><small class="discret">Ce que l'app sait du jeu, modifiable</small></div>
   <div class="liste">
@@ -329,7 +334,116 @@ function vuePlus() {
 const stepper = (cle, valeur, min = 0) => `<div class="stepper"><button type="button" data-act="pas" data-cle="${cle}" data-pas="-1" aria-label="Moins">−</button>
   <input type="number" inputmode="numeric" min="${min}" data-num="${cle}" value="${esc(valeur)}"><button type="button" data-act="pas" data-cle="${cle}" data-pas="1" aria-label="Plus">+</button></div>`;
 
+/* ---------- Import par capture d'écran ---------- */
+
+const imp = { etat: "attente", message: "", part: 0, propositions: null, textes: [] };
+
+function feuilleImport() {
+  if (imp.etat === "lecture") {
+    return ["Lecture des captures", `<div style="padding:24px 0;text-align:center"><b>${esc(imp.message)}</b>
+      <div class="barre" style="margin:14px 0"><i style="width:${Math.round(imp.part * 100)}%"></i></div>
+      <p class="discret">Tout se passe sur votre téléphone : les images ne sont envoyées nulle part.</p></div>`];
+  }
+  if (imp.etat === "erreur") {
+    return ["Import impossible", `<div class="note alerte">${esc(imp.message)}</div>
+      <button class="btn large" data-act="import-recommencer">Réessayer</button>`];
+  }
+  if (imp.etat === "resultats") {
+    const p = imp.propositions;
+    const nb = p.heros.length + p.artefacts.length + p.skins.length;
+    const coche = (cle, x) => `<input type="checkbox" data-imp-coche="${cle}" ${x.garder ? "checked" : ""} aria-label="Garder" style="width:22px;height:22px;accent-color:var(--accent);flex:none">`;
+    const nombre = (cle, v, label) => `<div class="champ"><label>${label}</label><input type="number" inputmode="numeric" min="0" data-imp="${cle}" value="${v ?? ""}" placeholder="non lu"></div>`;
+    const choixHero = (cle, id) => `<select data-imp="${cle}" aria-label="Héros"><option value="">Héros ?</option>${herosDe(etat).map((h) => `<option value="${h.id}" ${h.id === id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select>`;
+    return [`${nb} élément(s) trouvé(s)`, `
+      ${!nb ? `<div class="note alerte">Rien de reconnu. Essayez une capture plus nette, en plein écran, avec les noms visibles.</div>` : `<p class="discret">Vérifiez et corrigez, décochez ce qui est faux, puis enregistrez. Les champs vides ne modifient rien.</p>`}
+      ${p.heros.length ? `<div class="titre-section"><h2>Héros (${p.heros.length})</h2></div>${p.heros.map((x, i) => `
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--ligne)">${coche(`heros.${i}`, x)}
+          <div style="flex:1;min-width:0"><div class="champ">${choixHero(`heros.${i}.heroId`, x.heroId)}<small class="discret">Lu : « ${esc(x.lu)} »${x.sim < 1 ? ` · ressemblance ${Math.round(x.sim * 100)} %` : ""}</small></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${nombre(`heros.${i}.niveau`, x.niveau, "Niveau")}${nombre(`heros.${i}.promotion`, x.promotion, "Promotion")}${nombre(`heros.${i}.etoiles`, x.etoiles, "Étoiles")}</div></div></div>`).join("")}` : ""}
+      ${p.artefacts.length ? `<div class="titre-section"><h2>Artefacts (${p.artefacts.length})</h2></div>${p.artefacts.map((x, i) => `
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--ligne)">${coche(`artefacts.${i}`, x)}
+          <div style="flex:1;min-width:0"><div class="champ"><input data-imp="artefacts.${i}.nom" value="${esc(x.nom)}" aria-label="Nom">${x.ref ? `<small class="discret">Déjà dans le catalogue</small>` : `<small class="discret">Nouveau : sera ajouté au catalogue</small>`}</div>
+          <div class="duo"><div class="champ"><select data-imp="artefacts.${i}.stat" aria-label="Stat">${opts(STATS_ARTEFACT, x.stat)}</select></div>
+            <div class="champ"><select data-imp="artefacts.${i}.rarete" aria-label="Rareté">${optsListe(RARETES, x.rarete)}</select></div></div>
+          ${nombre(`artefacts.${i}.niveau`, x.niveau, "Niveau")}</div></div>`).join("")}` : ""}
+      ${p.skins.length ? `<div class="titre-section"><h2>Skins (${p.skins.length})</h2></div>${p.skins.map((x, i) => `
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--ligne)">${coche(`skins.${i}`, x)}
+          <div style="flex:1;min-width:0"><div class="champ"><input data-imp="skins.${i}.nom" value="${esc(x.nom)}" aria-label="Nom du skin"></div>
+          <div class="champ">${choixHero(`skins.${i}.heroId`, x.heroId)}</div></div></div>`).join("")}` : ""}
+      ${nb ? `<button class="btn plein large" data-act="import-appliquer" style="margin-top:12px">Enregistrer la sélection</button>` : ""}
+      <button class="btn large" data-act="import-recommencer" style="margin-top:8px">Importer d'autres captures</button>
+      <details style="margin-top:14px"><summary class="discret">Texte lu</summary>
+        ${imp.textes.map((t) => `<p class="discret" style="margin-bottom:2px"><b>${esc(t.nom)}</b></p><pre style="white-space:pre-wrap;font-size:12px;margin:0">${esc(t.texte)}</pre>`).join("")}</details>`];
+  }
+  return ["Importer des captures", `
+    <p>Faites des captures d'écran dans le jeu, puis choisissez-les ici. L'app lit le texte (anglais ou français) et vous propose les fiches à enregistrer.</p>
+    <div class="etape"><div class="num">1</div><div><b>Liste des héros</b><span class="discret">Noms et niveaux de toute la collection.</span></div></div>
+    <div class="etape"><div class="num">2</div><div><b>Fiche d'un héros</b><span class="discret">Niveau, promotion, étoiles, artefacts portés.</span></div></div>
+    <div class="etape"><div class="num">3</div><div><b>Inventaire d'artefacts</b><span class="discret">Ouvrez chaque artefact pour voir nom, rareté, stat et niveau.</span></div></div>
+    <div class="etape"><div class="num">4</div><div><b>Skins</b><span class="discret">Écran des skins d'un héros.</span></div></div>
+    <label class="btn plein large" style="display:grid;place-items:center;margin-top:12px">Choisir des captures
+      <input type="file" accept="image/*" multiple data-import-captures hidden></label>
+    <p class="discret">La première fois, l'app télécharge son moteur de lecture (environ 8 Mo), puis il marche hors ligne. Rien n'est envoyé : la lecture se fait sur le téléphone.</p>`];
+}
+
+async function lancerImport(fichiers) {
+  imp.etat = "lecture"; imp.message = "Préparation du moteur de lecture…"; imp.part = 0;
+  rendreFeuille();
+  let dernier = 0;
+  try {
+    const textes = await lireCaptures(fichiers, (p) => {
+      if (p.etape === "image") { imp.message = `Lecture de la capture ${p.index} sur ${p.total}…`; imp.part = (p.index - 1) / p.total; }
+      else if (p.etape === "chargement") { imp.message = "Chargement du moteur de lecture…"; imp.part = p.part || 0; }
+      else if (p.etape === "lecture") imp.part = Math.max(imp.part, p.part || 0);
+      const now = Date.now();
+      if (now - dernier > 150) { dernier = now; rendreFeuille(); }
+    });
+    imp.textes = textes;
+    const texteOrdonne = textes.map((t) => (t.elements?.length ? ordonnerParCartes(t.elements, cat()) : t.texte)).join("\n");
+    const propositions = analyserTexte(texteOrdonne, cat());
+    for (const k of ["heros", "artefacts", "skins"]) for (const x of propositions[k]) x.garder = true;
+    imp.propositions = propositions;
+    imp.etat = "resultats";
+  } catch (e) {
+    imp.etat = "erreur";
+    imp.message = /introuvable|Failed to fetch|NetworkError|load/i.test(String(e?.message || e))
+      ? "Le moteur de lecture n'a pas pu se charger. Il est disponible dans l'app installée depuis zboolbi.github.io/app-knock-knock-manager (pas dans l'aperçu claude.ai). La première utilisation demande une connexion."
+      : `La lecture a échoué : ${e?.message || e}. Essayez avec moins de captures à la fois.`;
+  }
+  rendreFeuille();
+}
+
+function appliquerImport() {
+  const p = imp.propositions;
+  let nH = 0, nA = 0, nS = 0;
+  for (const x of p.heros) {
+    if (!x.garder || !x.heroId || !heroParId(x.heroId)) continue;
+    const r = fiche(x.heroId);
+    r.possede = true;
+    for (const c of ["niveau", "promotion", "etoiles"]) if (x[c] !== null && x[c] !== "" && !Number.isNaN(Number(x[c]))) r[c] = Number(x[c]);
+    nH++;
+  }
+  for (const x of p.artefacts) {
+    if (!x.garder || !x.nom) continue;
+    let ref = x.ref && cat().artefacts.some((a) => a.id === x.ref) ? x.ref : null;
+    if (!ref) { ref = nouvelId("cat-art"); cat().artefacts.push({ id: ref, nom: x.nom, stat: x.stat, rarete: x.rarete, effet: "" }); }
+    etat.inventaire.push({ id: nouvelId("art"), ref, rarete: x.rarete, niveau: Number(x.niveau) || 0 });
+    nA++;
+  }
+  for (const x of p.skins) {
+    if (!x.garder || !x.nom || !x.heroId) continue;
+    let s = x.ref ? cat().skins.find((k) => k.id === x.ref) : null;
+    if (!s) { s = { id: nouvelId("skin"), nom: x.nom, heroId: x.heroId, bonusStat: "", bonusValeur: "", obtention: "" }; cat().skins.push(s); }
+    etat.skinsPossedes[s.id] = true;
+    nS++;
+  }
+  imp.etat = "attente"; imp.propositions = null; imp.textes = [];
+  fermer(); enregistrer();
+  toast(`Enregistré : ${nH} héros, ${nA} artefact(s), ${nS} skin(s)`);
+}
+
 const FEUILLES = {
+  import: feuilleImport,
   profil() {
     const j = etat.joueur;
     return ["Profil", `
@@ -573,7 +687,7 @@ function retour() { ui.feuille = ui.pile?.pop() || null; rendreFeuille(); }
 /* ---------- Rendu général ---------- */
 
 const ONGLETS = {
-  profil: { titre: () => etat.joueur.pseudo || "Profil", vue: vueProfil, action: () => `<button class="icone-btn" data-act="ouvrir" data-f="ajout-artefact" aria-label="Ajouter un artefact">${ic("ajouter")}</button>` },
+  profil: { titre: () => etat.joueur.pseudo || "Profil", vue: vueProfil, action: () => `<button class="icone-btn" data-act="ouvrir" data-f="import" aria-label="Importer des captures d'écran">${ic("photo")}</button><button class="icone-btn" data-act="ouvrir" data-f="ajout-artefact" aria-label="Ajouter un artefact">${ic("ajouter")}</button>` },
   strategie: { titre: () => "Stratégie", vue: vueStrategie },
   boss: { titre: () => "Boss", vue: vueBoss, action: () => `<button class="icone-btn" data-act="ouvrir" data-f="fiche-boss" data-id="" aria-label="Ajouter un boss">${ic("ajouter")}</button>` },
   boutique: { titre: () => "Options payantes", vue: vueBoutique },
@@ -658,6 +772,9 @@ document.addEventListener("change", (e) => {
   if (d.offreFin) { etat.abonnements[d.offreFin] = { ...(etat.abonnements[d.offreFin] || {}), fin: t.value }; return enregistrer(); }
   if (d.quotidien !== undefined) { etat.quotidien.coches[d.quotidien] = t.checked; return enregistrer(); }
   if (d.uiCoche) { ui[d.uiCoche] = t.checked; return rendre(); }
+  if (t.hasAttribute("data-import-captures") && t.files.length) { lancerImport([...t.files]); return; }
+  if (d.impCoche) { const [k, i] = d.impCoche.split("."); imp.propositions[k][i].garder = t.checked; return; }
+  if (d.imp) { const [k, i, c] = d.imp.split("."); imp.propositions[k][i][c] = t.type === "number" ? (t.value === "" ? null : Number(t.value)) : t.value; return; }
   if (t.hasAttribute("data-import") && t.files[0]) {
     t.files[0].text().then((txt) => { etat = fusionner(JSON.parse(txt)); enregistrer(); toast("Profil importé"); }).catch(() => toast("Fichier illisible : choisissez un profil exporté par l'app"));
   }
@@ -707,6 +824,8 @@ const ACTIONS = {
     try { etat = fusionner(JSON.parse(document.getElementById("profil-json").value)); enregistrer(); toast("Profil chargé"); }
     catch { toast("Texte invalide : collez un profil copié depuis l'app"); }
   },
+  "import-appliquer": () => appliquerImport(),
+  "import-recommencer": () => { imp.etat = "attente"; imp.propositions = null; imp.textes = []; rendreFeuille(); },
   reinitialiser: () => { etat = etatInitial(); fermer(); enregistrer(); toast("Profil effacé"); },
 };
 

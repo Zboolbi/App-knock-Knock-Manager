@@ -27,7 +27,6 @@ est conservée, et les nouvelles fiches d'une mise à jour de l'app s'y ajoutent
 ## Lancer en local
 
 ```bash
-
 npm start            # ou : python3 -m http.server 8080  → http://localhost:8080
 npm test             # tests du moteur
 python3 outils/build.py   # dist/ : page unique + archive PWA
@@ -38,12 +37,28 @@ python3 outils/build.py   # dist/ : page unique + archive PWA
 Une app web s'installe sur iOS depuis Safari quand elle est servie en HTTPS :
 
 1. Ce dépôt se publie tout seul sur GitHub Pages à chaque push sur `main`
-   (`.github/workflows/pages.yml`). Réglage à faire une fois : Settings › Pages › Source : **GitHub Actions**.
+   (`.github/workflows/pages.yml`).
 2. Ouvrez https://zboolbi.github.io/app-knock-knock-manager/ dans **Safari** › Partager › **Sur l'écran d'accueil**.
 3. L'app s'ouvre en plein écran, avec son icône, et marche hors ligne après la première ouverture.
 
 Une app native de l'App Store demanderait un Mac avec Xcode et un compte développeur Apple
 (par exemple en emballant ce dossier avec Capacitor).
+
+## Import par capture d'écran
+
+Profil › icône appareil photo (ou Plus › Importer des captures) : choisissez des captures du jeu
+(liste des héros, fiche d'un héros, artefacts, skins). L'app lit le texte **en anglais ou en
+français** avec Tesseract.js, embarqué dans `vendor/tesseract/` (environ 12 Mo, chargé seulement à
+la première utilisation puis gardé en cache, donc hors ligne ensuite). Rien n'est envoyé : la
+lecture se fait sur le téléphone.
+
+- Préparation de l'image (`js/ocr.js`) : agrandissement, puis sur fond sombre seuls les textes
+  clairs (blanc, jaune) sont gardés, pour que les cartes colorées ne gênent pas.
+- Analyse (`js/capture.js`, testée) : noms de héros reconnus malgré les erreurs de lecture,
+  niveau (« Lv. 45 », « Niv. 45 »), promotion (« Rank 6 », « Rang 6 »), étoiles, rareté et
+  statistiques d'artefacts dans les deux langues, skins. Sur un écran en grille, chaque valeur est
+  rattachée à la carte du héros au-dessus d'elle.
+- Tout est proposé à vérifier avant l'enregistrement.
 
 ## Connexion au compte du jeu
 
