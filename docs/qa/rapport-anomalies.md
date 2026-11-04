@@ -64,3 +64,17 @@ Passe 3 : 74/77. Passe 4 : **77/77**. Les nouveaux cas couvrent les curios (CUR-
 | RC-05 | Mineure | Héros d'une équipe appliquée par bouton restés « non obtenus » | `definirEquipe` (STR-12) |
 | RC-06 | Mineure | Texte « les étoiles ne se lisent pas » obsolète | Texte corrigé |
 | RC-07..10 | Code | Code mort, calculs répétés à chaque rendu, boucle inutile | Nettoyés |
+
+## Audit front et UX V8.3 (04/11) — impeccable, Web Interface Guidelines, axe-core
+| # | Gravité | Anomalie | Correction |
+|---|---|---|---|
+| UX-01 | Majeure | Interrupteurs activés restés gris dans les fiches (régression V8.1 : spécificité CSS) | Règle `:checked` alignée ; UI-09 vérifie la couleur |
+| UX-02 | Majeure (WCAG 1.4.3) | Texte tertiaire 3,7:1, barre d'onglets 10,5 px, pastilles de rareté jusqu'à 2:1 | `--texte-3` #8b8b92, onglets 11 px, pastilles teintées ≥ 5:1 |
+| UX-03 | Majeure (WCAG 4.1.2) | `aria-selected` sur des boutons simples, menus sans nom accessible | Rôles `tab`, libellés reliés automatiquement (A11Y-02) |
+| UX-04 | Majeure (WCAG 2.4.3) | Focus resté derrière les feuilles | Focus dans la feuille, arrière-plan inerte, retour au bouton (A11Y-01) |
+| UX-05 | Mineure | 5e héros coupé sur l'accueil ; noms superposés dans Stratégie › Boss | Grilles à 5 colonnes, noms tronqués proprement |
+| UX-06 | Mineure | Libellés en majuscules tronqués (« CURIO VAU… », « LEATHER (A… ») | Casse de phrase, noms courts |
+| UX-07 | Mineure | « 1 point(s) », « 8 niveau(x) », « 1 option(s) active(s) »… | `pluriel()` |
+| UX-08 | Mineure | Cibles tactiles < 44 px (Tout voir, Utiliser, +/−, recherche, Installer) | Agrandies |
+| UX-09 | Mineure | Débordement à 320 px (Noyau, Investir) | Retour à la ligne (UI-10) |
+| UX-10 | Polish | Flèche « Partager » animée en boucle infinie | 3 rebonds puis arrêt |

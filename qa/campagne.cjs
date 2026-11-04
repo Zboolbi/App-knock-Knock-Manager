@@ -188,7 +188,7 @@ async function main() {
   });
   await cas("PRO-05", "Tirages de 10 possibles", async () => {
     const p = await page(avec((e) => { e.stock.diamants = 4500; }));
-    verifier(await p.getByText("2 tirage(s) de 10").count() === 1, "message absent");
+    verifier(await p.getByText("2 tirages de 10").count() === 1, "message absent");
     await p.ctx.close();
   });
   await cas("PRO-06", "Très grand nombre", async () => {
@@ -541,7 +541,9 @@ async function main() {
     await p.evaluate(() => document.querySelector('[data-f=hero][data-id=metaman]')?.click());
     await p.waitForSelector(".feuille .interrupteur");
     const tailles = await p.$$eval(".feuille .interrupteur", (els) => els.map((e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; }));
-    verifier(tailles.length >= 2 && tailles.every((t) => t === "51x31"), tailles.join());
+    const fonds = await p.$$eval(".feuille .interrupteur", (els) => els.map((e) => `${e.checked}:${getComputedStyle(e).backgroundColor}`));
+    // Activé = vert iOS (--bon), désactivé = gris : la règle de taille ne doit pas écraser la couleur.
+    verifier(tailles.length >= 2 && tailles.every((t) => t === "51x31") && fonds.every((f) => f.startsWith("true") ? !/57, 57, 61/.test(f) : /57, 57, 61/.test(f)), `${tailles.join()} ${fonds.join()}`);
     await p.ctx.close();
   });
 
@@ -613,6 +615,40 @@ async function main() {
     await p.click(".feuille [data-act=import-equipe-recommencer]");
     const retour = await p.locator(".feuille input[data-import-equipe]").count();
     verifier(/pas l'écran d'équipe/.test(t) && retour === 1 && !p.erreurs.length, t + p.erreurs.join(" | "));
+    await p.ctx.close();
+  });
+
+  await cas("A11Y-01", "Feuille : le focus y entre, l'arrière-plan est inerte, le focus revient au bouton", async () => {
+    const p = await page(avec((e) => possede(e, ["spiker"])));
+    await p.focus("[data-act=ouvrir][data-f=profil]"); await p.keyboard.press("Enter");
+    await p.waitForSelector(".feuille");
+    const dedans = await p.evaluate(() => !!document.activeElement.closest(".feuille"));
+    const inerte = await p.evaluate(() => document.getElementById("defile").inert && document.querySelector(".onglets").inert);
+    await p.keyboard.press("Escape");
+    const retour = await p.evaluate(() => document.activeElement?.dataset.f === "profil" && !document.getElementById("defile").inert);
+    verifier(dedans && inerte && retour, JSON.stringify({ dedans, inerte, retour }));
+    await p.ctx.close();
+  });
+  await cas("A11Y-02", "Libellés des formulaires reliés à leur champ", async () => {
+    const p = await page(null);
+    const sansNom = [];
+    for (const f of ["offre", "fiche-hero", "fiche-skin", "fiche-boss", "ajout-artefact", "profil"]) {
+      await p.evaluate((f) => { const b = document.createElement("button"); b.dataset.act = "ouvrir"; b.dataset.f = f; b.dataset.id = ""; document.body.append(b); b.click(); b.remove(); }, f);
+      sansNom.push(...await p.$$eval(".feuille input:not([type=hidden]), .feuille select, .feuille textarea", (els, f) => els.filter((e) => !e.labels?.length && !e.getAttribute("aria-label") && !e.closest("label")).map((e) => `${f}:${e.name || e.dataset.num || e.tagName}`), f));
+      await p.evaluate(() => document.querySelector(".feuille-tete [data-act=fermer]")?.click());
+    }
+    verifier(!sansNom.length, sansNom.join(", "));
+    await p.ctx.close();
+  });
+  await cas("UI-10", "iPhone SE (320 px) : aucun débordement horizontal, accords au pluriel", async () => {
+    const p = await page(avec((e) => { possede(e, ["cannon-girl", "frosthealer", "poseidon", "archmage", "bright-spirit"]); e.equipe = ["cannon-girl", "frosthealer", "poseidon", "archmage", "bright-spirit"]; e.stock.diamants = 300; }), { appareil: { ...devices["iPhone SE"] } });
+    const deb = [];
+    for (const [o, sg] of [["accueil"], ["heros"], ["strategie", "noyau"], ["strategie", "boss"], ["strategie", "investir"], ["boss"], ["boutique"]]) {
+      await p.click(`.onglets [data-onglet=${o}]`); if (sg) await p.click(`[data-act=seg-strat][data-id=${sg}]`);
+      deb.push(...await p.evaluate((n) => { const W = document.documentElement.clientWidth; return [...document.querySelectorAll("#vue *")].filter((e) => e.getBoundingClientRect().right > W + 1 && !e.closest(".defilant")).slice(0, 2).map((e) => `${n}:${e.tagName}.${e.className}`); }, `${o}/${sg || ""}`));
+    }
+    const texte = await p.evaluate(() => document.body.innerText);
+    verifier(!deb.length && !/\w\((s|x)\)/.test(texte), deb.join(" | ") || (texte.match(/.{20}\w\((s|x)\).{10}/) || [""])[0]);
     await p.ctx.close();
   });
 

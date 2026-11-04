@@ -1,0 +1,653 @@
+{
+  "passe": "passe-19",
+  "date": "2026-11-04T15:23:27.501Z",
+  "total": 92,
+  "reussis": 92,
+  "echecs": 0,
+  "resultats": [
+    {
+      "id": "NAV-01",
+      "titre": "Premier lancement",
+      "ok": true,
+      "detail": "",
+      "ms": 731
+    },
+    {
+      "id": "NAV-02",
+      "titre": "Les 5 onglets",
+      "ok": true,
+      "detail": "Tableau de bord, Héros, Stratégie, Boss, Boutique",
+      "ms": 1743
+    },
+    {
+      "id": "NAV-03",
+      "titre": "Petit titre au défilement",
+      "ok": true,
+      "detail": "",
+      "ms": 573
+    },
+    {
+      "id": "NAV-04",
+      "titre": "Fermeture des feuilles",
+      "ok": true,
+      "detail": "",
+      "ms": 665
+    },
+    {
+      "id": "NAV-05",
+      "titre": "Navigation imbriquée",
+      "ok": true,
+      "detail": "",
+      "ms": 966
+    },
+    {
+      "id": "NAV-06",
+      "titre": "La barre d'onglets ne bouge pas au défilement",
+      "ok": true,
+      "detail": "",
+      "ms": 296
+    },
+    {
+      "id": "PRO-01",
+      "titre": "Identité conservée",
+      "ok": true,
+      "detail": "",
+      "ms": 628
+    },
+    {
+      "id": "PRO-02",
+      "titre": "Steppers et minimums",
+      "ok": true,
+      "detail": "",
+      "ms": 875
+    },
+    {
+      "id": "PRO-03",
+      "titre": "Saisie négative ou décimale",
+      "ok": true,
+      "detail": "",
+      "ms": 295
+    },
+    {
+      "id": "PRO-04",
+      "titre": "Ressources saisies et formatées",
+      "ok": true,
+      "detail": "",
+      "ms": 539
+    },
+    {
+      "id": "PRO-05",
+      "titre": "Tirages de 10 possibles",
+      "ok": true,
+      "detail": "",
+      "ms": 153
+    },
+    {
+      "id": "PRO-06",
+      "titre": "Très grand nombre",
+      "ok": true,
+      "detail": "",
+      "ms": 165
+    },
+    {
+      "id": "HER-01",
+      "titre": "Recherche",
+      "ok": true,
+      "detail": "",
+      "ms": 260
+    },
+    {
+      "id": "HER-02",
+      "titre": "Recherche par alias",
+      "ok": true,
+      "detail": "",
+      "ms": 292
+    },
+    {
+      "id": "HER-03",
+      "titre": "Filtre Les miens",
+      "ok": true,
+      "detail": "",
+      "ms": 298
+    },
+    {
+      "id": "HER-04",
+      "titre": "Fiche héros modifiée et conservée",
+      "ok": true,
+      "detail": "",
+      "ms": 1015
+    },
+    {
+      "id": "HER-05",
+      "titre": "Sixième héros refusé",
+      "ok": true,
+      "detail": "",
+      "ms": 697
+    },
+    {
+      "id": "HER-06",
+      "titre": "Héros retiré de l'équipe s'il n'est plus obtenu",
+      "ok": true,
+      "detail": "",
+      "ms": 620
+    },
+    {
+      "id": "HER-07",
+      "titre": "Équipe de référence avec confirmation",
+      "ok": true,
+      "detail": "",
+      "ms": 344
+    },
+    {
+      "id": "HER-08",
+      "titre": "Doublon de nom refusé",
+      "ok": true,
+      "detail": "",
+      "ms": 654
+    },
+    {
+      "id": "HER-09",
+      "titre": "Injection HTML neutralisée",
+      "ok": true,
+      "detail": "",
+      "ms": 971
+    },
+    {
+      "id": "HER-10",
+      "titre": "Suppression d'un héros du catalogue",
+      "ok": true,
+      "detail": "",
+      "ms": 1125
+    },
+    {
+      "id": "ART-01",
+      "titre": "Ajout d'artefacts",
+      "ok": true,
+      "detail": "",
+      "ms": 1616
+    },
+    {
+      "id": "ART-02",
+      "titre": "Un artefact n'est jamais sur deux héros",
+      "ok": true,
+      "detail": "",
+      "ms": 286
+    },
+    {
+      "id": "ART-03",
+      "titre": "Emplacements respectés via « Porté par »",
+      "ok": true,
+      "detail": "",
+      "ms": 324
+    },
+    {
+      "id": "ART-04",
+      "titre": "Retrait de l'inventaire",
+      "ok": true,
+      "detail": "",
+      "ms": 769
+    },
+    {
+      "id": "ART-05",
+      "titre": "Suppression d'une fiche encore possédée refusée",
+      "ok": true,
+      "detail": "",
+      "ms": 934
+    },
+    {
+      "id": "SKI-01",
+      "titre": "Skin créé depuis la fiche du héros",
+      "ok": true,
+      "detail": "",
+      "ms": 1164
+    },
+    {
+      "id": "SKI-02",
+      "titre": "Skin à bonus proposé puis équipé",
+      "ok": true,
+      "detail": "",
+      "ms": 307
+    },
+    {
+      "id": "CUR-01",
+      "titre": "Curios par set : interrupteur et compteur",
+      "ok": true,
+      "detail": "",
+      "ms": 474
+    },
+    {
+      "id": "CUR-02",
+      "titre": "Héros Brûlure : set Sky Scorch complet appliqué",
+      "ok": true,
+      "detail": "",
+      "ms": 323
+    },
+    {
+      "id": "CMP-01",
+      "titre": "Pièges : déploiement limité à 3",
+      "ok": true,
+      "detail": "",
+      "ms": 691
+    },
+    {
+      "id": "CMP-02",
+      "titre": "Bêtes : 3e place seulement après Main Stage 220",
+      "ok": true,
+      "detail": "",
+      "ms": 678
+    },
+    {
+      "id": "LOGO-01",
+      "titre": "Logo du jeu et image de fond",
+      "ok": true,
+      "detail": "",
+      "ms": 180
+    },
+    {
+      "id": "STR-01",
+      "titre": "Lit = Porte → monter la Porte",
+      "ok": true,
+      "detail": "Montez la Porte (5 → 6)",
+      "ms": 156
+    },
+    {
+      "id": "STR-02",
+      "titre": "Porte − Lit ≥ 2 → rattraper le Lit",
+      "ok": true,
+      "detail": "Rattrapez le Lit (6 → 9)",
+      "ms": 155
+    },
+    {
+      "id": "STR-03",
+      "titre": "Promotion vers 6",
+      "ok": true,
+      "detail": "",
+      "ms": 195
+    },
+    {
+      "id": "STR-04",
+      "titre": "Curios : pastille puis « Équiper ces sets »",
+      "ok": true,
+      "detail": "",
+      "ms": 347
+    },
+    {
+      "id": "STR-05",
+      "titre": "Alerte sans soigneur",
+      "ok": true,
+      "detail": "",
+      "ms": 189
+    },
+    {
+      "id": "STR-06",
+      "titre": "Abonnement qui expire",
+      "ok": true,
+      "detail": "",
+      "ms": 251
+    },
+    {
+      "id": "STR-07",
+      "titre": "Stratégie sans données",
+      "ok": true,
+      "detail": "",
+      "ms": 321
+    },
+    {
+      "id": "STR-08",
+      "titre": "Équipe proposée appliquée en un geste",
+      "ok": true,
+      "detail": "",
+      "ms": 234
+    },
+    {
+      "id": "STR-09",
+      "titre": "Noyau : ordre d'investissement et objectif de palier",
+      "ok": true,
+      "detail": "",
+      "ms": 215
+    },
+    {
+      "id": "STR-10",
+      "titre": "Boss : « Jouer cette équipe » remplace l'équipe",
+      "ok": true,
+      "detail": "",
+      "ms": 330
+    },
+    {
+      "id": "EQU-01",
+      "titre": "Choix d'équipe : tous les héros proposés, recherche",
+      "ok": true,
+      "detail": "",
+      "ms": 623
+    },
+    {
+      "id": "UI-09",
+      "titre": "Interrupteurs de la fiche héros à la taille iOS (51×31)",
+      "ok": true,
+      "detail": "",
+      "ms": 298
+    },
+    {
+      "id": "BOS-01",
+      "titre": "Création et équipe conseillée",
+      "ok": true,
+      "detail": "Archangel, Redhood, Bright Spirit, Bride Wraith, Flame Demon",
+      "ms": 1603
+    },
+    {
+      "id": "BOS-02",
+      "titre": "Faiblesse = résistance refusée",
+      "ok": true,
+      "detail": "",
+      "ms": 771
+    },
+    {
+      "id": "BOS-03",
+      "titre": "Mes héros seulement sans héros",
+      "ok": true,
+      "detail": "",
+      "ms": 246
+    },
+    {
+      "id": "BOS-04",
+      "titre": "En faire mon équipe",
+      "ok": true,
+      "detail": "",
+      "ms": 718
+    },
+    {
+      "id": "BOS-05",
+      "titre": "Modifier puis supprimer un boss",
+      "ok": true,
+      "detail": "",
+      "ms": 2378
+    },
+    {
+      "id": "BOS-06",
+      "titre": "Conseils boss bien formulés",
+      "ok": true,
+      "detail": "",
+      "ms": 246
+    },
+    {
+      "id": "BOU-01",
+      "titre": "Option active avec date de fin",
+      "ok": true,
+      "detail": "10 j restants",
+      "ms": 411
+    },
+    {
+      "id": "BOU-02",
+      "titre": "Code cadeau coché et copié",
+      "ok": true,
+      "detail": "",
+      "ms": 588
+    },
+    {
+      "id": "BOU-03",
+      "titre": "Option personnalisée prise en compte",
+      "ok": true,
+      "detail": "",
+      "ms": 884
+    },
+    {
+      "id": "IMP-01",
+      "titre": "Profil anglais",
+      "ok": true,
+      "detail": "15 champs justes en 5 s",
+      "ms": 5284
+    },
+    {
+      "id": "IMP-02",
+      "titre": "Profil français",
+      "ok": true,
+      "detail": "",
+      "ms": 2677
+    },
+    {
+      "id": "IMP-03",
+      "titre": "Grille de héros anglaise",
+      "ok": true,
+      "detail": "",
+      "ms": 2707
+    },
+    {
+      "id": "IMP-04",
+      "titre": "Fiche française : héros, artefact, skin",
+      "ok": true,
+      "detail": "",
+      "ms": 2713
+    },
+    {
+      "id": "IMP-05",
+      "titre": "Quatre captures en une fois",
+      "ok": true,
+      "detail": "25 info(s) trouvée(s) en 9 s",
+      "ms": 8908
+    },
+    {
+      "id": "IMP-06",
+      "titre": "Seules les propositions cochées sont enregistrées",
+      "ok": true,
+      "detail": "",
+      "ms": 181
+    },
+    {
+      "id": "IMP-11",
+      "titre": "Bouton Enregistrer toujours visible dans les résultats",
+      "ok": true,
+      "detail": "21 info(s) trouvée(s)",
+      "ms": 5063
+    },
+    {
+      "id": "IMP-12",
+      "titre": "Propositions cochées non barrées, clavier sans perte du champ",
+      "ok": true,
+      "detail": "",
+      "ms": 3212
+    },
+    {
+      "id": "IMP-07",
+      "titre": "Image sans texte",
+      "ok": true,
+      "detail": "",
+      "ms": 1667
+    },
+    {
+      "id": "IMP-08",
+      "titre": "Aucune capture conservée",
+      "ok": true,
+      "detail": "profil 22 Ko ; bases IndexedDB : keyval-store (cache du moteur de lecture uniquement)",
+      "ms": 45
+    },
+    {
+      "id": "IMP-09",
+      "titre": "Pas de doublon au catalogue en réimportant",
+      "ok": true,
+      "detail": "",
+      "ms": 4909
+    },
+    {
+      "id": "IMP-10",
+      "titre": "Moteur de lecture indisponible",
+      "ok": true,
+      "detail": "",
+      "ms": 217
+    },
+    {
+      "id": "REEL-01",
+      "titre": "16 vraies captures du jeu (anglais)",
+      "ok": true,
+      "detail": "31 héros (26 au niveau 67), 29 curios avec leurs étoiles, niveaux des 5 pièges et de 3 bêtes, ressources et profil justes",
+      "ms": 115422
+    },
+    {
+      "id": "REEL-02",
+      "titre": "Vraies captures Value Pass et Infinity Train",
+      "ok": true,
+      "detail": "Value Pass souscrit, Deluxe non souscrit, arrêt et tentatives du train lus",
+      "ms": 12249
+    },
+    {
+      "id": "BOU-04",
+      "titre": "Passes : gains quotidiens et suggestion du Deluxe",
+      "ok": true,
+      "detail": "",
+      "ms": 252
+    },
+    {
+      "id": "TRN-01",
+      "titre": "Infinity Train : champ du profil et tâche du jour",
+      "ok": true,
+      "detail": "",
+      "ms": 588
+    },
+    {
+      "id": "INS-01",
+      "titre": "Bouton Installer : iPhone Safari → étapes guidées",
+      "ok": true,
+      "detail": "",
+      "ms": 182
+    },
+    {
+      "id": "INS-02",
+      "titre": "Bouton Installer : navigateur intégré → ouvrir dans Safari",
+      "ok": true,
+      "detail": "",
+      "ms": 185
+    },
+    {
+      "id": "INS-03",
+      "titre": "Bouton Installer : invitation native (Android / Chrome)",
+      "ok": true,
+      "detail": "",
+      "ms": 406
+    },
+    {
+      "id": "INS-04",
+      "titre": "App installée : bouton masqué",
+      "ok": true,
+      "detail": "",
+      "ms": 152
+    },
+    {
+      "id": "REEL-03",
+      "titre": "Vraie capture de l'équipe : 5 portraits et niveaux",
+      "ok": true,
+      "detail": "5 portraits, niveaux 68-68-68-68-67, aucune image enregistrée",
+      "ms": 7844
+    },
+    {
+      "id": "DON-01",
+      "titre": "Rechargement",
+      "ok": true,
+      "detail": "",
+      "ms": 177
+    },
+    {
+      "id": "DON-02",
+      "titre": "Copier puis charger la sauvegarde",
+      "ok": true,
+      "detail": "",
+      "ms": 1037
+    },
+    {
+      "id": "DON-03",
+      "titre": "Texte invalide",
+      "ok": true,
+      "detail": "",
+      "ms": 1027
+    },
+    {
+      "id": "DON-04",
+      "titre": "Migration d'un profil v1",
+      "ok": true,
+      "detail": "",
+      "ms": 305
+    },
+    {
+      "id": "DON-05",
+      "titre": "Stockage corrompu",
+      "ok": true,
+      "detail": "",
+      "ms": 173
+    },
+    {
+      "id": "DON-06",
+      "titre": "Effacer mon profil",
+      "ok": true,
+      "detail": "",
+      "ms": 639
+    },
+    {
+      "id": "DON-07",
+      "titre": "Poids d'un profil complet",
+      "ok": true,
+      "detail": "26.3 Ko pour 41 héros, 43 curios",
+      "ms": 1
+    },
+    {
+      "id": "UI-01",
+      "titre": "Pas de défilement horizontal (4 tailles × 5 onglets)",
+      "ok": true,
+      "detail": "",
+      "ms": 1967
+    },
+    {
+      "id": "UI-02",
+      "titre": "Thème noir, blanc, doré",
+      "ok": true,
+      "detail": "",
+      "ms": 122
+    },
+    {
+      "id": "UI-03",
+      "titre": "Contraste du texte secondaire",
+      "ok": true,
+      "detail": "secondaire 6.63:1, doré 10.60:1, tertiaire (indices « — ») 3.36:1",
+      "ms": 0
+    },
+    {
+      "id": "UI-04",
+      "titre": "Cibles tactiles ≥ 44 px",
+      "ok": true,
+      "detail": "",
+      "ms": 415
+    },
+    {
+      "id": "UI-05",
+      "titre": "Noms accessibles",
+      "ok": true,
+      "detail": "",
+      "ms": 402
+    },
+    {
+      "id": "UI-06",
+      "titre": "Champs en 16 px minimum",
+      "ok": true,
+      "detail": "",
+      "ms": 608
+    },
+    {
+      "id": "PWA-01",
+      "titre": "Manifest et icônes",
+      "ok": true,
+      "detail": "Knock Knock Manager, fond #1f2125",
+      "ms": 126
+    },
+    {
+      "id": "PWA-02",
+      "titre": "Hors ligne",
+      "ok": true,
+      "detail": "",
+      "ms": 765
+    },
+    {
+      "id": "PERF-01",
+      "titre": "Premier affichage",
+      "ok": true,
+      "detail": "126 ms",
+      "ms": 170
+    }
+  ]
+}

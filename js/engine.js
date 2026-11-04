@@ -7,6 +7,8 @@ import { EFFETS, ROLES, TYPES, STATS_ARTEFACT, RARETES, PALIERS_PROMOTION, AVANT
 const POINTS_TIER = { SS: 30, S: 24, A: 18, B: 12, C: 6 };
 const EFFETS_DURABLES = ["brulure", "saignement", "poison"];
 export const TAILLE_EQUIPE = 5;
+/** « 1 place libre », « 2 places libres » : accord en nombre (le français compte 0 et 1 au singulier). */
+export const pluriel = (n, un, plusieurs = `${un}s`) => `${n} ${Math.abs(Number(n)) >= 2 ? plusieurs : un}`;
 
 /* ---------- Profil ---------- */
 
@@ -282,7 +284,7 @@ export function analyseEquipe(etat) {
   const notes = [];
   if (!equipe.length) return { equipe, notes: [{ niveau: "info", texte: "Choisissez vos 5 héros : Héros › Équipe." }], score: 0 };
   const roles = new Set(equipe.map((h) => h.role));
-  if (equipe.length < TAILLE_EQUIPE) notes.push({ niveau: "alerte", texte: `${TAILLE_EQUIPE - equipe.length} place(s) libre(s) dans l'équipe.` });
+  if (equipe.length < TAILLE_EQUIPE) notes.push({ niveau: "alerte", texte: `${pluriel(TAILLE_EQUIPE - equipe.length, "place libre", "places libres")} dans l'équipe.` });
   if (!roles.has("soin")) notes.push({ niveau: "alerte", texte: "Pas de soigneur : la Porte encaisse tout. Bright Spirit ou Frosthealer." });
   if (!roles.has("zone") && !roles.has("polyvalent")) notes.push({ niveau: "alerte", texte: "Pas de dégâts de zone : les vagues vont atteindre la Porte." });
   if (!roles.has("mono") && !roles.has("amplificateur")) notes.push({ niveau: "alerte", texte: "Pas de spécialiste boss (mono-cible ou amplificateur)." });
@@ -347,7 +349,7 @@ export function planProgression(etat) {
 
   const coffre = Number(j.coffreCurios) || 0;
   for (const pal of CURIO_VAULT.paliers) {
-    if (coffre && coffre < pal.niveau) etapes.push({ priorite: pal.niveau - coffre <= 20 ? 2 : 4, titre: `Curio Vault : ${coffre} → ${pal.niveau} (${pal.niveau - coffre} niveau(x))`, detail: `Débloque ${pal.bonus} pour toute l'équipe.` });
+    if (coffre && coffre < pal.niveau) etapes.push({ priorite: pal.niveau - coffre <= 20 ? 2 : 4, titre: `Curio Vault : ${coffre} → ${pal.niveau} (${pluriel(pal.niveau - coffre, "niveau", "niveaux")})`, detail: `Débloque ${pal.bonus} pour toute l'équipe.` });
   }
   const etape = parseInt(String(j.etape || "").split("-")[0], 10);
   for (const p of PLACES_BETES.filter((x) => x.condition)) {
@@ -537,7 +539,7 @@ export function coachJalons(etat) {
   const j = etat?.joueur || {};
   const jal = [];
   const coffre = Number(j.coffreCurios) || 0;
-  if (coffre && coffre < 400) jal.push({ titre: `Curio Vault ${coffre} → 400`, reste: `${400 - coffre} niveau(x)`, gain: "DMG Boost +12 % et DMG Immunity +12 % pour toute l'équipe", proche: 400 - coffre <= 20 });
+  if (coffre && coffre < 400) jal.push({ titre: `Curio Vault ${coffre} → 400`, reste: pluriel(400 - coffre, "niveau", "niveaux"), gain: "DMG Boost +12 % et DMG Immunity +12 % pour toute l'équipe", proche: 400 - coffre <= 20 });
   const etape = parseInt(String(j.etape || "").split("-")[0], 10);
   if (etape && etape < 220) jal.push({ titre: `Main Stage ${etape} → 220`, reste: `${220 - etape} étapes`, gain: "3e place de bête déployée", proche: 220 - etape <= 30 });
   const n = coachNoyau(etat);

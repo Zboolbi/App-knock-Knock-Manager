@@ -108,7 +108,7 @@ Légende priorité : P1 bloquant, P2 majeur, P3 mineur.
 | STR-10 | Boss par type | « Jouer cette équipe » applique l'équipe adaptée (magique contre un boss résistant au physique) | P2 |
 | EQU-01 | Choix d'équipe | Tous les héros proposés (obtenus d'abord), recherche, un héros ajouté est marqué obtenu | P1 |
 | REEL-03 | Vraie capture de l'équipe (local) | 5 portraits découpés, niveaux lus, aucune image enregistrée | P2 |
-| UI-09 | Interrupteurs | Taille iOS 51×31 dans les fiches (non étirés) | P2 |
+| UI-09 | Interrupteurs | Taille iOS 51×31 dans les fiches, vert une fois activé, gris sinon | P1 |
 | STR-11 | Équiper ces sets | Un héros sans pièce de son set garde ses curios ; l'accueil ne réclame plus de changement | P1 |
 | STR-12 | Jouer cette équipe | Les héros joués sont marqués obtenus (niveau à saisir) | P2 |
 | FEU-01 | Toutes les feuilles | 27 feuilles × profil vide/rempli : titre, contenu, aucune erreur ni « undefined » | P1 |
@@ -116,6 +116,9 @@ Légende priorité : P1 bloquant, P2 majeur, P3 mineur.
 | CMP-03 | Déploiement | 3 pièges max, 2 bêtes avant Main Stage 220 | P2 |
 | EQU-02 | Limite d'équipe | 6e héros refusé avec message | P2 |
 | EQU-03 | Import d'équipe | Image hors sujet → message clair, « Réessayer » | P2 |
+| A11Y-01 | Focus des feuilles | Focus dans la feuille, arrière-plan inerte, retour au bouton d'origine (clavier / VoiceOver) | P1 |
+| A11Y-02 | Libellés de formulaire | Chaque champ des feuilles a un nom accessible | P1 |
+| UI-10 | iPhone SE 320 px | Aucun débordement horizontal, aucun « (s) » / « (x) » affiché | P2 |
 | STR-08 | Équipe proposée sans équipe choisie | Bouton « Utiliser » qui l'enregistre en un geste | P3 |
 
 ### 4.6 Boss

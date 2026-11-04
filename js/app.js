@@ -7,7 +7,7 @@ import {
   progression, herosDe, artefactsResolus, porteurs, skinEquipe, composerEquipe, classerContre, conseilsCombat,
   configurationArtefacts, statsIdeales, analyseEquipe, equipeActuelle, planProgression, prochainPalier,
   conseilsSkins, offresActives, conseilsOffres, TAILLE_EQUIPE, setsIdeaux,
-  coachNoyau, coachCurios, coachBoss, coachDiamants, coachJalons, herosPrincipaux, curiosAChanger,
+  coachNoyau, coachCurios, coachBoss, coachDiamants, coachJalons, herosPrincipaux, curiosAChanger, pluriel,
 } from "./engine.js";
 import { charger, sauver, etatInitial, fusionner, nouvelId } from "./store.js";
 import { analyserTexte, ordonnerParCartes, lireProfil, lireEcrans } from "./capture.js";
@@ -83,7 +83,7 @@ const ic = (nom, taille) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="tr
 const chevron = () => `<svg class="ic chevron" viewBox="0 0 24 24" aria-hidden="true">${ICONES.chevron}</svg>`;
 const ICONE_RESSOURCE = { diamants: "gemme", or: "piece", flammeAme: "flamme", pacteHeros: "pacte", cuir: "cuir", endurance: "eclair" };
 const COULEUR_RARETE = { CR: "var(--r-mythique)", UR: "var(--r-legendaire)", SSR: "var(--r-epique)", R: "var(--r-rare)" };
-const pastilleRarete = (r) => `<span class="rarete" style="background:${COULEUR_RARETE[r] || "var(--groupe-2)"}">${esc(r)}</span>`;
+const pastilleRarete = (r) => `<span class="rarete"${COULEUR_RARETE[r] ? ` style="--c:${COULEUR_RARETE[r]}"` : ""}>${esc(r)}</span>`;
 const etoilesTexte = (n) => (Number(n) > 0 ? `<span class="etoiles" aria-label="${n} étoiles">${"★".repeat(Math.min(10, Number(n)))}</span>` : "");
 const LOGO = `<div class="logo" aria-label="Knock Knock Manager"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0cf78"/><stop offset="1" stop-color="#b8923a"/></linearGradient></defs>
   <rect x="1.5" y="1.5" width="45" height="45" rx="11" fill="#111" stroke="url(#lg)" stroke-width="1.5"/><rect x="15" y="9" width="18" height="29" rx="2" fill="none" stroke="url(#lg)" stroke-width="2.6"/>
@@ -118,7 +118,7 @@ const ligneNav = (f, titre, detail = "", { id = "", icone = "", valeur = "" } = 
   ${valeur ? `<span class="valeur">${esc(valeur)}</span>` : ""}${chevron()}</button>`;
 const notes = (liste) => liste.map((n) => `<div class="note ${n.niveau}">${esc(n.texte)}</div>`).join("");
 const etapes = (liste) => liste.map((e, i) => `<div class="ligne" style="align-items:flex-start"><span class="etape-num">${i + 1}</span><span class="corps"><b style="white-space:normal">${esc(e.titre)}</b><small class="multi">${esc(e.detail)}</small></span>
-  ${e.action ? `<button class="btn or" style="min-height:34px;padding:6px 14px;font-size:15px;align-self:center" data-act="equipe-proposee" data-id="${esc(e.action.ids.join(","))}">${esc(e.action.libelle)}</button>` : ""}</div>`).join("");
+  ${e.action ? `<button class="btn or" style="min-height:44px;padding:6px 14px;font-size:15px;align-self:center" data-act="equipe-proposee" data-id="${esc(e.action.ids.join(","))}">${esc(e.action.libelle)}</button>` : ""}</div>`).join("");
 
 function toast(msg) {
   const t = document.getElementById("toast");
@@ -209,7 +209,7 @@ function carteInstallation() {
   if (p.installee) return "";
   return `<div class="carte-install"><div class="ic-install">${ic("telephone", 26)}</div>
     <div style="flex:1;min-width:0"><b>Installer l'app</b><small>${invitationInstall ? "Ajoutez-la à votre écran d'accueil en un geste." : "Icône sur l'écran d'accueil, plein écran, hors ligne."}</small></div>
-    <button class="btn or" data-act="installer" style="min-height:40px;padding:8px 14px">Installer</button></div>`;
+    <button class="btn or" data-act="installer" style="min-height:44px;padding:8px 14px">Installer</button></div>`;
 }
 
 /* ---------- Accueil (tableau de bord) ---------- */
@@ -254,12 +254,12 @@ function vueAccueil() {
     <div class="note or">Vérifiez et enregistrez : la Stratégie se met à jour toute seule.</div>`) : ""}
 
   ${section("Ressources", `<div class="grille-res">${RESSOURCES.map((r) => `
-    <button class="tuile-res" data-act="ouvrir" data-f="ressources"><small>${esc(r.nom)}</small><b class="${etat.stock[r.id] == null ? "vide" : ""}">${esc(fmt(etat.stock[r.id]))}</b></button>`).join("")}</div>`,
-    { nu: true, pied: Number(etat.stock.diamants) >= 2200 ? `De quoi faire ${fmt(Math.floor(etat.stock.diamants / 2200))} tirage(s) de 10.` : "" })}
+    <button class="tuile-res" data-act="ouvrir" data-f="ressources"><small>${esc(r.nom.replace(/\s*\(.*\)$/, ""))}</small><b class="${etat.stock[r.id] == null ? "vide" : ""}">${esc(fmt(etat.stock[r.id]))}</b></button>`).join("")}</div>`,
+    { nu: true, pied: Number(etat.stock.diamants) >= 2200 ? `De quoi faire ${pluriel(fmt(Math.floor(etat.stock.diamants / 2200)), "tirage")} de 10.` : "" })}
 
   ${section("Mon équipe", `<div class="rangee-equipe">${Array.from({ length: TAILLE_EQUIPE }, (_, i) => equipe[i]).map((h, i) => `
     <button class="membre" data-act="ouvrir" data-f="${h ? "hero" : "equipe"}" data-id="${h ? h.id : ""}">${avatar(h || null)}<small>${h ? esc(h.nom) : `Place ${i + 1}`}</small></button>`).join("")}</div>
-    ${equipe.length ? `<button class="ligne" data-act="onglet" data-id="strategie"><span class="corps"><b>${alertes ? `${alertes} point(s) à corriger` : "Équipe équilibrée"}</b><small>Puissance moyenne ${ana.score}</small></span>${chevron()}</button>` : ""}`)}
+    ${equipe.length ? `<button class="ligne" data-act="onglet" data-id="strategie"><span class="corps"><b>${alertes ? `${pluriel(alertes, "point")} à corriger` : "Équipe équilibrée"}</b><small>Puissance moyenne ${ana.score}</small></span>${chevron()}</button>` : ""}`)}
 
   ${section("À faire maintenant", etapes(plan), { lien: `<button class="lien" data-act="onglet" data-id="strategie">Tout voir</button>` })}
 
@@ -296,8 +296,8 @@ function segCollection() {
   const nb = herosDe(etat).filter((h) => progression(etat, h.id).possede).length;
   const groupes = [...RARETES].reverse().map((r) => [r, liste.filter((h) => h.rarete === r)
     .sort((a, b) => progression(etat, b.id).possede - progression(etat, a.id).possede || TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier) || a.nom.localeCompare(b.nom))]).filter(([, l]) => l.length);
-  return `<input class="recherche" type="search" id="recherche-heros" placeholder="Rechercher un héros" data-ui="filtre" value="${esc(ui.filtre)}" aria-label="Rechercher un héros">
-  <div class="segments" style="margin-top:0"><button aria-selected="${!ui.possedes}" data-act="possedes" data-id="0">Tous (${herosDe(etat).length})</button><button aria-selected="${ui.possedes}" data-act="possedes" data-id="1">Les miens (${nb})</button></div>
+  return `<input class="recherche" type="search" id="recherche-heros" placeholder="Rechercher un héros…" data-ui="filtre" value="${esc(ui.filtre)}" aria-label="Rechercher un héros">
+  <div class="segments" role="tablist" aria-label="Filtre" style="margin-top:0"><button role="tab" aria-selected="${!ui.possedes}" data-act="possedes" data-id="0">Tous (${herosDe(etat).length})</button><button role="tab" aria-selected="${ui.possedes}" data-act="possedes" data-id="1">Les miens (${nb})</button></div>
   ${groupes.map(([r, l]) => section(r, l.map((h) => `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${h.id}">${avatar(h, { terne: !progression(etat, h.id).possede })}
     <span class="corps"><b>${esc(h.nom)}</b><small>${esc(resumeHero(h.id))}</small></span><span class="puce or tier">${esc(h.tier)}</span>${chevron()}</button>`).join(""))).join("")
     || `<div class="vide-etat"><b>Aucun héros</b>${ui.possedes ? "Ouvrez un héros dans « Tous » et activez « Je l'ai », ou importez une capture." : "Aucun nom ne correspond."}</div>`}
@@ -311,7 +311,7 @@ function segArtefacts() {
   const curios = cat().artefacts.filter((a) => a.set);
   const autres = arts.filter((a) => !a.set);
   const nb = curios.filter((c) => parRef.has(c.id)).length;
-  return `<p class="sous-titre">${nb} curio(s) sur ${curios.length}. Activez ceux que vous avez et réglez leurs étoiles ; un import du Curio Codex le fait pour vous.</p>
+  return `<p class="sous-titre">${nb} curio${nb >= 2 ? "s" : ""} sur ${curios.length}. Activez ceux que vous avez et réglez leurs étoiles ; un import du Curio Codex le fait pour vous.</p>
   ${Object.entries(SETS_CURIO).map(([id, set]) => {
     const pieces = curios.filter((c) => c.set === id).sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete));
     const eu = pieces.filter((c) => parRef.has(c.id)).length;
@@ -338,7 +338,7 @@ function segCompagnons(sorte) {
   const max = sorte === "betes" ? placesBetes() : NOMS_COMPAGNONS[sorte][2];
   const liste = cat()[sorte] || [];
   const deployes = liste.filter((x) => etat[sorte][x.id]?.deploye).length;
-  return `<p class="sous-titre">${deployes}/${max} ${unite}(s) déployé(s).${sorte === "betes" && max < 3 ? " 3e place à Main Stage 220." : ""}</p>
+  return `<p class="sous-titre">${deployes}/${max} ${deployes >= 2 ? `${unite}s déployés` : `${unite} déployé`}.${sorte === "betes" && max < 3 ? " 3e place à Main Stage 220." : ""}</p>
   ${section(titre, liste.map((x) => {
     const p = etat[sorte][x.id] || {};
     return `<button class="ligne" data-act="ouvrir" data-f="compagnon" data-id="${sorte}:${x.id}">${pastilleRarete(x.rarete)}
@@ -349,7 +349,7 @@ function segCompagnons(sorte) {
 
 function segSkins() {
   const skins = cat().skins;
-  return `${skins.length ? section(`${skins.length} skin(s)`, skins.map((s) => {
+  return `${skins.length ? section(pluriel(skins.length, "skin"), skins.map((s) => {
     const h = heroParId(s.heroId);
     return `<div class="ligne">${avatar(h, { taille: 36 })}<button class="corps" style="border:0;background:none;text-align:left;padding:0;color:inherit" data-act="ouvrir" data-f="fiche-skin" data-id="${s.id}">
       <b>${esc(s.nom)}</b><small>${esc(h?.nom || "Héros inconnu")}${s.bonusValeur ? ` · +${esc(s.bonusValeur)} % ${esc(STATS_ARTEFACT[s.bonusStat] || "")}` : ""}${skinEquipe(etat, s.heroId)?.id === s.id ? " · porté" : ""}</small></button>
@@ -384,8 +384,8 @@ function stratNoyau() {
   const pourquoi = Object.fromEntries(ORDRE_INVESTISSEMENT.map((o) => [o.poste, o.pourquoi]));
   return `${section("Ordre d'investissement", n.postes.map((x) => `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${x.hero.id}" style="align-items:flex-start">
       <span class="etape-num">${x.ordre}</span>${avatar(x.hero, { taille: 38 })}
-      <span class="corps"><b>${esc(x.hero.nom)} <span class="puce or" style="margin-left:4px">${esc(x.poste)}</span></b>
-      <small>${etat.roster[x.hero.id]?.niveauInconnu ? "Niv. à saisir" : `Niv. ${x.niveau}`} · P${x.promotion}${x.palier ? ` → P${x.palier.niveau} : ${esc(x.palier.bonus)}` : " · palier maximal"}</small>
+      <span class="corps"><b style="white-space:normal">${esc(x.hero.nom)} <span class="puce or" style="margin-left:4px">${esc(x.poste)}</span></b>
+      <small class="multi">${etat.roster[x.hero.id]?.niveauInconnu ? "Niv. à saisir" : `Niv. ${x.niveau}`} · P${x.promotion}${x.palier ? ` → P${x.palier.niveau} : ${esc(x.palier.bonus)}` : " · palier maximal"}</small>
       <small class="multi">${esc(pourquoi[x.poste] || "")}</small></span></button>`).join(""),
     { pied: "Le jeu récompense un noyau de 5 (Résonance) : donnez l'EXP, l'or et les matériaux de promotion dans cet ordre, à personne d'autre." })}
   ${n.cible ? section(`Objectif commun : tout le noyau en P${n.cible.niveau}`, `<div class="note or">Bonus du palier : ${esc(n.cible.bonus)}.</div>
@@ -412,7 +412,7 @@ function stratBoss() {
   const types = coachBoss(etat);
   const perso = cat().boss.filter((b) => !b.modele);
   return `${types.map((t) => section(t.nom, `<div class="ligne" style="align-items:flex-start"><span class="corps"><small class="multi">${esc(t.cle)}</small>
-      <div style="display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap">${t.heros.map((h) => `<span style="display:grid;justify-items:center;gap:3px;width:56px">${avatar(h, { taille: 40 })}<small style="font-size:11px;text-align:center;white-space:normal;line-height:1.15">${esc(h.nom)}</small></span>`).join("")}</div>
+      <div class="rangee-mini">${t.heros.map((h) => `<span title="${esc(h.nom)}">${avatar(h, { taille: 40 })}<small>${esc(h.nom)}</small></span>`).join("")}</div>
       ${t.changements.length && etat.equipe.length ? `<small class="multi">Par rapport à votre équipe : faites entrer ${esc(t.changements.map((h) => h.nom).join(", "))}.</small>` : etat.equipe.length ? `<small>Votre équipe actuelle convient.</small>` : ""}</span></div>
     <div style="padding:0 14px 12px"><button class="btn plein" data-act="equipe-type" data-id="${esc(t.heros.map((h) => h.id).join(","))}">Jouer cette équipe</button></div>`)).join("")}
   ${section("Vos boss", perso.length ? perso.map((b) => ligneNav("boss", b.nom, b.chapitre ? `Chapitre ${b.chapitre}` : "", { id: b.id })).join("") : `<div class="note">Ajoutez un boss précis (onglet Boss) pour une équipe sur mesure selon ses faiblesses.</div>`)}`;
@@ -423,12 +423,12 @@ function stratInvestir() {
   const jalons = coachJalons(etat);
   const skins = conseilsSkins(etat);
   return `${section("Diamants", `<div class="ligne"><span class="pastille-icone or">${ic("gemme", 18)}</span><span class="corps"><b>${fmt(d.stock)} diamants</b>
-      <small class="multi">${d.tirages ? `De quoi faire ${d.tirages} tirage(s) de 10 (2 200 chacun).` : `Encore ${fmt(d.manque)} pour un tirage de 10${d.jours ? `, soit environ ${d.jours} jour(s) avec vos passes (${d.parJour}/jour)` : ""}.`}</small></span></div>
+      <small class="multi">${d.tirages ? `De quoi faire ${pluriel(d.tirages, "tirage")} de 10 (2 200 chacun).` : `Encore ${fmt(d.manque)} pour un tirage de 10${d.jours ? `, soit environ ${pluriel(d.jours, "jour")} avec vos passes (${d.parJour}/jour)` : ""}.`}</small></span></div>
     <div class="note or">${d.posteVise ? `Cible de vos prochains tirages : un héros CR pour le poste « ${esc(d.posteVise)} » qui manque à votre noyau.` : "Votre noyau est complet : ne tirez que sur une bannière qui améliore un poste (un CR plus fort que votre carry ou votre soutien)."}</div>
     <div class="note">Jamais de tirage simple ni de rafraîchissement de boutique en diamants : tout pour les tirages de 10 sur bannière à taux augmenté.</div>`)}
   ${jalons.length ? section("Jalons du compte", jalons.map((x) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone${x.proche ? " or" : ""}">${ic("etoile", 18)}</span><span class="corps"><b>${esc(x.titre)}</b><small class="multi">Reste : ${esc(x.reste)}</small><small class="multi">Gain : ${esc(x.gain)}</small></span></div>`).join("")) : ""}
   ${section("Principes du long terme", PRINCIPES.map((p) => `<div class="ligne" style="align-items:flex-start"><span class="corps"><b style="white-space:normal">${esc(p.titre)}</b><small class="multi">${esc(p.texte)}</small></span></div>`).join(""))}
-  ${section("Où dépenser chaque ressource", RESSOURCES.map((r) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone">${ic(ICONE_RESSOURCE[r.id])}</span><span class="corps"><b>${esc(r.nom)} <span style="color:var(--texte-2);font-weight:400">${etat.stock[r.id] != null ? esc(fmt(etat.stock[r.id])) : ""}</span></b><small class="multi">${esc(r.conseil)}</small></span></div>`).join(""))}
+  ${section("Où dépenser chaque ressource", RESSOURCES.map((r) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone">${ic(ICONE_RESSOURCE[r.id])}</span><span class="corps"><b style="white-space:normal">${esc(r.nom)} <span style="color:var(--texte-2);font-weight:400">${etat.stock[r.id] != null ? esc(fmt(etat.stock[r.id])) : ""}</span></b><small class="multi">${esc(r.conseil)}</small></span></div>`).join(""))}
   ${section("Passes et options payantes", notes(conseilsOffres(etat)))}
   ${skins.length ? section("Skins", skins.map((x) => `<div class="ligne"><span class="corps"><b style="white-space:normal">${esc(x.texte)}</b></span><button class="lien" data-act="mettre-skin" data-id="${x.hero.id}" data-skin="${x.skin.id}">Équiper</button></div>`).join("")) : ""}
   <details class="section"><summary class="pied" style="cursor:pointer">Modes de jeu et astuces</summary>
@@ -457,7 +457,7 @@ function conseilsCompagnons() {
   if (verr.length) c.push({ niveau: "info", texte: `À débloquer avec ${verr[0].fragments} fragments : ${verr.map((x) => x.nom).join(", ")}.` });
   const places = placesBetes();
   const bDep = betes.filter((x) => x.deploye);
-  if (bDep.length < places && betes.some((x) => x.possede && !x.deploye)) c.push({ niveau: "alerte", texte: `${places - bDep.length} place(s) de bête libre(s) : déployez ${betes.filter((x) => x.possede && !x.deploye).map((x) => x.nom).join(" ou ")}.` });
+  if (bDep.length < places && betes.some((x) => x.possede && !x.deploye)) c.push({ niveau: "alerte", texte: `${pluriel(places - bDep.length, "place de bête libre", "places de bête libres")} : déployez ${betes.filter((x) => x.possede && !x.deploye).map((x) => x.nom).join(" ou ")}.` });
   if (bDep.length) c.push({ niveau: "info", texte: `Bêtes déployées : ${bDep.map((x) => `${x.nom} niv. ${x.niveau || 1}`).join(", ")}.` });
   if (!c.length) c.push({ niveau: "info", texte: "Indiquez vos pièges et bêtes (Héros › Pièges / Bêtes, ou import des écrans Trap et Beast)." });
   return c;
@@ -470,7 +470,7 @@ function vueBoss() {
   const liste = cat().boss.filter((b) => !f || norm(b.nom).includes(f) || norm(b.chapitre).includes(f));
   const aDesHeros = herosDe(etat).some((h) => progression(etat, h.id).possede);
   return `<h1 class="grand-titre">Boss</h1>
-  <input class="recherche" type="search" id="recherche-boss" placeholder="Rechercher un boss ou un chapitre" data-ui="rechercheBoss" value="${esc(ui.rechercheBoss)}" aria-label="Rechercher un boss">
+  <input class="recherche" type="search" id="recherche-boss" placeholder="Rechercher un boss ou un chapitre…" data-ui="rechercheBoss" value="${esc(ui.rechercheBoss)}" aria-label="Rechercher un boss">
   ${liste.length ? section("", liste.map((b) => {
     const top = composerEquipe(herosDe(etat), b, etat, { mesHerosSeulement: ui.mesHeros && aDesHeros, taille: 3 });
     return `<button class="ligne" data-act="ouvrir" data-f="boss" data-id="${b.id}" style="align-items:flex-start"><span class="pastille-icone" style="background:var(--e-saignement)">${ic("boss", 18)}</span>
@@ -486,7 +486,7 @@ function vueBoss() {
 function vueBoutique() {
   const actives = offresActives(etat);
   return `<h1 class="grand-titre">Boutique</h1>
-  <p class="sous-titre">${actives.length ? `${actives.length} option(s) active(s).` : "Indiquez ce que vous avez acheté : la Stratégie s'adapte."}</p>
+  <p class="sous-titre">${actives.length ? `${pluriel(actives.length, "option active", "options actives")}.` : "Indiquez ce que vous avez acheté : la Stratégie s'adapte."}</p>
   ${section("Options payantes", cat().offres.map((o) => {
     const a = etat.abonnements[o.id] || {};
     const act = actives.find((x) => x.id === o.id);
@@ -534,7 +534,7 @@ function feuilleImport() {
     const nombre = (cle, v, label) => `<label style="min-width:0;display:block"><small style="color:var(--texte-2);font-size:12px">${label}</small><input type="number" inputmode="numeric" enterkeyhint="done" min="0" data-imp="${cle}" value="${v ?? ""}" placeholder="—" style="${champSaisie}"></label>`;
     const choixHero = (cle, id) => `<select data-imp="${cle}" aria-label="Héros" style="${champSaisie}"><option value="">Héros ?</option>${herosDe(etat).map((h) => `<option value="${h.id}" ${h.id === id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select>`;
     const champLibre = (cle, v, label) => `<input data-imp="${cle}" value="${esc(v)}" aria-label="${esc(label)}" style="${champSaisie}">`;
-    return [`${nb} info(s) trouvée(s)`, `
+    return [pluriel(nb, "info trouvée", "infos trouvées"), `
       <p class="pied" style="padding-top:8px">${nb ? "Décochez ce qui est faux, corrigez si besoin, puis enregistrez. Les champs vides ne changent rien." : ""}</p>
       ${!nb ? section("", `<div class="note alerte">Rien de reconnu. Essayez une capture plus nette, en plein écran, sans recadrer les textes.</div>`) : ""}
       ${champsProfil.length ? section("Compte", champsProfil.map((k) => `<div class="ligne">${coche(`profil.${k}`, p.profil[k])}<span class="corps"><small>${LIBELLES_PROFIL[k]}</small>${champLibre(`profil.${k}`, p.profil[k].valeur, LIBELLES_PROFIL[k])}</span></div>`).join("")) : ""}
@@ -692,7 +692,7 @@ function appliquerImport() {
   etat.joueur.majImport = new Date().toISOString();
   viderImport();
   fermer(); enregistrer();
-  toast(`${n} info(s) enregistrée(s)`);
+  toast(pluriel(n, "info enregistrée", "infos enregistrées"));
 }
 
 /* Import de l'écran d'équipe : vignettes + choix du nom par carte. */
@@ -781,7 +781,7 @@ const FEUILLES = {
     const miens = liste.filter((h) => progression(etat, h.id).possede), autres = liste.filter((h) => !progression(etat, h.id).possede);
     return [`Équipe · ${etat.equipe.length}/${TAILLE_EQUIPE}`, `
       <div style="padding-top:8px"><button class="btn or plein" data-act="ouvrir" data-f="import-equipe">${ic("photo", 20)} Importer l'écran de mon équipe</button></div>
-      <input class="recherche" style="margin-top:12px" type="search" id="recherche-equipe" placeholder="Rechercher un héros" data-ui-feuille="filtreEquipe" value="${esc(ui.filtreEquipe || "")}" aria-label="Rechercher un héros">
+      <input class="recherche" style="margin-top:12px" type="search" id="recherche-equipe" placeholder="Rechercher un héros…" data-ui-feuille="filtreEquipe" value="${esc(ui.filtreEquipe || "")}" aria-label="Rechercher un héros">
       ${miens.length ? section(`Mes héros (${miens.length})`, miens.map(ligne).join("")) : ""}
       ${autres.length ? section(`Autres héros (${autres.length})`, autres.map(ligne).join(""), { pied: "Un héros ajouté à l'équipe est marqué comme obtenu." }) : ""}
       ${!liste.length ? `<div class="vide-etat"><b>Aucun héros</b>Il n'est pas encore au catalogue : Héros › Collection › « Ajouter un héros absent du catalogue ».</div>` : ""}`];
@@ -862,7 +862,7 @@ const FEUILLES = {
       ${section("", `<label class="champ"><span class="etiquette">Je l'ai</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-comp-possede="${sorte}:${id}" ${p.possede ? "checked" : ""}></label>
         <label class="champ"><span class="etiquette">Déployé</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-comp-deploye="${sorte}:${id}" ${p.deploye ? "checked" : ""}></label>`)}
       ${p.possede ? section("Progression", `${champStepper("Niveau", `${sorte}.${id}.niveau`, p.niveau || 1, 1)}${champStepper("Étoiles", `${sorte}.${id}.etoiles`, p.etoiles || 0)}`) : ""}
-      ${x.fragments && !p.possede ? `<p class="pied">Se débloque avec ${x.fragments} fragment(s).</p>` : ""}`];
+      ${x.fragments && !p.possede ? `<p class="pied">Se débloque avec ${pluriel(x.fragments, "fragment")}.</p>` : ""}`];
   },
   "fiche-skin"(id, extra) {
     const s = cat().skins.find((x) => x.id === id) || { nom: "", heroId: extra || "", bonusStat: "", bonusValeur: "", obtention: "" };
@@ -985,8 +985,24 @@ const FEUILLES = {
   },
 };
 
+/** Relie chaque libellé de ligne de formulaire (« .champ > label ») au champ qui le suit. */
+let numChamp = 0;
+function associerLibelles(racine) {
+  for (const l of racine.querySelectorAll(".champ > label:not([for])")) {
+    const c = l.parentElement.querySelector("input, select, textarea");
+    if (!c || l.contains(c)) continue;
+    if (!c.id) c.id = `champ-${++numChamp}`;
+    l.htmlFor = c.id;
+  }
+}
 function rendreFeuille() {
-  if (!ui.feuille) { $feuille.innerHTML = ""; delete $feuille.dataset.cle; document.body.classList.remove("feuille-ouverte"); return; }
+  if (!ui.feuille) {
+    $feuille.innerHTML = ""; delete $feuille.dataset.cle; document.body.classList.remove("feuille-ouverte");
+    arrierePlanInerte(false);
+    if (ui.focusAvant?.isConnected) ui.focusAvant.focus({ preventScroll: true });
+    ui.focusAvant = null;
+    return;
+  }
   const corpsAvant = $feuille.querySelector(".feuille-corps");
   const meme = corpsAvant && $feuille.dataset.cle === ui.feuille.cle;
   const defil = meme ? corpsAvant.scrollTop : 0;
@@ -1002,17 +1018,26 @@ function rendreFeuille() {
     corpsAvant.innerHTML = corps;
     $feuille.querySelector(".feuille-pied")?.remove();
     if (pied) corpsAvant.insertAdjacentHTML("afterend", pied);
+    associerLibelles(corpsAvant);
     corpsAvant.scrollTop = defil;
     return;
   }
   $feuille.innerHTML = `<div class="voile" data-act="fermer-fond"><div class="feuille" role="dialog" aria-modal="true" aria-label="${esc(titre)}">
     <div class="feuille-tete"><button class="bouton-texte g" data-act="${avecRetour ? "retour" : "fermer"}">${avecRetour ? "‹ Retour" : "Fermer"}</button><h2>${esc(titre)}</h2>${droite}</div>
     <div class="feuille-corps">${corps}</div>${pied}</div></div>`;
+  associerLibelles($feuille);
   $feuille.dataset.cle = ui.feuille.cle;
   document.body.classList.add("feuille-ouverte");
+  // Clavier et VoiceOver : le focus entre dans la feuille, l'arrière-plan ne se lit plus.
+  arrierePlanInerte(true);
+  $feuille.querySelector(".feuille-tete .bouton-texte")?.focus({ preventScroll: true });
+}
+function arrierePlanInerte(oui) {
+  for (const el of [$defile, document.querySelector(".onglets")]) el.inert = oui;
 }
 function ouvrir(type, id = "", extra = "") {
   if (!FEUILLES[type]) return;
+  if (!ui.feuille) ui.focusAvant = document.activeElement !== document.body ? document.activeElement : null;
   if (ui.feuille) ui.pile.push(ui.feuille);
   ui.feuille = { type, id, extra, cle: `${type}:${id}:${ui.pile.length}` };
   rendreFeuille();
@@ -1043,6 +1068,7 @@ function rendre() {
   $petitTitre.textContent = o.titre;
   $actions.innerHTML = o.actions();
   $vue.innerHTML = o.vue();
+  associerLibelles($vue);
   document.querySelectorAll(".onglets button").forEach((b) => b.toggleAttribute("aria-current", b.dataset.onglet === ui.onglet));
   // Pastille : héros de l'équipe qui ne portent pas les pièces possédées de leur set conseillé (même calcul que le plan).
   const nb = etat.inventaire.length && etat.equipe.length ? curiosAChanger(etat).length : 0;
@@ -1090,7 +1116,7 @@ function basculerCurio(ref, oui) {
 }
 function basculerDeploiement(sorte, id, oui) {
   const max = sorte === "betes" ? placesBetes() : NOMS_COMPAGNONS[sorte][2];
-  if (oui && cat()[sorte].filter((x) => x.id !== id && etat[sorte][x.id]?.deploye).length >= max) { toast(`${max} place(s) seulement : retirez d'abord un ${NOMS_COMPAGNONS[sorte][1]}`); return false; }
+  if (oui && cat()[sorte].filter((x) => x.id !== id && etat[sorte][x.id]?.deploye).length >= max) { toast(`${pluriel(max, "place")} seulement : retirez d'abord un ${NOMS_COMPAGNONS[sorte][1]}`); return false; }
   etat[sorte][id] = { ...(etat[sorte][id] || {}), deploye: oui, ...(oui ? { possede: true } : {}) };
   return true;
 }
