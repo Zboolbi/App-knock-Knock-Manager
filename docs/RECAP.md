@@ -34,7 +34,7 @@
 | `js/ocr.js` | Tesseract.js embarqué (`vendor/`, eng+fra), **2 passes** (textes clairs / textes colorés), image jamais conservée |
 | `js/app.js` | Interface (vues, feuilles, import, événements) |
 | `tests/*.mjs` | 34 tests unitaires (`npm test`) |
-| `qa/campagne.cjs` | 80 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
+| `qa/campagne.cjs` | 84 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
 | `docs/qa/` | Cahier des tests, résultats, anomalies, diagnostic |
 | `outils/build.py` | Page unique + archive PWA (`dist/`) |
 
@@ -60,6 +60,7 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 - Durée : ~7 s par capture sur ordinateur (2 passes).
 
 ## 8. Limites connues / pistes
+- Installation : bouton « Installer » sur l'accueil (masqué si déjà installée). Android/Chrome : fenêtre native (`beforeinstallprompt`). iPhone : Apple interdit l'installation par une page → étapes Safari guidées + flèche vers Partager ; navigateur intégré (Instagram, Gmail…) ou Chrome iOS → copie de l'adresse pour Safari.
 - Lire les étoiles par détection de couleur des icônes (non fait).
 - Pas de connexion directe au compte (iOS isole les apps, aucun accès public au jeu).
 - Safari iOS non testé automatiquement (WebKit indisponible ici).
@@ -71,5 +72,6 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 | 04/11 | V1 : PWA 6 onglets (plan, héros, boss, artefacts, ressources, données). |
 | 04/11 | V2 : refonte façon Instagram, import OCR (eng+fra), publication GitHub Pages. |
 | 04/11 | V3 : refonte Apple noir/blanc/or, import complet du profil, campagne QA 71 cas (10 anomalies corrigées). |
+| 04/11 | V6 : bouton « Installer l'app » adapté à l'appareil (Android natif, iPhone guidé, navigateurs intégrés), QA 84/84. |
 | 04/11 | V5 : Value Pass / Deluxe Pass (contenu, gains quotidiens, import de l'écran), Infinity Train (mode, arrêt dans le profil, tâche du jour, import), QA 80/80. Valeurs du joueur non figées dans les tests. |
 | 04/11 | V4 : données réelles du jeu (curios et sets, pièges, bêtes, 31 héros, raretés R/SSR/UR/CR), OCR 2 passes, écrans sans libellé, logo original, QA 77/77 avec 16 vraies captures. |

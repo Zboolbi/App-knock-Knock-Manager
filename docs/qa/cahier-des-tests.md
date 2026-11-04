@@ -158,6 +158,10 @@ Légende priorité : P1 bloquant, P2 majeur, P3 mineur.
 | UI-04 | Cibles tactiles | Boutons ≥ 44 px de haut | P3 |
 | UI-05 | Libellés accessibles | Boutons icône et interrupteurs ont un nom accessible | P3 |
 | UI-06 | Champs texte | Police ≥ 16 px (pas de zoom automatique sur iOS) | P3 |
+| INS-01 | Installer, iPhone Safari | Étapes guidées + flèche vers Partager | P2 |
+| INS-02 | Installer, navigateur intégré (Instagram…) | Explication + copie de l'adresse pour Safari | P2 |
+| INS-03 | Installer, Android / Chrome | Fenêtre d'installation native | P2 |
+| INS-04 | App déjà installée | Bouton masqué | P3 |
 | PWA-01 | Manifest et icônes | `standalone`, icônes 180/192/512 présentes | P2 |
 | PWA-02 | Hors ligne | Après une visite, l'app s'ouvre sans réseau | P2 |
 | PERF-01 | Premier affichage | < 1 s en local | P3 |

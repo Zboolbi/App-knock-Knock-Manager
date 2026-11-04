@@ -155,6 +155,48 @@ const TACHES = ["Récupérer le revenu du Lit", "Faire les missions quotidiennes
   "Infinity Train : utiliser les 10 tentatives (Sweep)"];
 const TACHE_TRAIN = TACHES.length - 1;
 
+/* ---------- Installation sur l'écran d'accueil ---------- */
+
+const URL_APP = "https://zboolbi.github.io/app-knock-knock-manager/";
+let invitationInstall = null; // fenêtre d'installation native (Android, Chrome, Edge)
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); invitationInstall = e; rendre(); });
+window.addEventListener("appinstalled", () => { invitationInstall = null; toast("App installée"); rendre(); });
+
+function plateforme() {
+  const ua = navigator.userAgent || "";
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const integre = /FBAN|FBAV|Instagram|Line\/|GSA\/|Snapchat|TikTok|Twitter|LinkedInApp|WhatsApp/.test(ua);
+  const autreNavigateur = /CriOS|FxiOS|EdgiOS|OPiOS|YaBrowser|DuckDuckGo/.test(ua);
+  return {
+    installee: window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true,
+    ios, integre,
+    safariIos: ios && !integre && !autreNavigateur && /Safari/.test(ua),
+    autreNavigateurIos: ios && autreNavigateur,
+    android: /Android/.test(ua),
+  };
+}
+
+async function installer() {
+  const p = plateforme();
+  if (p.installee) return toast("L'app est déjà installée");
+  if (invitationInstall) {
+    invitationInstall.prompt();
+    const { outcome } = await invitationInstall.userChoice.catch(() => ({}));
+    invitationInstall = null;
+    toast(outcome === "accepted" ? "Installation en cours" : "Installation annulée");
+    return rendre();
+  }
+  ouvrir("installer");
+}
+
+function carteInstallation() {
+  const p = plateforme();
+  if (p.installee) return "";
+  return `<div class="carte-install"><div class="ic-install">${ic("telephone", 26)}</div>
+    <div style="flex:1;min-width:0"><b>Installer l'app</b><small>${invitationInstall ? "Ajoutez-la à votre écran d'accueil en un geste." : "Icône sur l'écran d'accueil, plein écran, hors ligne."}</small></div>
+    <button class="btn or" data-act="installer" style="min-height:40px;padding:8px 14px">Installer</button></div>`;
+}
+
 /* ---------- Accueil (tableau de bord) ---------- */
 
 function vueAccueil() {
@@ -170,7 +212,8 @@ function vueAccueil() {
 
   return `
   ${LOGO}
-  <h1 class="grand-titre">Tableau de bord</h1>
+  ${carteInstallation()}
+  <h1 class="grand-titre" style="margin-top:14px">Tableau de bord</h1>
   <p class="sous-titre">${j.majImport ? `Mis à jour par capture le ${esc(dateCourte(j.majImport))}` : "Importez une capture de votre profil pour tout remplir d'un coup."}</p>
 
   <div class="carte-profil">
@@ -599,7 +642,7 @@ const FEUILLES = {
       ${section("Compte", `${ligneNav("profil", "Profil du joueur", etat.joueur.pseudo || "À compléter", { icone: "utilisateur" })}${ligneNav("import", "Importer des captures", "Remplit le profil automatiquement", { icone: "photo" })}${ligneNav("ressources", "Ressources", "Diamants, Or, Soul Flame…", { icone: "gemme" })}`)}
       ${section("Données", `${ligneNav("sauvegarde", "Sauvegarde et transfert", "Copier, coller, fichier", { icone: "sauvegarde" })}${ligneNav("confidentialite", "Confidentialité", "Ce qui est gardé sur le téléphone", { icone: "cadenas" })}`)}
       ${section("Catalogue du jeu", `${ligneNav("cat-heros", "Héros", "", { icone: "heros", valeur: String(herosDe(etat).length) })}${ligneNav("cat-artefacts", "Artefacts", "", { icone: "gemme", valeur: String(cat().artefacts.length) })}${ligneNav("promotions", "Paliers de promotion", "", { icone: "etoile" })}`)}
-      ${section("Aide", `${ligneNav("installer", "Installer sur l'iPhone", "", { icone: "telephone" })}${ligneNav("connexion", "Connexion au compte du jeu", "", { icone: "lien" })}`)}
+      ${section("Aide", `${ligneNav("installer", plateforme().installee ? "App installée" : "Installer l'app", plateforme().installee ? "Déjà sur l'écran d'accueil" : "Écran d'accueil, plein écran, hors ligne", { icone: "telephone" })}${ligneNav("connexion", "Connexion au compte du jeu", "", { icone: "lien" })}`)}
       ${section("", `<button class="ligne" data-act="reinitialiser" data-confirmer="Touchez encore pour tout effacer"><span class="pastille-icone" style="background:var(--mauvais-fond);color:var(--mauvais)">${ic("corbeille", 18)}</span><span class="corps"><b style="color:var(--mauvais)">Effacer mon profil</b></span></button>`,
         { pied: "Application non officielle, sans lien avec l'éditeur du jeu. Données : guides communautaires et fiches des stores (2026)." })}`];
   },
@@ -789,11 +832,33 @@ const FEUILLES = {
       <div class="note">Effacer les données de Safari ou supprimer l'app efface le profil : faites une sauvegarde avant.</div>`)];
   },
   installer() {
-    return ["Installer sur l'iPhone", section("", etapes([
-      { titre: "Ouvrez l'app dans Safari", detail: "zboolbi.github.io/app-knock-knock-manager" },
-      { titre: "Partager › Sur l'écran d'accueil", detail: "Puis « Ajouter »." },
-      { titre: "Lancez-la depuis son icône", detail: "Plein écran, et hors ligne après la première ouverture." },
-    ]))];
+    const p = plateforme();
+    if (p.installee) return ["Installer l'app", section("", `<div class="note ok">L'app est déjà installée sur cet appareil.</div>`)];
+    const lien = `${section("Adresse de l'app", `<div class="ligne"><span class="corps"><b style="font-size:15px;white-space:normal;user-select:all">${URL_APP}</b></span><button class="bouton-icone" data-act="copier-lien" aria-label="Copier l'adresse">${ic("copier", 20)}</button></div>`)}`;
+    if (p.integre || p.autreNavigateurIos) {
+      return ["Installer l'app", `${section("", `<div class="note alerte">${p.integre ? "Vous êtes dans le navigateur intégré d'une autre app (Instagram, Gmail…), qui ne peut pas installer d'app." : "Sur iPhone, l'installation passe par Safari."}</div>`)}
+        ${section("Marche à suivre", etapes([
+          { titre: "Copiez l'adresse", detail: "Bouton ci-dessous." },
+          { titre: "Ouvrez Safari et collez-la", detail: "Dans la barre d'adresse, puis « Aller »." },
+          { titre: "Touchez Installer dans l'app", detail: "Les étapes Safari s'affichent alors." },
+        ]))}
+        <div style="margin-top:10px"><button class="btn or plein" data-act="copier-lien">${ic("copier", 20)} Copier l'adresse</button></div>${lien}`];
+    }
+    if (p.ios) {
+      return ["Installer sur l'iPhone", `${section("Dans Safari", etapes([
+          { titre: "Touchez le bouton Partager", detail: "Le carré avec une flèche vers le haut, en bas de l'écran (en haut sur iPad). La flèche dorée vous l'indique." },
+          { titre: "Choisissez « Sur l'écran d'accueil »", detail: "Faites défiler la liste si besoin. Activez « Ouvrir comme app web » si iOS le propose." },
+          { titre: "Touchez « Ajouter »", detail: "L'icône Knock Knock Manager apparaît sur votre écran d'accueil : lancez l'app depuis elle." },
+        ]))}
+        <p class="pied">Apple ne permet pas à une page web de s'installer d'elle-même : ces 3 touches dans Safari sont la seule façon. Vos données restent dans l'app installée.</p>
+        <div class="fleche-partage" aria-hidden="true">${ic("sauvegarde", 34)}</div>${lien}`];
+    }
+    return ["Installer l'app", `${section("", etapes([
+        { titre: p.android ? "Menu ⋮ de Chrome" : "Menu du navigateur", detail: "En haut à droite." },
+        { titre: "« Installer l'application » ou « Ajouter à l'écran d'accueil »", detail: "Puis confirmez." },
+        { titre: "Lancez l'app depuis son icône", detail: "Plein écran et hors ligne." },
+      ]))}
+      <p class="pied">Si votre navigateur ne propose pas l'installation, ouvrez l'adresse dans Chrome (Android) ou Safari (iPhone).</p>${lien}`];
   },
   connexion() {
     return ["Connexion au jeu", section("", `<div class="note alerte">Impossible de lire directement le compte du jeu.</div>
@@ -1007,6 +1072,8 @@ const ACTIONS = {
     supprimerCatalogue("artefacts", b.dataset.id); enregistrer();
   },
   "copier-code": (b) => copierTexte(b.dataset.id),
+  "copier-lien": () => copierTexte(URL_APP),
+  installer: () => installer(),
   copier: () => { const z = document.getElementById("profil-json"); copierTexte(z.value, z); },
   coller: () => {
     try { etat = fusionner(JSON.parse(document.getElementById("profil-json").value)); enregistrer(); toast("Profil chargé"); }

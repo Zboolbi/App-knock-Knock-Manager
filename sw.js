@@ -1,5 +1,5 @@
 // Cache hors ligne : réseau d'abord, cache en secours.
-const CACHE = "kkrd-coach-v6";
+const CACHE = "kkrd-coach-v7";
 const FICHIERS = ["./", "index.html", "styles.css", "manifest.webmanifest", "icon.svg",
   "js/app.js", "js/data.js", "js/engine.js", "js/store.js", "js/capture.js", "js/ocr.js",
   "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];

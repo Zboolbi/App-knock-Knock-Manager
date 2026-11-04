@@ -725,6 +725,38 @@ async function main() {
     await p.ctx.close();
   });
 
+  await cas("INS-01", "Bouton Installer : iPhone Safari → étapes guidées", async () => {
+    const p = await page(null, { appareil: devices["iPhone 13"] });
+    await p.click(".carte-install [data-act=installer]");
+    const t = await p.textContent(".feuille");
+    verifier(/Partager/.test(t) && /Sur l'écran d'accueil/.test(t) && await p.locator(".fleche-partage").count() === 1, "étapes Safari absentes");
+    await p.ctx.close();
+  });
+  await cas("INS-02", "Bouton Installer : navigateur intégré → ouvrir dans Safari", async () => {
+    const app = { ...devices["iPhone 13"], userAgent: devices["iPhone 13"].userAgent.replace("Safari", "Instagram 300.0 Safari") };
+    const p = await page(null, { appareil: app });
+    await p.click(".carte-install [data-act=installer]");
+    const t = await p.textContent(".feuille");
+    verifier(/navigateur intégré/.test(t) && /Copier l'adresse/.test(t), t.slice(0, 120));
+    await p.ctx.close();
+  });
+  await cas("INS-03", "Bouton Installer : invitation native (Android / Chrome)", async () => {
+    const p = await page(null, { appareil: devices["Pixel 7"] });
+    await p.evaluate(() => { const e = new Event("beforeinstallprompt"); e.prompt = () => { window.__invite = true; }; e.userChoice = Promise.resolve({ outcome: "accepted" }); window.dispatchEvent(e); });
+    await p.click(".carte-install [data-act=installer]");
+    await p.waitForTimeout(200);
+    verifier(await p.evaluate(() => window.__invite === true) && await p.locator(".feuille").count() === 0, "invitation native non déclenchée");
+    await p.ctx.close();
+  });
+  await cas("INS-04", "App installée : bouton masqué", async () => {
+    const ctx = await navigateur.newContext({ ...devices["iPhone 13"] });
+    const p = await ctx.newPage();
+    await p.addInitScript(() => { Object.defineProperty(navigator, "standalone", { get: () => true }); });
+    await p.goto(URL);
+    verifier(await p.locator(".carte-install").count() === 0, "bouton toujours affiché");
+    await ctx.close();
+  });
+
   /* ---------- 4.9 Données ---------- */
   await cas("DON-01", "Rechargement", async () => {
     const p = await page(etatArtefacts());

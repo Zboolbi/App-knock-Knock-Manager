@@ -237,3 +237,13 @@ pre.lu { white-space: pre-wrap; font: 12px/1.4 ui-monospace, "SF Mono", Menlo, m
 .segments.defilant { display: flex; overflow-x: auto; scrollbar-width: none; }
 .segments.defilant::-webkit-scrollbar { display: none; }
 .segments.defilant button { flex: 1 0 auto; padding: 0 12px; }
+
+/* Installation */
+.carte-install { display: flex; align-items: center; gap: 12px; margin-top: 4px; padding: 12px 14px; border-radius: 14px; background: var(--groupe); border: 0.5px solid #3a3020; }
+.carte-install b { display: block; font-size: 16px; }
+.carte-install small { display: block; color: var(--texte-2); font-size: 13px; }
+.ic-install { width: 44px; height: 44px; border-radius: 11px; display: grid; place-items: center; background: var(--or-fond); color: var(--or-vif); flex: none; }
+.fleche-partage { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); color: var(--or-vif); z-index: 70; animation: rebond 1.2s ease-in-out infinite; pointer-events: none; }
+@keyframes rebond { 50% { transform: translateX(-50%) translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .fleche-partage { animation: none; } }
+@media (min-width: 700px) { .fleche-partage { top: calc(8px + env(safe-area-inset-top, 0px)); bottom: auto; left: auto; right: 90px; transform: rotate(180deg); animation: none; } }
