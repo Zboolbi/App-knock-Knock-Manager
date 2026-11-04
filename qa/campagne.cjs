@@ -293,33 +293,34 @@ async function main() {
   await cas("ART-01", "Ajout d'artefacts", async () => {
     const p = await page(null);
     await p.click(".onglets [data-onglet=heros]"); await p.click("[data-act=seg][data-id=artefacts]");
-    await p.click("text=Ajouter un artefact");
-    await p.selectOption("#aa-ref", "generique-patk"); await p.click("form[data-form=artefact-inventaire] button[type=submit]");
-    await p.click("text=Ajouter un artefact");
+    await p.click("#actions-haut [data-f=ajout-artefact]");
+    await p.selectOption("#aa-ref", "bone-drill"); await p.click("form[data-form=artefact-inventaire] button[type=submit]");
+    await p.click("#actions-haut [data-f=ajout-artefact]");
     await p.fill("#ac-nom", "Croc de sang"); await p.click("form[data-form=artefact-catalogue] button[type=submit]");
     const n = await p.locator("button[data-f=artefact]").count();
     verifier(n === 2, `${n} artefacts listés`);
     await p.ctx.close();
   });
   const etatArtefacts = () => avec((e) => {
-    possede(e, ["poison-knight", "lazerman", "spiker"]);
-    e.equipe = ["poison-knight", "lazerman", "spiker"];
-    e.catalogue.artefacts.push({ id: "lame", nom: "Lame", stat: "patk", rarete: "Mythique" }, { id: "orbe", nom: "Orbe", stat: "matk", rarete: "Mythique" });
+    possede(e, ["poison-knight", "archangel", "spiker"]);
+    e.equipe = ["poison-knight", "archangel", "spiker"];
+    e.catalogue.artefacts.push({ id: "lame", nom: "Lame", stat: "patk", rarete: "CR" }, { id: "orbe", nom: "Orbe", stat: "matk", rarete: "CR" });
     e.inventaire.push({ id: "i1", ref: "lame", niveau: 10 }, { id: "i2", ref: "orbe", niveau: 10 }, { id: "i3", ref: "lame", niveau: 1 });
-    e.roster.lazerman.artefacts = ["i1"];
+    e.roster.archangel.artefacts = ["i1"];
   });
   await cas("ART-02", "Un artefact n'est jamais sur deux héros", async () => {
     const p = await page(etatArtefacts());
     await p.click(".onglets [data-onglet=heros]"); await p.click("button[data-f=hero][data-id=poison-knight]");
     await p.selectOption('[data-slot=poison-knight][data-index="0"]', "i1");
     const e = await p.etat();
-    verifier(e.roster["poison-knight"].artefacts.includes("i1") && !e.roster.lazerman.artefacts.includes("i1"), JSON.stringify([e.roster["poison-knight"].artefacts, e.roster.lazerman.artefacts]));
+    verifier(e.roster["poison-knight"].artefacts.includes("i1") && !e.roster.archangel.artefacts.includes("i1"), JSON.stringify([e.roster["poison-knight"].artefacts, e.roster.archangel.artefacts]));
     await p.ctx.close();
   });
   await cas("ART-03", "Emplacements respectés via « Porté par »", async () => {
     const p = await page(avec((e) => {
       possede(e, ["spiker"]); e.joueur.emplacements = 1;
-      e.inventaire.push({ id: "a", ref: "generique-patk", niveau: 0 }, { id: "b", ref: "generique-crit", niveau: 0 });
+      e.catalogue.artefacts.push({ id: "x1", nom: "Lame", stat: "patk", rarete: "UR" }, { id: "x2", nom: "Lunette", stat: "crit", rarete: "UR" });
+      e.inventaire.push({ id: "a", ref: "x1", niveau: 0 }, { id: "b", ref: "x2", niveau: 0 });
       e.roster.spiker.artefacts = ["a"];
     }));
     await p.click(".onglets [data-onglet=heros]"); await p.click("[data-act=seg][data-id=artefacts]");
@@ -335,7 +336,7 @@ async function main() {
     await p.click("button[data-f=artefact][data-id=i1]");
     await p.click("[data-act=suppr-inv]"); await p.click("[data-act=suppr-inv]");
     const e = await p.etat();
-    verifier(!e.inventaire.some((i) => i.id === "i1") && !e.roster.lazerman.artefacts.includes("i1"), "toujours présent");
+    verifier(!e.inventaire.some((i) => i.id === "i1") && !e.roster.archangel.artefacts.includes("i1"), "toujours présent");
     await p.ctx.close();
   });
   await cas("ART-05", "Suppression d'une fiche encore possédée refusée", async () => {
@@ -367,6 +368,51 @@ async function main() {
     await p.ctx.close();
   });
 
+  await cas("CUR-01", "Curios par set : interrupteur et compteur", async () => {
+    const p = await page(null);
+    await p.click(".onglets [data-onglet=heros]"); await p.click("[data-act=seg][data-id=artefacts]");
+    await p.click('label:has(+ x) , [data-curio="ghost-lighter"]').catch(() => {});
+    await p.check('[data-curio="sacrifice-candle"]');
+    const titre = await p.locator(".section-titre h2", { hasText: "Sky Scorch" }).textContent();
+    await p.uncheck('[data-curio="sacrifice-candle"]');
+    const e = await p.etat();
+    verifier(/Sky Scorch · [12]\/4/.test(titre) && !e.inventaire.some((i) => i.ref === "sacrifice-candle"), `${titre}`);
+    await p.ctx.close();
+  });
+  await cas("CUR-02", "Héros Brûlure : set Sky Scorch complet appliqué", async () => {
+    const p = await page(avec((e) => { possede(e, ["bride-wraith"]); e.equipe = ["bride-wraith"]; e.joueur.emplacements = 4;
+      ["purgatory-oven", "dynamite-battery", "ghost-lighter", "sacrifice-candle", "rusty-knife"].forEach((r, i) => e.inventaire.push({ id: `k${i}`, ref: r, etoiles: 3 })); }));
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=appliquer-tout]");
+    const e = await p.etat();
+    const refs = e.roster["bride-wraith"].artefacts.map((id) => e.inventaire.find((i) => i.id === id).ref).sort();
+    verifier(JSON.stringify(refs) === JSON.stringify(["dynamite-battery", "ghost-lighter", "purgatory-oven", "sacrifice-candle"]), refs.join(","));
+    await p.ctx.close();
+  });
+  await cas("CMP-01", "Pièges : déploiement limité à 3", async () => {
+    const p = await page(avec((e) => { for (const id of ["iron-fist", "molten-furnace", "lethal-fence"]) e.pieges[id] = { possede: true, niveau: 10, deploye: true }; e.pieges["demon-spike"] = { possede: true, niveau: 5 }; }));
+    await p.click(".onglets [data-onglet=heros]"); await p.click("[data-act=seg][data-id=pieges]");
+    await p.click('button[data-f=compagnon][data-id="pieges:demon-spike"]');
+    await p.click('.feuille label.champ:has([data-comp-deploye])');
+    const e = await p.etat();
+    verifier(!e.pieges["demon-spike"].deploye, "4e piège déployé");
+    await p.ctx.close();
+  });
+  await cas("CMP-02", "Bêtes : 3e place seulement après Main Stage 220", async () => {
+    const p = await page(avec((e) => { e.joueur.etape = "176"; for (const id of ["titan-mammoth", "colossal-ape"]) e.betes[id] = { possede: true, deploye: true }; e.betes["alien-critter"] = { possede: true }; }));
+    await p.click(".onglets [data-onglet=heros]"); await p.click("[data-act=seg][data-id=betes]");
+    const t = await p.textContent(".sous-titre");
+    await p.click('button[data-f=compagnon][data-id="betes:alien-critter"]');
+    await p.click('.feuille label.champ:has([data-comp-deploye])');
+    const refuse = !(await p.etat()).betes["alien-critter"].deploye;
+    verifier(/2\/2/.test(t) && /220/.test(t) && refuse, `${t} / refus=${refuse}`);
+    await p.ctx.close();
+  });
+  await cas("LOGO-01", "Logo de l'app sur l'accueil", async () => {
+    const p = await page(null);
+    verifier(await p.locator(".logo svg").count() === 1 && (await p.textContent(".logo")).includes("Knock Knock"), "logo absent");
+    await p.ctx.close();
+  });
+
   /* ---------- 4.5 Stratégie ---------- */
   const premiereEtape = async (e) => { const p = await page(e); await p.click(".onglets [data-onglet=strategie]"); const t = await p.textContent(".section .ligne b"); await p.ctx.close(); return t; };
   await cas("STR-01", "Lit = Porte → monter la Porte", async () => { const t = await premiereEtape(avec((e) => { e.joueur.porte = 5; e.joueur.lit = 5; possede(e, ["spiker"]); })); verifier(/Porte/.test(t), t); return t; });
@@ -383,7 +429,7 @@ async function main() {
     await p.click(".onglets [data-onglet=strategie]");
     await p.click("[data-act=appliquer-tout]");
     const e = await p.etat();
-    const pk = e.roster["poison-knight"].artefacts, lz = e.roster.lazerman.artefacts;
+    const pk = e.roster["poison-knight"].artefacts, lz = e.roster.archangel.artefacts;
     verifier(Number(compteur) >= 1 && pk.includes("i1") && lz.includes("i2") && await p.locator("#compteur-strategie").isHidden(), JSON.stringify({ compteur, pk, lz }));
     await p.ctx.close();
   });
@@ -560,7 +606,7 @@ async function main() {
   await cas("IMP-04", "Fiche française : héros, artefact, skin", async () => {
     const { champs } = await importer(["heros-fr.png"]);
     const ok = champs["heros.0.heroId"] === "frosthealer" && champs["heros.0.niveau"] === "35" && champs["heros.0.promotion"] === "3" && champs["heros.0.etoiles"] === "4"
-      && champs["artefacts.0.nom"] === "Lame ancestrale" && champs["artefacts.0.stat"] === "patk" && champs["artefacts.0.rarete"] === "Légendaire" && champs["artefacts.0.niveau"] === "7"
+      && champs["artefacts.0.nom"] === "Lame ancestrale" && champs["artefacts.0.stat"] === "patk" && champs["artefacts.0.rarete"] === "UR" && champs["artefacts.0.niveau"] === "7"
       && champs["skins.0.nom"] === "Reine des glaces" && champs["skins.0.heroId"] === "frosthealer";
     verifier(ok, JSON.stringify(champs));
   });
@@ -626,6 +672,26 @@ async function main() {
     await p.ctx.close();
   });
 
+  const dossierReel = path.join(__dirname, "captures-reelles");
+  if (fs.existsSync(dossierReel)) {
+    await cas("REEL-01", "16 vraies captures du jeu (anglais)", async () => {
+      const p = await page(null);
+      await p.click("#actions-haut [data-f=import]");
+      const fichiers = fs.readdirSync(dossierReel).filter((f) => /\.png$/i.test(f)).map((f) => path.join(dossierReel, f));
+      await p.setInputFiles(".feuille input[data-import-captures]", fichiers);
+      await p.waitForSelector(".feuille [data-act=import-recommencer]", { timeout: 600000 });
+      await p.click("[data-act=import-appliquer]");
+      const e = await p.etat();
+      const heros = Object.values(e.roster).filter((r) => r.possede).length;
+      const ok = heros === 31 && e.inventaire.length === 29 && Object.values(e.pieges).filter((x) => x.possede).length === 5 && Object.values(e.betes).filter((x) => x.possede).length === 4
+        && e.stock.diamants === 352 && e.stock.or === 16630 && e.stock.endurance === 274 && e.joueur.niveau === 69 && e.joueur.coffreCurios === 392 && e.joueur.equipementNiveau === 171;
+      const niveaux = Object.values(e.roster).filter((r) => r.possede && r.niveau === 67).length;
+      verifier(ok, JSON.stringify({ heros, curios: e.inventaire.length, stock: e.stock, niveau: e.joueur.niveau }));
+      await p.ctx.close();
+      return `31 héros (${niveaux} avec le bon niveau 67), 29 curios, 5 pièges, 4 bêtes, ressources et profil justes`;
+    });
+  }
+
   /* ---------- 4.9 Données ---------- */
   await cas("DON-01", "Rechargement", async () => {
     const p = await page(etatArtefacts());
@@ -641,7 +707,7 @@ async function main() {
     await p.evaluate(() => localStorage.clear());
     await p.fill("#profil-json", texte); await p.click("[data-act=coller]");
     const e = await p.etat();
-    verifier(e.inventaire.length === 3 && e.roster.lazerman.possede, "état différent");
+    verifier(e.inventaire.length === 3 && e.roster.archangel.possede, "état différent");
     await p.ctx.close();
   });
   await cas("DON-03", "Texte invalide", async () => {
@@ -683,10 +749,10 @@ async function main() {
   await cas("DON-07", "Poids d'un profil complet", async () => {
     const e = etatArtefacts();
     for (const h of e.catalogue.heros) e.roster[h.id] = { possede: true, niveau: 80, promotion: 9, etoiles: 5, artefacts: [] };
-    for (let i = 0; i < 60; i++) e.inventaire.push({ id: `x${i}`, ref: "generique-crit", niveau: 5 });
+    for (let i = 0; i < 40; i++) e.inventaire.push({ id: `x${i}`, ref: e.catalogue.artefacts[i].id, etoiles: 4 });
     const ko = JSON.stringify(e).length / 1024;
     verifier(ko < 100, `${ko.toFixed(1)} Ko`);
-    return `${ko.toFixed(1)} Ko pour 23 héros, 63 artefacts`;
+    return `${ko.toFixed(1)} Ko pour ${e.catalogue.heros.length} héros, ${e.inventaire.length} curios`;
   });
 
   /* ---------- 4.10 Qualité ---------- */

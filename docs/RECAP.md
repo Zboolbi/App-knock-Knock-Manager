@@ -1,0 +1,72 @@
+# RECAP — Knock Knock Manager
+
+> Document de reprise : à lire **avant** tout travail sur l'app, à la place de relire le code.
+> **À mettre à jour à chaque évolution** (section « Historique » + sections touchées).
+
+## 1. L'app en bref
+- Companion **non officiel** de *Knock Knock: Room Defense* (jeu en **anglais** chez l'utilisateur, serveur Europe).
+- **PWA** installable sur iPhone : https://zboolbi.github.io/app-knock-knock-manager/ (Safari › Partager › Sur l'écran d'accueil). Hors ligne.
+- Dépôt de l'app : `Zboolbi/App-knock-Knock-Manager`, branche `main`, racine = app. Publication auto GitHub Pages (`.github/workflows/pages.yml`, tests avant déploiement).
+- Copie de travail : `crypto-agent/kkrd-coach/` (branche `claude/profile-team-management-app-bfq8lk`), synchronisée vers le dépôt de l'app.
+- Pas de serveur, pas de compte : tout est dans `localStorage` (clé `kkrd-coach:v2`), ~15 Ko.
+
+## 2. Design (demandé par l'utilisateur)
+- Style **Apple** (listes groupées, grands titres, feuilles modales, contrôle segmenté), pratique comme une app de gestion.
+- **Fond noir, textes blancs, titres dorés** (`--or: #d8b45a`). Thème unique sombre.
+- Logo : **création originale** (porte dorée + « KNOCK KNOCK MANAGER »). Le logo officiel du jeu n'est **pas** utilisé (marque d'un tiers, l'app est non officielle).
+
+## 3. Onglets
+| Onglet | Contenu |
+|---|---|
+| Accueil | Logo, carte joueur (niveau, guilde, VIP, étape, Porte/Lit, puissance, Curio Vault, Gear, palier), **Importer**, ressources, équipe, « À faire maintenant », routine du jour. Réglages (roue dentée). |
+| Héros | Segments **Équipe · Collection · Curios · Pièges · Bêtes · Skins**. Fiche héros : obtenu, niveau, promotion, étoiles, 4 curios, skin. |
+| Stratégie | Étapes priorisées, analyse d'équipe, **curios par set** (« Tout appliquer »), promotions, pièges & bêtes, ressources, skins, options payantes, modes, astuces. |
+| Boss | Faiblesses/résistances/traits, équipe conseillée argumentée, héros par faiblesse, curios du combat. |
+| Boutique | Options payantes souscrites (dates de fin), codes cadeaux. |
+
+## 4. Fichiers
+| Fichier | Rôle |
+|---|---|
+| `js/data.js` | Catalogue : 40 héros, 40 curios + 10 sets, 8 pièges, 8 bêtes, offres, modes, ressources, codes, astuces |
+| `js/engine.js` | Règles (fonctions pures) : scores boss, équipe, répartition des curios par set, plan, conseils |
+| `js/store.js` | Stockage, migration v1→v2, anciennes raretés → R/SSR/UR/CR, mise à jour des fiches non modifiées |
+| `js/capture.js` | Analyse du texte des captures (héros, curios, pièges, bêtes, profil, ressources, écrans à chiffres sans libellé) |
+| `js/ocr.js` | Tesseract.js embarqué (`vendor/`, eng+fra), **2 passes** (textes clairs / textes colorés), image jamais conservée |
+| `js/app.js` | Interface (vues, feuilles, import, événements) |
+| `tests/*.mjs` | 31 tests unitaires (`npm test`) |
+| `qa/campagne.cjs` | 77 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
+| `docs/qa/` | Cahier des tests, résultats, anomalies, diagnostic |
+| `outils/build.py` | Page unique + archive PWA (`dist/`) |
+
+## 5. Données du jeu (source : captures de l'utilisateur, nov. 2026)
+- **Raretés** : R (bleu) < SSR (violet) < UR (orange) < CR (rouge).
+- **Héros** : 31 de la collection de l'utilisateur + 9 cités par les guides. Type physique/magique **déduit de l'icône** de la carte (lame / spirale), marqué « à vérifier ». 5 héros de l'équipe principale du joueur **non identifiés** (pas de nom à l'écran).
+- **Curios** (= artefacts) : 10 sets × 4 raretés. Sets et effets : Force of Nature (>50 % PV), Total Annihilation (<50 % PV), Sky Scorch (Brûlure), Wild Bloodlust (Saignement), Thunder Tremor (Paralysie), Sundered Spirit (crit), Chaos Incarnate (Stun), Brutal Carnage (Knock), Absolute Zero (Gel), Wild Rhapsody (attaque de base, équipe). 4 emplacements par héros.
+- **Curio Vault** : par niveau Team ATK +2, HP +20, All DEF +0,4 ; niv. 400 → DMG Boost +12 %, DMG Immunity +12 %.
+- **Pièges** : Iron Fist (Stun), Blood Hammer, Molten Furnace (Burn), Lethal Fence (Paralyze), Demon Spike ; verrouillés : Doomsday Cyborg, Calamity Altar, Metarooster (50 fragments). 3 déployés max.
+- **Bêtes** : Titan Mammoth, Dreamweaver Spider, Colossal Ape, Alien Critter ; verrouillées : Wings of Death, Cyanic Tyrant, Scavenger Kraken, Storm Griffin. 2 places, 3e à **Main Stage 220**.
+- **Ressources** : Diamants, Or, Stamina (viande), Leather (amélioration Gear), Soul Flame (orbe violet), Hero Pact. Tirage ×10 = 2 200 diamants.
+- **Modes** : Main Stage, AFK, Infinity Fort, Dimension Link, Capital Defense, Phantom Killzone (12-14 h), Arena, événements.
+- **Offres** (écran principal) : Privileges, Ad-Free, Super Value Fund, 1st Top-Up, Midnight Gift, Shadow Recruitment, Link Celebration, Community Offers, Check-In, Featured Events.
+
+## 6. Profil réel de l'utilisateur (dernier import)
+Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 18) · Diamants 352 · Or 16,63 K · Stamina 274 · Leather 5,55 K · Soul Flame 925 · 31 héros (niv. 67-68) · 29 curios (Wild Rhapsody 0/4) · 5 pièges · 4 bêtes.
+
+## 7. Import par capture — état de la lecture (16 vraies captures)
+- ✔ Noms des 31 héros, niveaux (« Lv.67 » au-dessus du nom), curios possédés (les non possédés, grisés, ne sont pas lus), pièges et bêtes (verrous « 0/50 »), écran principal (chiffres sans libellé repérés par position), écran Gear, Curio Vault, serveur.
+- ✘ Non lisible : **étoiles** (icônes), **promotion** (chiffre du losange vert), noms des 5 héros de l'équipe principale, niveaux de certaines bêtes. Niveaux incohérents écartés automatiquement.
+- Durée : ~7 s par capture sur ordinateur (2 passes).
+
+## 8. Limites connues / pistes
+- Lire les étoiles par détection de couleur des icônes (non fait).
+- Pas de connexion directe au compte (iOS isole les apps, aucun accès public au jeu).
+- Safari iOS non testé automatiquement (WebKit indisponible ici).
+- Captures réelles conservées **uniquement en local** (`qa/captures-reelles/`, ignoré par git : dépôt public, une capture montre l'identifiant Apple).
+
+## 9. Historique
+| Date | Évolution |
+|---|---|
+| 04/11 | V1 : PWA 6 onglets (plan, héros, boss, artefacts, ressources, données). |
+| 04/11 | V2 : refonte façon Instagram, import OCR (eng+fra), publication GitHub Pages. |
+| 04/11 | V3 : refonte Apple noir/blanc/or, import complet du profil, campagne QA 71 cas (10 anomalies corrigées). |
+| 04/11 | V4 : données réelles du jeu (curios et sets, pièges, bêtes, 31 héros, raretés R/SSR/UR/CR), OCR 2 passes, écrans sans libellé, logo original, QA 77/77 avec 16 vraies captures. |

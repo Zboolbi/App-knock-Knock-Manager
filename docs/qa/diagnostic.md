@@ -1,5 +1,7 @@
 # Diagnostic complet — Knock Knock Manager
 
+> **Mise à jour V4** : 77/77 cas, 31 tests unitaires. Import de 16 vraies captures du jeu : 31/31 héros, 29/29 curios possédés, 5/5 pièges, 4/4 bêtes, profil et ressources justes. Restent illisibles : étoiles, promotion, noms de l'équipe principale (voir `rapport-anomalies.md` § V4).
+
 Date : 4 novembre 2026. Base : 2 passes de la campagne automatisée (71 cas), 27 tests unitaires,
 revue visuelle sur 4 tailles d'écran, revue métier. Les résultats détaillés sont dans
 `resultats-passe-1.json`, `resultats-passe-2.json` et `rapport-anomalies.md`.

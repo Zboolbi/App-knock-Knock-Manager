@@ -1,5 +1,5 @@
 // Stockage local du profil et du catalogue. Rien ne quitte l'appareil.
-import { HEROS_DEPART, BOSS_DEPART, ARTEFACTS_DEPART, SKINS_DEPART, OFFRES_DEPART } from "./data.js";
+import { HEROS_DEPART, BOSS_DEPART, ARTEFACTS_DEPART, SKINS_DEPART, OFFRES_DEPART, PIEGES_DEPART, BETES_DEPART, ANCIENNES_RARETES } from "./data.js";
 
 const CLE = "kkrd-coach:v2";
 const ANCIENNE_CLE = "kkrd-coach:v1";
@@ -9,7 +9,10 @@ export function etatInitial() {
   return {
     version: 2,
     joueur: { pseudo: "", idJoueur: "", niveau: 1, guilde: "", puissance: "", vip: "", etape: "", chapitre: "",
-      porte: 1, lit: 1, recherche: "", emplacements: 2, majImport: "" },
+      porte: 1, lit: 1, recherche: "", emplacements: 4, majImport: "",
+      coffreCurios: "", equipementNiveau: "", palierEquipement: "", serveur: "" },
+    pieges: {},           // { idPiege: { possede, niveau, etoiles, deploye } }
+    betes: {},
     stock: {},            // ressources du compte : { diamants: 1234, ... }
     codesUtilises: {},
     catalogue: {
@@ -18,6 +21,8 @@ export function etatInitial() {
       skins: clone(SKINS_DEPART),
       boss: clone(BOSS_DEPART),
       offres: clone(OFFRES_DEPART),
+      pieges: clone(PIEGES_DEPART),
+      betes: clone(BETES_DEPART),
     },
     roster: {},
     equipe: [],
@@ -67,15 +72,22 @@ export function fusionner(d) {
   etat.catalogue = { ...base.catalogue, ...(d.catalogue || {}) };
   for (const k of Object.keys(base.catalogue)) if (!Array.isArray(etat.catalogue[k])) etat.catalogue[k] = base.catalogue[k];
   for (const k of ["equipe", "inventaire", "ressources"]) if (!Array.isArray(etat[k])) etat[k] = [];
-  for (const k of ["roster", "skinsPossedes", "abonnements", "stock", "codesUtilises"]) if (!etat[k] || typeof etat[k] !== "object") etat[k] = {};
+  for (const k of ["roster", "skinsPossedes", "abonnements", "stock", "codesUtilises", "pieges", "betes"]) if (!etat[k] || typeof etat[k] !== "object") etat[k] = {};
   if (!etat.quotidien || typeof etat.quotidien !== "object") etat.quotidien = base.quotidien;
   // Ajoute les entrées de départ apparues dans une nouvelle version de l'app,
   // sans toucher à celles que l'utilisateur a modifiées ou supprimées exprès.
   const supprimes = new Set(etat.supprimes || []);
   for (const k of Object.keys(base.catalogue)) {
+    const parId = new Map(base.catalogue[k].map((x) => [x.id, x]));
+    // Les fiches jamais modifiées par l'utilisateur suivent les données à jour de l'app.
+    etat.catalogue[k] = etat.catalogue[k].map((x) => (parId.has(x.id) && x.aVerifier !== false && !x.modifie ? { ...parId.get(x.id) } : x));
     const connus = new Set(etat.catalogue[k].map((x) => x.id));
     for (const x of base.catalogue[k]) if (!connus.has(x.id) && !supprimes.has(x.id)) etat.catalogue[k].push(x);
   }
+  // Anciennes raretés (Commun … Mythique) → raretés du jeu (R, SSR, UR, CR).
+  const rarete = (r) => ANCIENNES_RARETES[r] || r;
+  for (const k of ["heros", "artefacts", "pieges", "betes"]) for (const x of etat.catalogue[k]) x.rarete = rarete(x.rarete);
+  for (const i of etat.inventaire) if (i.rarete) i.rarete = rarete(i.rarete);
   etat.version = 2;
   return etat;
 }

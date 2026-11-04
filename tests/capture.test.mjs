@@ -32,10 +32,10 @@ test("niveau, promotion, étoiles en anglais et en français", () => {
 });
 
 test("rareté et statistiques dans les deux langues", () => {
-  assert.equal(lireRarete("Legendary"), "Légendaire");
-  assert.equal(lireRarete("Légendaire"), "Légendaire");
-  assert.equal(lireRarete("MYTHIC"), "Mythique");
-  assert.equal(lireRarete("Épique"), "Épique");
+  assert.equal(lireRarete("Legendary"), "UR");
+  assert.equal(lireRarete("Légendaire"), "UR");
+  assert.equal(lireRarete("MYTHIC"), "CR");
+  assert.equal(lireRarete("Épique"), "SSR");
   assert.equal(lireStat("P.ATK +12%"), "patk");
   assert.equal(lireStat("Attaque magique +8 %"), "matk");
   assert.equal(lireStat("Attack Speed +5%"), "vitesse");
@@ -83,7 +83,7 @@ Skin : Reine des glaces`;
   assert.equal(r.artefacts.length, 1);
   assert.equal(r.artefacts[0].nom, "Lame ancestrale");
   assert.equal(r.artefacts[0].stat, "patk");
-  assert.equal(r.artefacts[0].rarete, "Légendaire");
+  assert.equal(r.artefacts[0].rarete, "UR");
   assert.equal(r.artefacts[0].niveau, 7);
   assert.equal(r.skins.length, 1);
   assert.equal(r.skins[0].nom, "Reine des glaces");
@@ -92,7 +92,7 @@ Skin : Reine des glaces`;
 
 test("artefact déjà au catalogue reconnu par son nom", () => {
   const cat = etatInitial().catalogue;
-  cat.artefacts.push({ id: "croc", nom: "Blood Fang", stat: "effet", rarete: "Épique" });
+  cat.artefacts.push({ id: "croc", nom: "Blood Fang", stat: "effet", rarete: "SSR" });
   const r = analyserTexte("Blood Fanq +4\nEpic\nBleed duration +20%", cat);
   assert.equal(r.artefacts[0].ref, "croc");
   assert.equal(r.artefacts[0].niveau, 4);
@@ -135,4 +135,24 @@ test("libellé et valeur sur deux lignes (Power / 125,400)", async () => {
   const { lireProfil } = await import("../js/capture.js");
   const { RESSOURCES } = await import("../js/data.js");
   assert.equal(lireProfil("Power\n125,400\nDiamonds\n2,450", RESSOURCES).profil.puissance, 125400);
+});
+
+test("« Or » seul, montant à la ligne suivante", async () => {
+  const { lireProfil } = await import("../js/capture.js");
+  const { RESSOURCES } = await import("../js/data.js");
+  assert.equal(lireProfil("Or\n45 600", RESSOURCES).stock.or, 45600);
+  assert.equal(lireProfil("Travaillez dur ou mourez, or 12 fois", RESSOURCES).stock.or, undefined);
+});
+
+test("écrans du jeu reconnus à leur mise en page", async () => {
+  const { lireEcrans } = await import("../js/capture.js");
+  const el = (texte, x0, y0) => ({ texte, x0, y0, x1: x0 + 200, y1: y0 + 40 });
+  const dims = { largeur: 1800, hauteur: 3900 };
+  const principal = lireEcrans([el("352", 489, 217), el("352 @", 492, 219), el("16.63K & 274/30", 753, 208), el("1.6M", 378, 365), el("69", 41, 405), el("Stage 176", 762, 760), el("Codex Ranking Mail", 464, 690)], dims);
+  assert.deepEqual(principal.stock, { diamants: 352, or: 16630, endurance: 274 });
+  assert.deepEqual([principal.profil.etape, principal.profil.puissance, principal.profil.niveau], ["176", 1600000, 69]);
+  const gear = lireEcrans([el("5.55K", 193, 499), el("@ 16.93K", 58, 570), el("925", 220, 687), el("Enhance Level:", 319, 2622), el("+171", 731, 2622), el("Tier 18", 1207, 1250)], dims);
+  assert.deepEqual(gear.stock, { cuir: 5550, or: 16930, flammeAme: 925 });
+  assert.equal(gear.profil.equipementNiveau, 171);
+  assert.equal(lireEcrans([el("Curio Vault:392 Lv.", 519, 1184)], dims).profil.coffreCurios, 392);
 });

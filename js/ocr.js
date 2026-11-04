@@ -39,7 +39,7 @@ async function obtenirMoteur(progression) {
  * Agrandit l'image et la passe en noir sur blanc. Sur fond sombre, ne garde
  * que le texte blanc : les cartes colorées du jeu ne gênent plus la lecture.
  */
-async function preparer(fichier) {
+async function preparer(fichier, mode = "clair") {
   const bitmap = await createImageBitmap(fichier);
   const echelle = Math.min(3, Math.max(1, 1800 / bitmap.width));
   const w = Math.round(bitmap.width * echelle), h = Math.round(bitmap.height * echelle);
@@ -59,8 +59,15 @@ async function preparer(fichier) {
       // Interface sombre aux cartes colorées, textes blancs ou jaunes. Le canal
       // médian reste haut pour le blanc et le jaune, bas pour un rouge ou un
       // orange vif : le texte ressort en noir sur fond clair.
-      const median = [d[i], d[i + 1], d[i + 2]].sort((x, y) => x - y)[1];
-      g = 255 - (median - 120) * 3.5; // seuil doux : fond coloré → blanc, texte clair → noir
+      if (mode === "couleur") {
+        // Textes de couleur vive (noms orange, rouges, violets) : on garde la
+        // luminosité du canal le plus fort, le fond sombre devient blanc.
+        const max = Math.max(d[i], d[i + 1], d[i + 2]);
+        g = 255 - (max - 150) * 3;
+      } else {
+        const median = [d[i], d[i + 1], d[i + 2]].sort((x, y) => x - y)[1];
+        g = 255 - (median - 120) * 3.5; // seuil doux : fond coloré → blanc, texte clair → noir
+      }
     } else {
       g = ((0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) - 128) * 1.8 + 128;
     }
@@ -77,10 +84,24 @@ export async function lireCaptures(fichiers, progression) {
   const textes = [];
   for (let i = 0; i < fichiers.length; i++) {
     progression?.({ etape: "image", index: i + 1, total: fichiers.length });
-    const canvas = await preparer(fichiers[i]);
-    const { data } = await m.recognize(canvas);
-    const elements = (data.lines || []).map((l) => ({ texte: l.text.trim(), ...l.bbox })).filter((l) => l.texte);
-    textes.push({ nom: fichiers[i].name, texte: data.text || "", elements });
+    // Deux lectures : textes clairs (blanc, jaune), puis textes de couleur vive.
+    const elements = [];
+    let texte = "", largeur = 0, hauteur = 0;
+    for (const mode of ["clair", "couleur"]) {
+      const canvas = await preparer(fichiers[i], mode);
+      largeur = canvas.width; hauteur = canvas.height;
+      const { data } = await m.recognize(canvas);
+      texte += `${data.text || ""}\n`;
+      for (const l of data.lines || []) {
+        const t = l.text.trim();
+        if (!t || l.confidence < 35) continue;
+        // Même texte au même endroit lu par les deux passes : on ne le garde qu'une fois.
+        if (elements.some((e) => Math.abs(e.y0 - l.bbox.y0) < 20 && Math.abs(e.x0 - l.bbox.x0) < 40 && e.texte === t)) continue;
+        elements.push({ texte: t, ...l.bbox, confiance: l.confidence });
+      }
+      canvas.width = canvas.height = 0; // libère l'image
+    }
+    textes.push({ nom: fichiers[i].name, texte, elements, largeur, hauteur });
   }
   return textes;
 }

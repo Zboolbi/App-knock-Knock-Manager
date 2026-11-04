@@ -2,7 +2,7 @@
 // Les chiffres sont des heuristiques qui classent les choix ; ce ne sont pas
 // les formules du jeu.
 
-import { EFFETS, ROLES, TYPES, STATS_ARTEFACT, RARETES, PALIERS_PROMOTION, AVANTAGES } from "./data.js";
+import { EFFETS, ROLES, TYPES, STATS_ARTEFACT, RARETES, PALIERS_PROMOTION, AVANTAGES, SETS_CURIO, CURIO_VAULT, PLACES_BETES } from "./data.js";
 
 const POINTS_TIER = { SS: 30, S: 24, A: 18, B: 12, C: 6 };
 const EFFETS_DURABLES = ["brulure", "saignement", "poison"];
@@ -35,8 +35,8 @@ export function artefactsResolus(etat) {
   const fiches = new Map((catalogue(etat).artefacts || []).map((a) => [a.id, a]));
   return (etat?.inventaire || []).map((i) => {
     const f = fiches.get(i.ref) || {};
-    return { id: i.id, ref: i.ref, nom: f.nom || "Artefact inconnu", stat: f.stat || "patk",
-      rarete: i.rarete || f.rarete || "Commun", niveau: Number(i.niveau) || 0, effet: f.effet || "" };
+    return { id: i.id, ref: i.ref, nom: f.nom || "Curio inconnu", stat: f.stat || "patk", set: f.set || "",
+      rarete: f.set ? f.rarete : i.rarete || f.rarete || "R", niveau: Number(i.niveau) || 0, etoiles: Number(i.etoiles) || 0, effet: f.effet || "" };
   });
 }
 
@@ -187,6 +187,20 @@ const ADEQUATION = {
   effet: (h) => (h.effet !== "aucun" ? 9 : 0),
 };
 
+/** Adéquation d'un set de curios à un héros (0 à 10). */
+export function adequationSet(setId, hero) {
+  const s = SETS_CURIO[setId];
+  if (!s) return 0;
+  if (s.affinite.effet) return hero.effet === s.affinite.effet ? 10 : 1;
+  return s.affinite.roles.includes(hero.role) ? 7 : 3;
+}
+
+/** Sets de curios à viser pour un héros, du meilleur au moins bon. */
+export function setsIdeaux(hero) {
+  return Object.keys(SETS_CURIO).map((id) => ({ id, nom: SETS_CURIO[id].nom, valeur: adequationSet(id, hero) }))
+    .sort((a, b) => b.valeur - a.valeur).slice(0, 3);
+}
+
 export function statsIdeales(hero) {
   return Object.keys(ADEQUATION)
     .map((s) => ({ stat: s, libelle: STATS_ARTEFACT[s], valeur: ADEQUATION[s](hero) }))
@@ -195,21 +209,35 @@ export function statsIdeales(hero) {
 }
 
 export function valeurArtefact(artefact, hero) {
-  const adequation = ADEQUATION[artefact.stat]?.(hero) ?? 0;
+  const adequation = artefact.set ? adequationSet(artefact.set, hero) : ADEQUATION[artefact.stat]?.(hero) ?? 0;
   const rang = RARETES.indexOf(artefact.rarete);
-  return adequation * (rang < 0 ? 1 : rang + 1) * (1 + (Number(artefact.niveau) || 0) / 20);
+  return adequation * (rang < 0 ? 1 : rang + 1) * (1 + (Number(artefact.niveau) || 0) / 20) * (1 + (Number(artefact.etoiles) || 0) / 5);
 }
 
 export function attribuerArtefacts(equipe, artefacts, { emplacements = 2 } = {}) {
   const poids = equipe.map((_, i) => (i === 0 ? 1.3 : i < 3 ? 1.1 : 1));
+  const pris = new Set();
+  const parHero = new Map(equipe.map((h) => [h.id, []]));
+  // 1. Les curios vont par set : chaque héros (carry d'abord) prend le set qui
+  //    lui convient le mieux parmi les pièces encore libres.
+  equipe.forEach((h, i) => {
+    const parSet = new Map();
+    for (const a of artefacts) if (a.set && !pris.has(a.id)) { if (!parSet.has(a.set)) parSet.set(a.set, []); parSet.get(a.set).push(a); }
+    let meilleur = null, total = 0;
+    for (const [set, liste] of parSet) {
+      const top = liste.sort((x, y) => valeurArtefact(y, h) - valeurArtefact(x, h)).slice(0, emplacements);
+      const t = top.reduce((sum, a) => sum + valeurArtefact(a, h), 0) * (adequationSet(set, h) >= 7 ? 1.5 : 1);
+      if (t > total) { total = t; meilleur = top; }
+    }
+    for (const a of meilleur || []) { pris.add(a.id); parHero.get(h.id).push({ artefact: a, valeur: Math.round(valeurArtefact(a, h) * poids[i] * 10) / 10 }); }
+  });
+  // 2. Les places restantes : meilleure paire (pièce, héros) d'abord.
   const paires = [];
   artefacts.forEach((a) => equipe.forEach((h, i) => {
     const v = valeurArtefact(a, h) * poids[i];
     if (v > 0) paires.push({ a, h, v });
   }));
   paires.sort((x, y) => y.v - x.v);
-  const pris = new Set();
-  const parHero = new Map(equipe.map((h) => [h.id, []]));
   for (const { a, h, v } of paires) {
     if (pris.has(a.id) || parHero.get(h.id).length >= emplacements) continue;
     pris.add(a.id);
@@ -230,7 +258,8 @@ export function configurationArtefacts(etat, equipe) {
     const a = new Set(actuels.map((x) => x.id)), o = new Set(optimaux.map((x) => x.id));
     const identique = a.size === o.size && [...a].every((id) => o.has(id));
     const gain = optimaux.reduce((s, x) => s + valeurArtefact(x, h), 0) - actuels.reduce((s, x) => s + valeurArtefact(x, h), 0);
-    return { hero: h, actuels, optimaux, identique, gain: Math.round(gain * 10) / 10, ideales: statsIdeales(h).slice(0, 3) };
+    const ideales = arts.some((x) => x.set) ? setsIdeaux(h).map((x) => ({ libelle: `set ${x.nom}` })) : statsIdeales(h).slice(0, 3);
+    return { hero: h, actuels, optimaux, identique, gain: Math.round(gain * 10) / 10, ideales };
   });
   return { lignes, inutilises, aChanger: lignes.filter((l) => !l.identique).length };
 }
@@ -309,7 +338,27 @@ export function planProgression(etat) {
   if (gaspilles.length) etapes.push({ priorite: 5, titre: "Arrêtez d'investir hors équipe", detail: `${gaspilles.map((h) => h.nom).join(", ")} : à garder pour les boss qui craignent leurs effets.` });
 
   const conf = configurationArtefacts(etat, coeur);
-  if (conf.aChanger) etapes.push({ priorite: 2, titre: `${conf.aChanger} héros avec de meilleurs artefacts disponibles`, detail: "Stratégie › Artefacts › « Appliquer »." });
+  if (conf.aChanger) etapes.push({ priorite: 2, titre: `${conf.aChanger} héros avec de meilleurs curios disponibles`, detail: "Stratégie › Curios › « Appliquer »." });
+
+  const coffre = Number(j.coffreCurios) || 0;
+  for (const pal of CURIO_VAULT.paliers) {
+    if (coffre && coffre < pal.niveau) etapes.push({ priorite: pal.niveau - coffre <= 20 ? 2 : 4, titre: `Curio Vault : ${coffre} → ${pal.niveau} (${pal.niveau - coffre} niveau(x))`, detail: `Débloque ${pal.bonus} pour toute l'équipe.` });
+  }
+  const etape = parseInt(String(j.etape || "").split("-")[0], 10);
+  for (const p of PLACES_BETES.filter((x) => x.condition)) {
+    const cible = parseInt(p.condition.replace(/\D+/g, ""), 10);
+    if (etape && etape < cible) etapes.push({ priorite: cible - etape <= 50 ? 3 : 5, titre: `${p.condition} : ${p.places}e place de bête`, detail: `Encore ${cible - etape} étapes de campagne (vous êtes à l'étape ${etape}).` });
+  }
+  // Sets de curios presque complets pour l'équipe.
+  const possedes = new Set(artefactsResolus(etat).map((a) => a.ref));
+  const curios = (catalogue(etat).artefacts || []).filter((a) => a.set);
+  for (const h of coeur.slice(0, 3)) {
+    const set = setsIdeaux(h)[0];
+    if (!set || set.valeur < 7) continue;
+    const manquants = curios.filter((a) => a.set === set.id && !possedes.has(a.id));
+    const nb = curios.filter((a) => a.set === set.id).length;
+    if (manquants.length && manquants.length < nb) etapes.push({ priorite: 4, titre: `${h.nom} : compléter le set ${set.nom}`, detail: `Il manque ${manquants.map((a) => `${a.nom} (${a.rarete})`).join(", ")}.` });
+  }
   return etapes.sort((a, b) => a.priorite - b.priorite);
 }
 

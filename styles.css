@@ -85,8 +85,8 @@ button.ligne:active, label.ligne:active { background: var(--groupe-2); }
 .av { --t: 40px; width: var(--t); height: var(--t); border-radius: 50%; flex: none; position: relative; display: grid; place-items: center;
   background: var(--fe, var(--e-aucun)); color: #fff; font: 700 calc(var(--t) * .36)/1 var(--police-titre);
   box-shadow: 0 0 0 2px var(--fond), 0 0 0 3.5px var(--ar, var(--r-commun)); }
-.av[data-r="Mythique"] { --ar: var(--r-mythique); } .av[data-r="Légendaire"] { --ar: var(--r-legendaire); }
-.av[data-r="Épique"] { --ar: var(--r-epique); } .av[data-r="Rare"] { --ar: var(--r-rare); }
+.av[data-r="CR"] { --ar: var(--r-mythique); } .av[data-r="UR"] { --ar: var(--r-legendaire); }
+.av[data-r="SSR"] { --ar: var(--r-epique); } .av[data-r="R"] { --ar: var(--r-rare); }
 .av[data-e="brulure"] { --fe: var(--e-brulure); } .av[data-e="saignement"] { --fe: var(--e-saignement); } .av[data-e="poison"] { --fe: var(--e-poison); }
 .av[data-e="gel"] { --fe: var(--e-gel); } .av[data-e="paralysie"] { --fe: var(--e-paralysie); }
 .av.terne { filter: grayscale(1); opacity: .45; }
@@ -225,3 +225,15 @@ pre.lu { white-space: pre-wrap; font: 12px/1.4 ui-monospace, "SF Mono", Menlo, m
   .chiffre { padding: 8px; } .chiffre b { font-size: 16px; } .chiffre small { font-size: 10.5px; }
   .champ > label, .champ > .etiquette { width: 48%; }
 }
+
+/* Logo de l'app (création originale, sans lien avec celui du jeu) */
+.logo { display: flex; align-items: center; gap: 12px; padding: 4px 0 10px; }
+.logo svg { width: 46px; height: 46px; flex: none; }
+.logo .mots { display: grid; line-height: 1; }
+.logo .k { font: 900 26px/1 var(--police-titre); letter-spacing: 0.06em; color: var(--or); text-transform: uppercase; }
+.logo .m { font: 600 12px/1 var(--police); letter-spacing: 0.42em; color: var(--texte-2); text-transform: uppercase; margin-top: 6px; }
+.etoiles { color: var(--or); letter-spacing: 1px; font-size: 14px; }
+.rarete { display: inline-grid; place-items: center; min-width: 38px; height: 22px; border-radius: 6px; font-size: 12px; font-weight: 800; color: #fff; flex: none; }
+.segments.defilant { display: flex; overflow-x: auto; scrollbar-width: none; }
+.segments.defilant::-webkit-scrollbar { display: none; }
+.segments.defilant button { flex: 1 0 auto; padding: 0 12px; }

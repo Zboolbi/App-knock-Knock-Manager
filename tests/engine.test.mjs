@@ -41,11 +41,11 @@ test("mes héros seulement", () => {
 });
 
 test("P.ATK au physique, M.ATK au magique, emplacements respectés", () => {
-  const { parHero, inutilises } = attribuerArtefacts([hero("poison-knight"), hero("lazerman")], [
-    { id: "a", stat: "patk", rarete: "Épique" }, { id: "b", stat: "matk", rarete: "Épique" }, { id: "c", stat: "patk", rarete: "Rare" },
+  const { parHero, inutilises } = attribuerArtefacts([hero("poison-knight"), hero("archangel")], [
+    { id: "a", stat: "patk", rarete: "SSR" }, { id: "b", stat: "matk", rarete: "SSR" }, { id: "c", stat: "patk", rarete: "R" },
   ], { emplacements: 1 });
   assert.equal(parHero.get("poison-knight")[0].artefact.id, "a");
-  assert.equal(parHero.get("lazerman")[0].artefact.id, "b");
+  assert.equal(parHero.get("archangel")[0].artefact.id, "b");
   assert.deepEqual(inutilises.map((a) => a.id), ["c"]);
 });
 
@@ -54,11 +54,11 @@ test("un soigneur vise d'abord le soin", () => {
 });
 
 test("configuration : détecte un artefact mal placé et propose le bon", () => {
-  const e = etatAvec(["poison-knight", "lazerman"]);
-  e.catalogue.artefacts.push({ id: "lame", nom: "Lame", stat: "patk", rarete: "Mythique" });
+  const e = etatAvec(["poison-knight", "archangel"]);
+  e.catalogue.artefacts.push({ id: "lame", nom: "Lame", stat: "patk", rarete: "CR" });
   e.inventaire.push({ id: "i1", ref: "lame", niveau: 10 });
-  e.roster.lazerman.artefacts = ["i1"]; // P.ATK sur un magique
-  const conf = configurationArtefacts(e, [hero("poison-knight"), hero("lazerman")]);
+  e.roster.archangel.artefacts = ["i1"]; // P.ATK sur un magique
+  const conf = configurationArtefacts(e, [hero("poison-knight"), hero("archangel")]);
   const pk = conf.lignes.find((l) => l.hero.id === "poison-knight");
   assert.equal(pk.optimaux[0].id, "i1");
   assert.equal(conf.aChanger, 2);
@@ -137,4 +137,27 @@ test("une entrée de départ supprimée ne revient pas", () => {
 
 test("conseils de combat même sans données", () => {
   assert.equal(conseilsCombat({ faiblesses: [], resistances: [], traits: [] }).length, 1);
+});
+
+test("curios : chaque héros reçoit les pièces du set qui lui correspond", async () => {
+  const { CURIOS_DEPART } = await import("../js/data.js");
+  const e = etatAvec(["bride-wraith", "ghost-captain"]);
+  e.joueur.emplacements = 4;
+  const ids = ["purgatory-oven", "dynamite-battery", "ghost-lighter", "sacrifice-candle", "gore-grinder", "vampire-broom", "rusty-knife"];
+  ids.forEach((id, i) => e.inventaire.push({ id: `c${i}`, ref: id, etoiles: 4 }));
+  const conf = configurationArtefacts(e, [hero("bride-wraith"), hero("ghost-captain")]);
+  const sets = (l) => new Set(l.optimaux.map((a) => a.set));
+  const [bw, gc] = conf.lignes;
+  assert.deepEqual([...sets(bw)], ["sky-scorch"]);     // Brûlure
+  assert.deepEqual([...sets(gc)], ["wild-bloodlust"]); // Saignement
+  assert.equal(bw.optimaux.length, 4);
+  assert.ok(CURIOS_DEPART.length === 40);
+});
+
+test("plan : Curio Vault 400 et 3e place de bête", () => {
+  const e = etatAvec(["spiker"], { equipe: ["spiker"] });
+  e.joueur.coffreCurios = 392; e.joueur.etape = "176";
+  const plan = planProgression(e);
+  assert.ok(plan.some((x) => /Curio Vault : 392 → 400/.test(x.titre)));
+  assert.ok(plan.some((x) => /Main Stage 220/.test(x.titre)));
 });

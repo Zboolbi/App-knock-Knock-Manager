@@ -37,3 +37,18 @@ Origine : **A** défaut de l'application · **T** défaut du script de test.
 | R-02 | Safari iOS non testé automatiquement | WebKit n'est pas disponible dans l'environnement de test. | Contrôle manuel sur iPhone (§ 6 du cahier). |
 | R-03 | Catalogue incomplet | Aucune source publique ne liste tous les héros (~100), artefacts, skins et boss. | Catalogue modifiable ; chaque ajout est reconnu aux imports suivants. |
 | R-04 | Types d'attaque des héros supposés | Les guides donnent rarement le type physique ou magique, alors qu'il sert à répartir les artefacts. | Badge « à vérifier » ; correction en deux touches dans la fiche du héros. |
+
+## V4 — données réelles du jeu (passes 3 et 4)
+
+Passe 3 : 74/77. Passe 4 : **77/77**. Les nouveaux cas couvrent les curios (CUR-01, CUR-02), les pièges et bêtes (CMP-01, CMP-02), le logo (LOGO-01) et l'import des **16 vraies captures** (REEL-01, exécuté seulement là où les captures sont présentes en local).
+
+| ID | Constat | Cause | Correction | État |
+|---|---|---|---|---|
+| AN-11 | Les noms des héros (texte orange, violet ou rouge) n'étaient pas lus. | Le traitement d'image ne gardait que les textes blancs et jaunes. | Deuxième passe de lecture qui garde les textes de couleur vive ; les résultats des deux passes sont fusionnés. | Corrigé |
+| AN-12 | Aucun niveau n'était rattaché sur les écrans du jeu. | Dans le jeu, la valeur est au-dessus du nom ; de plus, les doublons des deux passes faussaient la largeur de carte (2 px). | Détection automatique du sens de lecture ; doublons ignorés ; valeurs classées par proximité. | Corrigé |
+| AN-13 | Écran principal : Diamants, Or et Stamina lus en double ou décalés. | Ces chiffres n'ont pas de libellé, et les deux passes les rendaient en double. | Repérage par position et dédoublonnage. | Corrigé |
+| AN-14 | « Clear Main Stage 220 » était pris pour l'étape du joueur. | Condition de déblocage d'une bête. | Les écrans de conditions sont ignorés pour l'étape. | Corrigé |
+| AN-15 | « Lv.675 » ou « Lv.6 » lus pour 67. | Bruit de lecture. | Un niveau incohérent avec le reste de l'import est écarté et signalé « à vérifier ». | Corrigé |
+| AN-16 | « Or » suivi du montant à la ligne suivante n'était plus lu (régression). | Règle anti-faux positifs trop stricte. | Mot seul sur sa ligne accepté. Test unitaire ajouté. | Corrigé |
+| AN-17 | Chiffre de promotion (losange vert) lu de façon erratique. | Chiffre isolé sur un dessin. | Plus proposé (mieux vaut vide que faux). | Contourné |
+| AN-18 | Cas de test ART-01 et IMP-04 en échec. | Script resté sur l'ancienne interface (bouton déplacé, raretés renommées). | Script mis à jour. | Corrigé (test) |

@@ -47,7 +47,7 @@ export function trouverNom(ligne, candidats, seuil = 0.8) {
       }
     }
     if (sim >= seuil && (!meilleur || sim > meilleur.sim || (sim === meilleur.sim && cible.length > compact(meilleur.nom).length))) {
-      meilleur = { id: c.id, nom: c.nomOfficiel || c.nom, sim: Math.round(sim * 100) / 100 };
+      meilleur = { id: c.id, nom: c.nomOfficiel || c.nom, sim: Math.round(sim * 100) / 100, sorte: c.sorte };
     }
   }
   return meilleur;
@@ -57,7 +57,21 @@ const nombre = (m) => (m ? Number(m[1]) : null);
 
 /** Niveau : « Lv. 45 », « LV45 », « Level 45 », « Niv. 45 », « Niveau 45 », « Nv 45 ». */
 export function lireNiveau(t) {
-  return nombre(normaliser(t).match(/\b(?:lv|lvl|level|niv|niveau|nv)\s*[.:]?\s*(\d{1,3})\b/));
+  const n = normaliser(t).replace(/(lv)[?'’`]/g, "$1.");
+  return nombre(n.match(/\b(?:lv|lvl|level|niv|niveau|nv)\s*[.:]?\s*(\d{1,3})\b/)) ?? nombre(n.match(/(?:^|[^\d])(\d{1,3})\s*lv\b/));
+}
+
+/** « 0/50 », « 0/1 » sous une carte : élément pas encore obtenu. */
+export const lireVerrou = (t) => /(^|[^\d])0\s*\/\s*\d{1,3}\b/.test(String(t));
+
+/** Toutes les fiches reconnaissables sur une capture, avec leur sorte. */
+export function ancresDu(catalogue) {
+  return [
+    ...(catalogue.heros || []).map((x) => ({ ...x, sorte: "heros" })),
+    ...(catalogue.artefacts || []).filter((x) => !x.generique).map((x) => ({ ...x, sorte: "artefacts" })),
+    ...(catalogue.pieges || []).map((x) => ({ ...x, sorte: "pieges" })),
+    ...(catalogue.betes || []).map((x) => ({ ...x, sorte: "betes" })),
+  ];
 }
 
 /** Promotion : « Promotion 6 », « Promo 6 », « Rank 6 », « Rang 6 », « Grade 6 ». */
@@ -74,11 +88,10 @@ export function lireEtoiles(t) {
 }
 
 const RARETES_MOTS = [
-  [/\b(mythic|mythique|mythical)\b/, "Mythique"],
-  [/\b(legendary|legendaire|legend)\b/, "Légendaire"],
-  [/\b(epic|epique)\b/, "Épique"],
-  [/\b(rare)\b/, "Rare"],
-  [/\b(common|commun|commune)\b/, "Commun"],
+  [/\b(cr|mythic|mythique|mythical)\b/, "CR"],
+  [/\b(ur|legendary|legendaire|legend)\b/, "UR"],
+  [/\b(ssr|epic|epique)\b/, "SSR"],
+  [/\b(r|rare|common|commun|commune)\b/, "R"],
 ];
 export function lireRarete(t) {
   const n = normaliser(t);
@@ -121,14 +134,16 @@ function nettoyerNom(ligne) {
  * proximité du nom), artefacts et skins.
  */
 export function analyserTexte(texte, catalogue) {
-  const brutes = String(texte || "").split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length >= 2);
+  const brutes = String(texte || "").split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length >= 1);
   const heros = catalogue.heros || [];
+  const ancres = ancresDu(catalogue);
+  const autres = ancres.filter((a) => a.sorte === "pieges" || a.sorte === "betes");
   // Recolle un nom de héros coupé sur deux lignes consécutives.
   const lignes = [];
   for (let i = 0; i < brutes.length; i++) {
     const l = brutes[i], suiv = brutes[i + 1];
-    if (suiv && !trouverNom(l, heros) && !trouverNom(suiv, heros) && /^\p{L}[\p{L}' .-]*$/u.test(l) && /^\p{L}[\p{L}' .-]*$/u.test(suiv)
-      && trouverNom(`${l} ${suiv}`, heros)?.sim >= 0.9) { lignes.push(`${l} ${suiv}`); i++; }
+    if (suiv && !trouverNom(l, ancres) && !trouverNom(suiv, ancres) && /^\p{L}[\p{L}' .-]*$/u.test(l) && /^\p{L}[\p{L}' .-]*$/u.test(suiv)
+      && trouverNom(`${l} ${suiv}`, ancres)?.sim >= 0.9) { lignes.push(`${l} ${suiv}`); i++; }
     else lignes.push(l);
   }
   const artefactsNommes = (catalogue.artefacts || []).filter((a) => !a.generique);
@@ -136,9 +151,12 @@ export function analyserTexte(texte, catalogue) {
 
   // 1. Repère la ligne de chaque nom de héros.
   const reperes = [];
+  const toutes = [];
   lignes.forEach((l, i) => {
-    const h = trouverNom(l, heros);
-    if (h) reperes.push({ i, h });
+    const a = trouverNom(l, ancres);
+    if (!a) return;
+    toutes.push({ i, a });
+    if (a.sorte === "heros") reperes.push({ i, h: a });
   });
 
   // 2. Lit les valeurs autour de chaque nom, sans déborder sur le héros suivant.
@@ -146,11 +164,15 @@ export function analyserTexte(texte, catalogue) {
   reperes.forEach(({ i, h }, k) => {
     // Les valeurs sont sous le nom ; la ligne du dessus ne sert que pour le
     // premier héros (elle appartient sinon au héros précédent).
-    const fin = Math.min(lignes.length - 1, i + 4, k + 1 < reperes.length ? reperes[k + 1].i - 1 : Infinity);
+    const suivante = toutes.find((t) => t.i > i);
+    const fin = Math.min(lignes.length - 1, i + 6, suivante ? suivante.i - 1 : Infinity);
     const dessus = k === 0 && i > 0 ? [lignes[i - 1]] : [];
     const zone = [lignes[i], ...lignes.slice(i + 1, fin + 1), ...dessus];
     const lire = (fn) => { for (const l of zone) { const v = fn(l); if (v !== null) return v; } return null; };
-    const prop = { heroId: h.id, nom: h.nom, lu: lignes[i], sim: h.sim, niveau: lire(lireNiveau), promotion: lire(lirePromotion), etoiles: lire(lireEtoiles) };
+    // Le chiffre seul dans le losange vert d'une carte de héros : sa promotion.
+    // Deux passes de lecture peuvent donner « Lv.6 » et « Lv.67 » : on garde le plus complet.
+    const niveaux = zone.map(lireNiveau).filter((v) => v !== null);
+    const prop = { heroId: h.id, nom: h.nom, lu: lignes[i], sim: h.sim, niveau: niveaux.length ? Math.max(...niveaux) : null, promotion: lire(lirePromotion), etoiles: lire(lireEtoiles) };
     const ancien = parHero.get(h.id);
     if (!ancien) parHero.set(h.id, prop);
     else for (const c of ["niveau", "promotion", "etoiles"]) if (ancien[c] === null && prop[c] !== null) ancien[c] = prop[c];
@@ -160,12 +182,12 @@ export function analyserTexte(texte, catalogue) {
   const artefacts = [];
   const lignesHeros = new Set(reperes.map((r) => r.i));
   lignes.forEach((l, i) => {
-    if (lignesHeros.has(i) || MOTS_SKIN.test(normaliser(l))) return;
+    if (lignesHeros.has(i) || MOTS_SKIN.test(normaliser(l)) || trouverNom(l, autres)) return;
     const voisines = [l, lignes[i + 1] || "", lignes[i + 2] || ""];
     const connu = trouverNom(l, artefactsNommes, 0.85);
     if (connu) {
       const fiche = artefactsNommes.find((a) => a.id === connu.id);
-      artefacts.push({ ref: connu.id, nom: fiche.nom, stat: fiche.stat, rarete: voisines.map(lireRarete).find(Boolean) || fiche.rarete,
+      artefacts.push({ ref: connu.id, nom: fiche.nom, stat: fiche.stat, set: fiche.set || "", etoiles: null, rarete: fiche.set ? fiche.rarete : voisines.map(lireRarete).find(Boolean) || fiche.rarete,
         niveau: voisines.map(lireNiveauArtefact).find((v) => v !== null) ?? 0, lu: l });
       return;
     }
@@ -176,10 +198,24 @@ export function analyserTexte(texte, catalogue) {
     const stat = voisines.slice(1).map(lireStat).find(Boolean) || lireStat(l);
     const nom = nettoyerNom(l.replace(/\+\s?\d+/, ""));
     const estValeur = lireStat(l) && /%|\d/.test(l.replace(/\+\s?\d+\s*$/, ""));
-    const sansRarete = nom.replace(/\b(mythic|mythique|legendary|l[ée]gendaire|epic|[ée]pique|rare|common|commun)\b/gi, "");
+    const sansRarete = nom.replace(/\b(mythic|mythique|legendary|l[ée]gendaire|epic|[ée]pique|rare|common|commun|ssr|ur|cr)\b/gi, "");
     if (rarete && stat && !estValeur && /\p{L}{3,}/u.test(sansRarete) && !lireNiveau(l) && !lirePromotion(l) && lireEtoiles(l) === null) {
       artefacts.push({ ref: null, nom, stat, rarete, niveau: voisines.map(lireNiveauArtefact).find((v) => v !== null) ?? 0, lu: l });
     }
+  });
+
+  // 3 bis. Pièges et bêtes : niveau (« 30Lv », « Lv.27 ») et verrou (« 0/50 »).
+  const parAutre = new Map();
+  toutes.filter((t) => t.a.sorte === "pieges" || t.a.sorte === "betes").forEach(({ i, a }) => {
+    const suivante = toutes.find((t) => t.i > i);
+    const zone = lignes.slice(i + 1, Math.min(lignes.length, i + 7, suivante ? suivante.i : Infinity));
+    const prop = parAutre.get(a.id) || { sorte: a.sorte, id: a.id, nom: a.nom, lu: lignes[i], niveau: null, etoiles: null, verrouille: false, garder: true };
+    for (const l of zone) {
+      const v = lireNiveau(l);
+      if (v !== null && (prop.niveau === null || v > prop.niveau)) prop.niveau = v;
+      if (lireVerrou(l)) prop.verrouille = true;
+    }
+    parAutre.set(a.id, prop);
   });
 
   // 4. Skins : une ligne avec « skin / apparence / tenue », rattachée au héros nommé à côté.
@@ -201,8 +237,10 @@ export function analyserTexte(texte, catalogue) {
   const dedoublonner = (liste, cle) => [...new Map(liste.map((x) => [cle(x), x])).values()];
   return {
     heros: [...parHero.values()],
-    artefacts: dedoublonner(artefacts, (a) => `${a.ref || compact(a.nom)}|${a.niveau}`),
+    artefacts: dedoublonner(artefacts, (a) => (a.ref ? a.ref : `${compact(a.nom)}|${a.niveau}`)),
     skins: dedoublonner(skins, (s) => compact(s.nom)),
+    pieges: [...parAutre.values()].filter((x) => x.sorte === "pieges"),
+    betes: [...parAutre.values()].filter((x) => x.sorte === "betes"),
     lignes: lignes.length,
   };
 }
@@ -215,18 +253,18 @@ export function analyserTexte(texte, catalogue) {
  */
 export function ordonnerParCartes(elements, catalogue) {
   if (!elements?.length) return "";
-  const heros = catalogue.heros || [];
+  const ancresCat = ancresDu(catalogue);
   // Un nom coupé sur deux lignes dans une carte (« Ghost » / « Captain ») est recollé.
   const base = [...elements].sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
   const pris = new Set();
   const tries = [];
   for (const e of base) {
     if (pris.has(e)) continue;
-    if (!trouverNom(e.texte, heros)) {
+    if (!trouverNom(e.texte, ancresCat)) {
       const h = Math.max(1, e.y1 - e.y0);
       const dessous = base.find((f) => f !== e && !pris.has(f) && f.y0 > e.y0 && f.y0 - e.y1 < h * 0.9
         && Math.abs((f.x0 + f.x1) / 2 - (e.x0 + e.x1) / 2) < Math.max(e.x1 - e.x0, f.x1 - f.x0));
-      if (dessous && trouverNom(`${e.texte} ${dessous.texte}`, heros) && !trouverNom(dessous.texte, heros)) {
+      if (dessous && trouverNom(`${e.texte} ${dessous.texte}`, ancresCat) && !trouverNom(dessous.texte, ancresCat)) {
         pris.add(dessous);
         tries.push({ texte: `${e.texte} ${dessous.texte}`, x0: Math.min(e.x0, dessous.x0), y0: e.y0, x1: Math.max(e.x1, dessous.x1), y1: dessous.y1 });
         continue;
@@ -234,25 +272,80 @@ export function ordonnerParCartes(elements, catalogue) {
     }
     tries.push(e);
   }
-  const ancres = tries.filter((e) => trouverNom(e.texte, catalogue.heros || []));
+  const ancres = tries.filter((e) => trouverNom(e.texte, ancresCat));
   if (!ancres.length) return tries.map((e) => e.texte).join("\n");
+  const centre = (e) => (e.x0 + e.x1) / 2;
+  // Écart horizontal typique entre deux cartes voisines : la taille d'une carte.
+  const ecarts = [];
+  // (les doublons d'une même ligne, lus par les deux passes, sont ignorés)
+  for (const a of ancres) for (const b of ancres) if (b !== a && Math.abs(b.y0 - a.y0) < 40 && centre(b) - centre(a) > Math.max(60, (a.x1 - a.x0) * 0.5)) ecarts.push(centre(b) - centre(a));
+  const pas = ecarts.length ? Math.min(...ecarts) : 400;
+  const memeColonne = (e, a) => Math.abs(centre(e) - centre(a)) < pas * 0.5;
+  // Sens de lecture : dans le jeu, « Lv.67 » est au-dessus du nom ; ailleurs, en dessous.
+  let dessus = 0, dessous = 0;
+  for (const e of tries) {
+    if (ancres.includes(e) || lireNiveau(e.texte) === null) continue;
+    let haut = Infinity, bas = Infinity;
+    for (const a of ancres) if (memeColonne(e, a)) { const dy = a.y0 - e.y0; if (dy > 0) bas = Math.min(bas, dy); else haut = Math.min(haut, -dy); }
+    if (bas < haut) dessus++; else if (haut < Infinity) dessous++;
+  }
+  const valeursAuDessus = dessus > dessous;
   const rattaches = new Map(ancres.map((a) => [a, []]));
   const libres = [];
   for (const e of tries) {
     if (rattaches.has(e)) continue;
-    const cx = (e.x0 + e.x1) / 2;
     let meilleure = null, ecart = Infinity;
     for (const a of ancres) {
-      const largeur = a.x1 - a.x0, hauteur = Math.max(1, a.y1 - a.y0);
-      const memeColonne = cx >= a.x0 - largeur * 0.6 && cx <= a.x1 + largeur * 0.6;
-      const dy = e.y0 - a.y0;
-      if (memeColonne && dy >= 0 && dy <= hauteur * 8 && dy < ecart) { meilleure = a; ecart = dy; }
+      if (!memeColonne(e, a)) continue;
+      const hauteur = Math.max(1, a.y1 - a.y0);
+      const dy = valeursAuDessus ? a.y0 - e.y0 : e.y0 - a.y0;
+      const limite = valeursAuDessus ? pas * 1.6 : hauteur * 8;
+      if (dy >= 0 && dy <= limite && dy < ecart) { meilleure = a; ecart = dy; }
     }
     if (meilleure) rattaches.get(meilleure).push(e); else libres.push(e);
   }
-  const blocs = ancres.map((a) => [a, ...rattaches.get(a)].map((e) => e.texte).join("\n"));
+  // Du plus proche au plus lointain du nom : les valeurs utiles d'abord, le décor ensuite.
+  const blocs = ancres.map((a) => [a, ...rattaches.get(a).sort((x, y) => Math.abs(x.y0 - a.y0) - Math.abs(y.y0 - a.y0))].map((e) => e.texte).join("\n"));
   return [...libres.filter((e) => e.y0 < ancres[0].y0).map((e) => e.texte), ...blocs,
     ...libres.filter((e) => e.y0 >= ancres[0].y0).map((e) => e.texte)].join("\n");
+}
+
+/**
+ * Écrans à chiffres sans libellé, reconnus à leur mise en page :
+ * - écran principal (« Stage 176 ») : barre du haut = Diamants, Or, Stamina ;
+ *   dessous, la puissance (1.6M) et le niveau du joueur à gauche ;
+ * - écran Gear : colonne de ressources en haut à gauche = Leather, Or, Soul Flame.
+ * `dims` = { largeur, hauteur } de l'image lue.
+ */
+export function lireEcrans(elements, dims) {
+  const p = {}, stock = {};
+  if (!elements?.length || !dims?.hauteur) return { profil: p, stock };
+  const W = dims.largeur, H = dims.hauteur;
+  const tout = elements.map((e) => e.texte).join(" ");
+  const n = normaliser(tout);
+  const nombres = (e) => [...String(e.texte).matchAll(/(\d+(?:[.,]\d+)?\s*[kmb]?)(?:\s*\/\s*\d+)?/gi)].map((m) => ({ brut: m[0], q: lireQuantite(m[1]), x: e.x0 + (m.index / Math.max(1, e.texte.length)) * (e.x1 - e.x0), y: e.y0 }));
+  // Les deux passes de lecture peuvent rendre le même nombre deux fois : un seul par position.
+  const uniques = (liste) => liste.filter((x, i) => !liste.slice(0, i).some((y) => y.q === x.q && Math.abs(y.x - x.x) < W * 0.08 && Math.abs(y.y - x.y) < H * 0.02));
+  if (/\bstage\s*\d+/.test(n) && /(start challenge|codex|moments|mail|friend|afk|privileges)/.test(n)) {
+    const m = n.match(/\bstage\s*(\d{1,4})/); if (m) p.etape = m[1];
+    const haut = uniques(elements.filter((e) => e.y0 < H * 0.075 && e.x0 > W * 0.15).flatMap(nombres).filter((x) => x.q !== null && /\d\d|[kmb]/i.test(x.brut))).sort((a, b) => a.x - b.x);
+    if (haut[0]) stock.diamants = haut[0].q;
+    if (haut[1]) stock.or = haut[1].q;
+    if (haut[2]) stock.endurance = haut[2].q;
+    const puiss = elements.filter((e) => e.y0 >= H * 0.07 && e.y0 < H * 0.12 && e.x0 < W * 0.5).flatMap(nombres).find((x) => /[kmb]/i.test(x.brut));
+    if (puiss) p.puissance = puiss.q;
+    const niv = elements.find((e) => e.x0 < W * 0.08 && e.y0 > H * 0.07 && e.y0 < H * 0.13 && /^\d{1,3}$/.test(e.texte.trim()));
+    if (niv) p.niveau = Number(niv.texte.trim());
+  }
+  if (/\benhance level\b/.test(n)) {
+    const m = n.match(/enhance level\s*:?\s*\+?(\d{1,4})/); if (m) p.equipementNiveau = Number(m[1]);
+    const t = n.match(/tier\s*(\d{1,2})\b/); if (t) p.palierEquipement = Number(t[1]);
+    const ordre = uniques(elements.filter((e) => e.x0 < W * 0.25 && e.y0 < H * 0.2).flatMap((e) => nombres(e).slice(-1)).filter((x) => x.q !== null)).sort((a, b) => a.y - b.y);
+    if (ordre.length >= 3) { stock.cuir = ordre[0].q; stock.or = ordre[1].q; stock.flammeAme = ordre[2].q; }
+  }
+  const vault = n.match(/curio vault\s*[:.]?\s*(\d{1,4})/); if (vault) p.coffreCurios = Number(vault[1]);
+  const serveur = n.match(/online_(\w+?)_(\w+?)_/); if (serveur) p.serveur = `${serveur[2]} (${serveur[1]})`;
+  return { profil: p, stock };
 }
 
 /** Quantité lue : « 12,500 », « 12 500 », « 12.5K », « 1,2 M », « 3B ». */
@@ -278,6 +371,8 @@ const apres = (ligne, re) => {
  */
 export function lireProfil(texte, ressources = []) {
   const lignes = String(texte || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  // Écran avec des conditions de déblocage (« Clear Main Stage 220 ») : ce n'est pas l'étape du joueur.
+  const conditions = /(unlock|condition|debloqu)/.test(normaliser(texte));
   const p = {};
   const stock = {};
   lignes.forEach((l, i) => {
@@ -297,8 +392,9 @@ export function lireProfil(texte, ressources = []) {
     if (p.puissance == null && (m = n.match(/\b(?:combat power|power|puissance|force|cp)\s*[:.]?\s*([\d][\d ,.]*\s*[kmb]?)/))) p.puissance = lireQuantite(m[1]);
     else if (p.puissance == null && /^(?:combat power|power|puissance|force|cp)\s*[:.]?$/.test(n) && lireQuantite(suivante) !== null && !/[a-z]{3,}/.test(normaliser(suivante))) p.puissance = lireQuantite(suivante);
     if (p.vip == null && (m = n.match(/\bvip\s*[:.]?\s*(\d{1,2})\b/))) p.vip = Number(m[1]);
-    if (p.etape == null && (m = n.match(/\b(?:main stage|stage|etape|chapter|chapitre|level|niveau)\s*[:.]?\s*(\d{1,3}\s*-\s*\d{1,3})\b/))) p.etape = m[1].replace(/\s/g, "");
-    else if (p.etape == null && (m = n.match(/\b(?:main stage|stage|etape)\s*[:.]?\s*(\d{1,4})\b/))) p.etape = m[1];
+    if (conditions) { /* étape ignorée */ }
+    else if (p.etape == null && (m = n.match(/\b(?:main stage|stage|etape|chapter|chapitre|level|niveau)\s*[:.]?\s*(\d{1,3}\s*-\s*\d{1,3})\b/))) p.etape = m[1].replace(/\s/g, "");
+    else if (p.etape == null && !/(clear|condition|unlock|debloqu)/.test(`${normaliser(lignes[i - 1] || "")} ${n}`) && (m = n.match(/\b(?:main stage|stage|etape)\s*[:.]?\s*(\d{1,4})\b/))) p.etape = m[1];
     if (p.porte == null && (m = n.match(/\b(?:door|porte)\b\s*(?:lv|lvl|level|niv|niveau|nv)?\s*[.:]?\s*(\d{1,3})\b/))) p.porte = Number(m[1]);
     if (p.lit == null && (m = n.match(/\b(?:bed|lit)\b\s*(?:lv|lvl|level|niv|niveau|nv)?\s*[.:]?\s*(\d{1,3})\b/))) p.lit = Number(m[1]);
     if (p.recherche == null && (m = n.match(/\b(?:room research|research|recherche)\b\s*(?:lv|lvl|level|niv|niveau|nv)?\s*[.:]?\s*(\d{1,3})\b/))) p.recherche = Number(m[1]);
@@ -307,8 +403,8 @@ export function lireProfil(texte, ressources = []) {
       if (stock[r.id] != null) continue;
       const mot = r.motsOcr.find((mo) => new RegExp(`(^|[^a-z])${mo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z]|$)`).test(n));
       if (!mot) continue;
-      // « or » est aussi un mot courant : ligne courte exigée.
-      if (mot.length <= 3 && n.split(/\s+/).length > 4) continue;
+      // « or » est aussi un mot courant : seulement « Or 1 234 » ou « Or : 1 234 ».
+      if (mot.length <= 3 && !new RegExp(`^\\W*${mot}\\W*(\\d|$)`).test(n)) continue;
       const reste = n.replace(mot, " ");
       const q = lireQuantite(reste) ?? (lireQuantite(suivante) !== null && !/[a-z]{4,}/.test(normaliser(suivante)) ? lireQuantite(suivante) : null);
       if (q !== null) stock[r.id] = q;

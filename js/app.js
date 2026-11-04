@@ -1,14 +1,14 @@
 import {
   TYPES, EFFETS, ROLES, RARETES, TIERS, TRAITS, STATS_ARTEFACT, EQUIPES_REFERENCE, CONSEILS_SOURCES,
-  PALIERS_PROMOTION, AVANTAGES, RESSOURCES, MODES, CODES_CADEAUX, ASTUCES_JEU,
+  PALIERS_PROMOTION, AVANTAGES, RESSOURCES, MODES, CODES_CADEAUX, ASTUCES_JEU, NOMS_RARETES, SETS_CURIO, CURIO_VAULT, PLACES_BETES,
 } from "./data.js";
 import {
   progression, herosDe, artefactsResolus, porteurs, skinEquipe, composerEquipe, classerContre, conseilsCombat,
   configurationArtefacts, statsIdeales, analyseEquipe, equipeActuelle, planProgression, prochainPalier,
-  conseilsSkins, offresActives, conseilsOffres, TAILLE_EQUIPE,
+  conseilsSkins, offresActives, conseilsOffres, TAILLE_EQUIPE, setsIdeaux,
 } from "./engine.js";
 import { charger, sauver, etatInitial, fusionner, nouvelId } from "./store.js";
-import { analyserTexte, ordonnerParCartes, lireProfil } from "./capture.js";
+import { analyserTexte, ordonnerParCartes, lireProfil, lireEcrans } from "./capture.js";
 import { lireCaptures } from "./ocr.js";
 
 let etat = charger();
@@ -76,7 +76,13 @@ const ICONES = {
 const ic = (nom, taille) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"${taille ? ` style="width:${taille}px;height:${taille}px"` : ""}>${ICONES[nom] || ""}</svg>`;
 const chevron = () => `<svg class="ic chevron" viewBox="0 0 24 24" aria-hidden="true">${ICONES.chevron}</svg>`;
 const ICONE_RESSOURCE = { diamants: "gemme", or: "piece", flammeAme: "flamme", pacteHeros: "pacte", cuir: "cuir", endurance: "eclair" };
-const COULEUR_RARETE = { Mythique: "var(--r-mythique)", "Légendaire": "var(--r-legendaire)", "Épique": "var(--r-epique)", Rare: "var(--r-rare)", Commun: "var(--r-commun)" };
+const COULEUR_RARETE = { CR: "var(--r-mythique)", UR: "var(--r-legendaire)", SSR: "var(--r-epique)", R: "var(--r-rare)" };
+const pastilleRarete = (r) => `<span class="rarete" style="background:${COULEUR_RARETE[r] || "var(--groupe-2)"}">${esc(r)}</span>`;
+const etoilesTexte = (n) => (Number(n) > 0 ? `<span class="etoiles" aria-label="${n} étoiles">${"★".repeat(Math.min(10, Number(n)))}</span>` : "");
+const LOGO = `<div class="logo" aria-label="Knock Knock Manager"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0cf78"/><stop offset="1" stop-color="#b8923a"/></linearGradient></defs>
+  <rect x="1.5" y="1.5" width="45" height="45" rx="11" fill="#111" stroke="url(#lg)" stroke-width="1.5"/><rect x="15" y="9" width="18" height="29" rx="2" fill="none" stroke="url(#lg)" stroke-width="2.6"/>
+  <circle cx="28.5" cy="24" r="1.8" fill="url(#lg)"/><path d="M9 38.5h30" stroke="url(#lg)" stroke-width="2.6" stroke-linecap="round"/><path d="M37 13c2 1.5 3 3.5 3 6M40 9.5c3 2.5 4.5 5.5 4.5 9.5" stroke="url(#lg)" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+  <span class="mots"><span class="k">Knock Knock</span><span class="m">Manager</span></span></div>`;
 
 function teinte(nom) {
   let x = 0;
@@ -161,6 +167,7 @@ function vueAccueil() {
   const meta = [j.niveau ? `Niv. ${j.niveau}` : "", j.guilde ? `Guilde ${j.guilde}` : "Sans guilde", j.vip ? `VIP ${j.vip}` : ""].filter(Boolean).join(" · ");
 
   return `
+  ${LOGO}
   <h1 class="grand-titre">Tableau de bord</h1>
   <p class="sous-titre">${j.majImport ? `Mis à jour par capture le ${esc(dateCourte(j.majImport))}` : "Importez une capture de votre profil pour tout remplir d'un coup."}</p>
 
@@ -171,6 +178,9 @@ function vueAccueil() {
       <div class="chiffre"><small>Étape</small><b>${esc(j.etape || "—")}</b></div>
       <div class="chiffre"><small>Porte / Lit</small><b>${esc(j.porte || "—")} / ${esc(j.lit || "—")}</b></div>
       <div class="chiffre"><small>Puissance</small><b>${esc(fmt(j.puissance))}</b></div>
+      <div class="chiffre"><small>Curio Vault</small><b>${esc(j.coffreCurios || "—")}</b></div>
+      <div class="chiffre"><small>Gear</small><b>${j.equipementNiveau ? `+${esc(j.equipementNiveau)}` : "—"}</b></div>
+      <div class="chiffre"><small>Palier Gear</small><b>${esc(j.palierEquipement ? `T${j.palierEquipement}` : "—")}</b></div>
     </div>
     <div class="actions">
       <button class="btn or" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer</button>
@@ -200,10 +210,10 @@ function vueAccueil() {
 /* ---------- Héros ---------- */
 
 function vueHeros() {
-  const segs = [["equipe", "Équipe"], ["collection", "Collection"], ["artefacts", "Artefacts"], ["skins", "Skins"]];
+  const segs = [["equipe", "Équipe"], ["collection", "Collection"], ["artefacts", "Curios"], ["pieges", "Pièges"], ["betes", "Bêtes"], ["skins", "Skins"]];
   return `<h1 class="grand-titre">Héros</h1>
-  <div class="segments" role="tablist">${segs.map(([k, l]) => `<button role="tab" aria-selected="${ui.segHeros === k}" data-act="seg" data-id="${k}">${l}</button>`).join("")}</div>
-  ${{ equipe: segEquipe, collection: segCollection, artefacts: segArtefacts, skins: segSkins }[ui.segHeros]()}`;
+  <div class="segments defilant" role="tablist">${segs.map(([k, l]) => `<button role="tab" aria-selected="${ui.segHeros === k}" data-act="seg" data-id="${k}">${l}</button>`).join("")}</div>
+  ${{ equipe: segEquipe, collection: segCollection, artefacts: segArtefacts, pieges: () => segCompagnons("pieges"), betes: () => segCompagnons("betes"), skins: segSkins }[ui.segHeros]()}`;
 }
 
 function segEquipe() {
@@ -237,12 +247,44 @@ function segCollection() {
 function segArtefacts() {
   const arts = artefactsResolus(etat);
   const qui = porteurs(etat);
-  return `${arts.length ? section(`${arts.length} artefact(s)`, arts.map((a) => {
-    const h = heroParId(qui.get(a.id));
-    return `<button class="ligne" data-act="ouvrir" data-f="artefact" data-id="${a.id}"><span class="pastille-icone" style="background:${COULEUR_RARETE[a.rarete] || "var(--groupe-2)"}">${ic("gemme")}</span>
-      <span class="corps"><b>${esc(a.nom)}</b><small>${esc(STATS_ARTEFACT[a.stat])} · ${esc(a.rarete)} · niv. ${a.niveau}</small></span><span class="valeur">${h ? esc(h.nom) : "Libre"}</span>${chevron()}</button>`;
-  }).join("")) : `<div class="vide-etat"><b>Aucun artefact</b>Ajoutez ceux de votre inventaire ou importez des captures : la Stratégie dira qui doit les porter.</div>`}
-  <div style="margin-top:12px;display:grid;gap:8px"><button class="btn or plein" data-act="ouvrir" data-f="ajout-artefact">Ajouter un artefact</button><button class="btn plein" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer des captures</button></div>`;
+  const parRef = new Map(arts.map((a) => [a.ref, a]));
+  const curios = cat().artefacts.filter((a) => a.set);
+  const autres = arts.filter((a) => !a.set);
+  const nb = curios.filter((c) => parRef.has(c.id)).length;
+  return `<p class="sous-titre">${nb} curio(s) sur ${curios.length}. Activez ceux que vous avez et réglez leurs étoiles ; un import du Curio Codex le fait pour vous.</p>
+  ${Object.entries(SETS_CURIO).map(([id, set]) => {
+    const pieces = curios.filter((c) => c.set === id).sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete));
+    const eu = pieces.filter((c) => parRef.has(c.id)).length;
+    return section(`${set.nom} · ${eu}/${pieces.length}`, pieces.map((c) => {
+      const a = parRef.get(c.id);
+      const h = a ? heroParId(qui.get(a.id)) : null;
+      return `<div class="ligne">${pastilleRarete(c.rarete)}
+        <button class="corps" style="border:0;background:none;text-align:left;padding:0;color:inherit" ${a ? `data-act="ouvrir" data-f="artefact" data-id="${a.id}"` : "disabled"}>
+          <b style="${a ? "" : "color:var(--texte-3)"}">${esc(c.nom)}</b><small>${a ? `${etoilesTexte(a.etoiles) || "0 étoile"}${h ? ` · sur ${esc(h.nom)}` : ""}` : "Pas encore obtenu"}</small></button>
+        <input type="checkbox" class="interrupteur" data-curio="${c.id}" ${a ? "checked" : ""} aria-label="J'ai ${esc(c.nom)}"></div>`;
+    }).join(""), { pied: esc(set.effet) });
+  }).join("")}
+  ${autres.length ? section("Autres artefacts", autres.map((a) => `<button class="ligne" data-act="ouvrir" data-f="artefact" data-id="${a.id}">${pastilleRarete(a.rarete)}<span class="corps"><b>${esc(a.nom)}</b><small>${esc(STATS_ARTEFACT[a.stat] || "")} · niv. ${a.niveau}</small></span>${chevron()}</button>`).join("")) : ""}
+  <div style="margin-top:12px;display:grid;gap:8px"><button class="btn or plein" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer le Curio Codex</button></div>`;
+}
+
+const NOMS_COMPAGNONS = { pieges: ["Pièges", "piège", 3], betes: ["Bêtes", "bête", 2] };
+function placesBetes() {
+  const etape = parseInt(String(etat.joueur.etape || "").split("-")[0], 10) || 0;
+  return PLACES_BETES.reduce((n, p) => (!p.condition || etape >= parseInt(p.condition.replace(/\D+/g, ""), 10) ? p.places : n), 2);
+}
+function segCompagnons(sorte) {
+  const [titre, unite] = NOMS_COMPAGNONS[sorte];
+  const max = sorte === "betes" ? placesBetes() : NOMS_COMPAGNONS[sorte][2];
+  const liste = cat()[sorte] || [];
+  const deployes = liste.filter((x) => etat[sorte][x.id]?.deploye).length;
+  return `<p class="sous-titre">${deployes}/${max} ${unite}(s) déployé(s).${sorte === "betes" && max < 3 ? " 3e place à Main Stage 220." : ""}</p>
+  ${section(titre, liste.map((x) => {
+    const p = etat[sorte][x.id] || {};
+    return `<button class="ligne" data-act="ouvrir" data-f="compagnon" data-id="${sorte}:${x.id}">${pastilleRarete(x.rarete)}
+      <span class="corps"><b style="${p.possede ? "" : "color:var(--texte-3)"}">${esc(x.nom)}</b><small>${p.possede ? `Niv. ${p.niveau || 1}${p.etoiles ? ` · ${p.etoiles}★` : ""}${p.deploye ? " · déployé" : ""}` : x.fragments ? `Verrouillé · ${x.fragments} fragments` : "Pas encore obtenu"}${x.effet && x.effet !== "aucun" ? ` · ${esc(EFFETS[x.effet])}` : ""}</small></span>${chevron()}</button>`;
+  }).join(""))}
+  <div style="margin-top:12px"><button class="btn or plein" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer l'écran ${sorte === "pieges" ? "Trap" : "Beast"}</button></div>`;
 }
 
 function segSkins() {
@@ -270,18 +312,20 @@ function vueStrategie() {
 
   ${section("Équipe", equipe.length ? notes(ana.notes) : `<button class="ligne" data-act="onglet" data-id="heros"><span class="corps"><b>Composez votre équipe</b><small>Héros › Équipe</small></span>${chevron()}</button>`)}
 
-  ${conf ? section("Artefacts", `${conf.lignes.map((l) => `<div class="ligne" style="align-items:flex-start">${avatar(l.hero, { taille: 36 })}<span class="corps">
+  ${conf ? section("Curios", `${conf.lignes.map((l) => `<div class="ligne" style="align-items:flex-start">${avatar(l.hero, { taille: 36 })}<span class="corps">
       <b>${esc(l.hero.nom)}</b>${l.identique ? `<small>Configuration optimale</small>` : `<div class="fleche"><span>${nomsArts(l.actuels)}</span><span>→</span><b>${nomsArts(l.optimaux)}</b></div>`}
       <small class="multi">À viser : ${l.ideales.map((s) => esc(s.libelle)).join(" › ")}</small></span>
       ${l.identique ? `<span class="puce bon">OK</span>` : `<button class="btn" style="min-height:34px;padding:6px 12px;font-size:15px" data-act="appliquer" data-id="${l.hero.id}">Appliquer</button>`}</div>`).join("")}
     ${conf.aChanger ? `<div style="padding:10px 14px"><button class="btn or plein" data-act="appliquer-tout">Tout appliquer</button></div>` : ""}`,
-    { pied: !etat.inventaire.length ? "Ajoutez vos artefacts (Héros › Artefacts) pour une répartition automatique." : conf.inutilises.length ? `Sans bon porteur : ${esc(conf.inutilises.map((a) => a.nom).join(", "))}.` : "Après « Appliquer », reproduisez la configuration dans le jeu." }) : ""}
+    { pied: !etat.inventaire.length ? "Indiquez vos curios (Héros › Curios ou import du Curio Codex) pour une répartition automatique par set." : conf.inutilises.length ? `Sans bon porteur : ${esc(conf.inutilises.map((a) => a.nom).join(", "))}.` : "Après « Appliquer », reproduisez la configuration dans le jeu." }) : ""}
 
   ${equipe.length ? section("Promotions", equipe.map((h) => {
     const p = progression(etat, h.id), pal = prochainPalier(p.promotion);
     const pct = pal ? Math.min(100, Math.round((p.promotion / pal.niveau) * 100)) : 100;
     return `<div class="ligne"><span class="corps"><b>${esc(h.nom)}</b><small>P${p.promotion}${pal ? ` → P${pal.niveau} : ${esc(pal.bonus)}` : " · palier maximal"}</small><div class="barre-prog"><i style="width:${pct}%"></i></div></span></div>`;
   }).join("")) : ""}
+
+  ${section("Pièges et bêtes", conseilsCompagnons().map((c) => `<div class="note ${c.niveau}">${esc(c.texte)}</div>`).join(""))}
 
   ${section("Ressources", RESSOURCES.map((r) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone">${ic(ICONE_RESSOURCE[r.id])}</span><span class="corps"><b>${esc(r.nom)} <span style="color:var(--texte-2);font-weight:400">${etat.stock[r.id] != null ? esc(fmt(etat.stock[r.id])) : ""}</span></b><small class="multi">${esc(r.conseil)}</small></span></div>`).join(""))}
 
@@ -290,6 +334,32 @@ function vueStrategie() {
   ${section("Options payantes", notes(conseilsOffres(etat)))}
   ${section("Modes de jeu", MODES.map((m) => `<div class="ligne"><span class="corps"><b>${esc(m.nom)}</b><small class="multi">${esc(m.note)}</small></span></div>`).join(""))}
   ${section("Astuces", [...ASTUCES_JEU, ...CONSEILS_SOURCES].map((c) => `<div class="note or">${esc(c.texte)}</div>`).join(""), { pied: "Sources : guides communautaires ProGameGeek et TreyExGaming (2026)." })}`;
+}
+
+function conseilsCompagnons() {
+  const c = [];
+  const pieges = cat().pieges.map((x) => ({ ...x, ...(etat.pieges[x.id] || {}) }));
+  const betes = cat().betes.map((x) => ({ ...x, ...(etat.betes[x.id] || {}) }));
+  const effetsEquipe = new Set(equipeActuelle(etat).map((h) => h.effet).filter((e) => e !== "aucun"));
+  const setsEquipe = new Set(equipeActuelle(etat).flatMap((h) => progression(etat, h.id).artefacts).map((id) => artefactsResolus(etat).find((a) => a.id === id)?.set).filter(Boolean));
+  for (const p of pieges.filter((x) => x.possede && x.effet && x.effet !== "aucun")) {
+    const setLie = Object.entries(SETS_CURIO).find(([, s]) => s.affinite.effet === p.effet);
+    if (setLie && setsEquipe.has(setLie[0]) && !p.deploye) c.push({ niveau: "or", texte: `Déployez ${p.nom} (${EFFETS[p.effet]}) : chaque ${EFFETS[p.effet]} qu'il applique alimente votre set ${setLie[1].nom}.` });
+    else if (effetsEquipe.has(p.effet) && !p.deploye) c.push({ niveau: "or", texte: `${p.nom} applique ${EFFETS[p.effet]}, comme votre équipe : bon candidat au déploiement.` });
+  }
+  const dep = pieges.filter((x) => x.deploye);
+  if (dep.length) {
+    const faible = [...dep].sort((a, b) => (a.niveau || 0) - (b.niveau || 0))[0];
+    c.push({ niveau: "info", texte: `Pièges déployés : ${dep.map((x) => `${x.nom} niv. ${x.niveau || 1}`).join(", ")}. Montez d'abord ${faible.nom}.` });
+  }
+  const verr = pieges.filter((x) => x.fragments && !x.possede);
+  if (verr.length) c.push({ niveau: "info", texte: `À débloquer avec ${verr[0].fragments} fragments : ${verr.map((x) => x.nom).join(", ")}.` });
+  const places = placesBetes();
+  const bDep = betes.filter((x) => x.deploye);
+  if (bDep.length < places && betes.some((x) => x.possede && !x.deploye)) c.push({ niveau: "alerte", texte: `${places - bDep.length} place(s) de bête libre(s) : déployez ${betes.filter((x) => x.possede && !x.deploye).map((x) => x.nom).join(" ou ")}.` });
+  if (bDep.length) c.push({ niveau: "info", texte: `Bêtes déployées : ${bDep.map((x) => `${x.nom} niv. ${x.niveau || 1}`).join(", ")}.` });
+  if (!c.length) c.push({ niveau: "info", texte: "Indiquez vos pièges et bêtes (Héros › Pièges / Bêtes, ou import des écrans Trap et Beast)." });
+  return c;
 }
 
 /* ---------- Boss ---------- */
@@ -345,7 +415,8 @@ const champSaisie = "width:100%;background:var(--groupe-2);border:0;border-radiu
 const imp = { etat: "attente", message: "", part: 0, propositions: null, textes: [] };
 function viderImport() { imp.etat = "attente"; imp.message = ""; imp.part = 0; imp.propositions = null; imp.textes = []; }
 
-const LIBELLES_PROFIL = { pseudo: "Pseudo", idJoueur: "ID joueur", niveau: "Niveau", guilde: "Guilde", puissance: "Puissance", vip: "VIP", etape: "Étape", porte: "Porte", lit: "Lit", recherche: "Room Research" };
+const LIBELLES_PROFIL = { pseudo: "Pseudo", idJoueur: "ID joueur", niveau: "Niveau", guilde: "Guilde", puissance: "Puissance", vip: "VIP", etape: "Étape", porte: "Porte", lit: "Lit", recherche: "Room Research",
+  coffreCurios: "Curio Vault", equipementNiveau: "Gear (amélioration)", palierEquipement: "Palier Gear", serveur: "Serveur" };
 
 function feuilleImport() {
   if (imp.etat === "lecture") {
@@ -357,7 +428,7 @@ function feuilleImport() {
   if (imp.etat === "resultats") {
     const p = imp.propositions;
     const champsProfil = Object.keys(p.profil);
-    const nb = champsProfil.length + Object.keys(p.stock).length + p.heros.length + p.artefacts.length + p.skins.length;
+    const nb = champsProfil.length + Object.keys(p.stock).length + p.heros.length + p.artefacts.length + p.skins.length + p.pieges.length + p.betes.length;
     const coche = (cle, x) => `<input type="checkbox" class="coche" data-imp-coche="${cle}" ${x.garder ? "checked" : ""} aria-label="Garder">`;
     const nombre = (cle, v, label) => `<label style="min-width:0;display:block"><small style="color:var(--texte-2);font-size:12px">${label}</small><input type="number" inputmode="numeric" min="0" data-imp="${cle}" value="${v ?? ""}" placeholder="—" style="${champSaisie}"></label>`;
     const choixHero = (cle, id) => `<select data-imp="${cle}" aria-label="Héros" style="${champSaisie}"><option value="">Héros ?</option>${herosDe(etat).map((h) => `<option value="${h.id}" ${h.id === id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select>`;
@@ -368,22 +439,27 @@ function feuilleImport() {
       ${champsProfil.length ? section("Compte", champsProfil.map((k) => `<div class="ligne">${coche(`profil.${k}`, p.profil[k])}<span class="corps"><small>${LIBELLES_PROFIL[k]}</small>${champLibre(`profil.${k}`, p.profil[k].valeur, LIBELLES_PROFIL[k])}</span></div>`).join("")) : ""}
       ${Object.keys(p.stock).length ? section("Ressources", Object.entries(p.stock).map(([k, x]) => `<div class="ligne">${coche(`stock.${k}`, x)}<span class="corps"><small>${esc(RESSOURCES.find((r) => r.id === k)?.nom)}</small>${champLibre(`stock.${k}`, x.valeur, k)}</span></div>`).join("")) : ""}
       ${p.heros.length ? section(`Héros (${p.heros.length})`, p.heros.map((x, i) => `<div class="ligne" style="align-items:flex-start">${coche(`heros.${i}`, x)}<span class="corps">
-        ${choixHero(`heros.${i}.heroId`, x.heroId)}<small style="margin:4px 0 6px">Lu : « ${esc(x.lu)} »${x.sim < 1 ? ` · ressemblance ${Math.round(x.sim * 100)} %` : ""}</small>
+        ${choixHero(`heros.${i}.heroId`, x.heroId)}<small style="margin:4px 0 6px">Lu : « ${esc(x.lu)} »${x.sim < 1 ? ` · ressemblance ${Math.round(x.sim * 100)} %` : ""}${x.douteux ? ` · niveau lu « ${x.douteux} » écarté, à vérifier` : ""}</small>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${nombre(`heros.${i}.niveau`, x.niveau, "Niveau")}${nombre(`heros.${i}.promotion`, x.promotion, "Promotion")}${nombre(`heros.${i}.etoiles`, x.etoiles, "Étoiles")}</div></span></div>`).join("")) : ""}
-      ${p.artefacts.length ? section(`Artefacts (${p.artefacts.length})`, p.artefacts.map((x, i) => `<div class="ligne" style="align-items:flex-start">${coche(`artefacts.${i}`, x)}<span class="corps" style="display:grid;gap:6px">
+      ${p.artefacts.filter((x) => x.set).length ? section(`Curios (${p.artefacts.filter((x) => x.set).length})`, p.artefacts.map((x, i) => x.set ? `<div class="ligne">${coche(`artefacts.${i}`, x)}${pastilleRarete(x.rarete)}<span class="corps"><b>${esc(x.nom)}</b><small>${esc(SETS_CURIO[x.set]?.nom || "")}</small></span>
+        <div style="width:82px">${nombre(`artefacts.${i}.etoiles`, x.etoiles, "Étoiles")}</div></div>` : "").join(""), { pied: "Les étoiles ne se lisent pas sur la capture : indiquez-les si vous le souhaitez." }) : ""}
+      ${p.artefacts.filter((x) => !x.set).length ? section(`Artefacts (${p.artefacts.filter((x) => !x.set).length})`, p.artefacts.map((x, i) => x.set ? "" : `<div class="ligne" style="align-items:flex-start">${coche(`artefacts.${i}`, x)}<span class="corps" style="display:grid;gap:6px">
         ${champLibre(`artefacts.${i}.nom`, x.nom, "Nom")}<small>${x.ref ? "Déjà au catalogue" : "Nouveau : sera ajouté au catalogue"}</small>
         <div style="display:grid;grid-template-columns:1fr 1fr 70px;gap:6px;align-items:end"><select data-imp="artefacts.${i}.stat" style="${champSaisie}" aria-label="Stat">${opts(STATS_ARTEFACT, x.stat)}</select>
           <select data-imp="artefacts.${i}.rarete" style="${champSaisie}" aria-label="Rareté">${optsListe(RARETES, x.rarete)}</select>${nombre(`artefacts.${i}.niveau`, x.niveau, "Niv.")}</div></span></div>`).join("")) : ""}
+      ${[["pieges", "Pièges"], ["betes", "Bêtes"]].map(([k, titre]) => p[k].length ? section(`${titre} (${p[k].length})`, p[k].map((x, i) => `<div class="ligne">${coche(`${k}.${i}`, x)}<span class="corps"><b>${esc(x.nom)}</b><small>${x.verrouille ? "Verrouillé : ne sera pas marqué comme obtenu" : "Obtenu"}</small></span>
+        <div style="width:82px">${nombre(`${k}.${i}.niveau`, x.niveau, "Niveau")}</div></div>`).join("")) : "").join("")}
       ${p.skins.length ? section(`Skins (${p.skins.length})`, p.skins.map((x, i) => `<div class="ligne" style="align-items:flex-start">${coche(`skins.${i}`, x)}<span class="corps" style="display:grid;gap:6px">
         ${champLibre(`skins.${i}.nom`, x.nom, "Nom du skin")}${choixHero(`skins.${i}.heroId`, x.heroId)}</span></div>`).join("")) : ""}
       <div style="display:grid;gap:8px;margin-top:16px">${nb ? `<button class="btn or plein" data-act="import-appliquer">Enregistrer la sélection</button>` : ""}<button class="btn plein" data-act="import-recommencer">Importer d'autres captures</button></div>
       <details class="section"><summary class="pied" style="cursor:pointer">Voir le texte lu</summary><div class="groupe" style="margin-top:6px">${imp.textes.map((t) => `<pre class="lu">${esc(t)}</pre>`).join("")}</div></details>`];
   }
   return ["Importer des captures", `
-    ${section("Ce que l'app sait lire", `<div class="note or">Profil du joueur : pseudo, ID, niveau, guilde, puissance, VIP.</div>
-      <div class="note or">Écran principal : étape, Porte, Lit, Room Research, Diamants, Or, Soul Flame, Hero Pact, Leather, Stamina.</div>
-      <div class="note or">Héros : la collection et la fiche de chaque héros (niveau, promotion, étoiles).</div>
-      <div class="note or">Artefacts et skins : ouvrez chaque élément pour afficher nom, rareté, stat et niveau.</div>`,
+    ${section("Captures à faire dans le jeu", `<div class="note or">Écran principal : niveau, puissance, étape, Diamants, Or, Stamina.</div>
+      <div class="note or">My Heroes : faites défiler et capturez chaque page (niveaux des héros).</div>
+      <div class="note or">Curio Codex : les onglets R, SSR, UR et CR (curios possédés, Curio Vault).</div>
+      <div class="note or">Gear : niveau d'amélioration, palier, Leather, Or, Soul Flame.</div>
+      <div class="note or">Trap et Beast : niveaux et éléments débloqués.</div>`,
       { pied: "Anglais et français. Vous pouvez choisir plusieurs captures à la fois." })}
     <label class="btn or plein" style="margin-top:14px">${ic("photo", 20)} Choisir des captures<input type="file" accept="image/*" multiple data-import-captures class="cache"></label>
     ${section("Confidentialité", `<div class="note ok">La lecture se fait sur le téléphone : rien n'est envoyé.</div><div class="note ok">Les captures ne sont pas conservées : seules les infos validées sont enregistrées.</div>`,
@@ -408,7 +484,12 @@ async function lancerImport(fichiers) {
     imp.textes = lus.map((t) => t.texte);
     const prop = analyserTexte(ordonne, cat());
     const compte = lireProfil(brut, RESSOURCES);
-    for (const k of ["heros", "artefacts", "skins"]) for (const x of prop[k]) x.garder = true;
+    for (const t of lus) { const e = lireEcrans(t.elements, { largeur: t.largeur, hauteur: t.hauteur }); Object.assign(compte.profil, e.profil); Object.assign(compte.stock, e.stock); }
+    for (const k of ["heros", "artefacts", "skins", "pieges", "betes"]) for (const x of prop[k]) x.garder = true;
+    // Niveau incohérent avec le reste de l'import (« Lv.675 » ou « Lv.6 » pour 67) : écarté, à saisir.
+    const niv = prop.heros.map((h) => h.niveau).filter((v) => v !== null).sort((a, b) => a - b);
+    const median = niv.length >= 4 ? niv[Math.floor(niv.length / 2)] : null;
+    if (median) for (const h of prop.heros) if (h.niveau !== null && (h.niveau > median * 3 || h.niveau < median / 3)) { h.douteux = h.niveau; h.niveau = null; }
     imp.propositions = {
       ...prop,
       profil: Object.fromEntries(Object.entries(compte.profil).map(([k, v]) => [k, { valeur: v, garder: true }])),
@@ -430,7 +511,7 @@ function appliquerImport() {
   let n = 0;
   for (const [k, x] of Object.entries(p.profil)) {
     if (!x.garder || x.valeur === "" || x.valeur == null) continue;
-    const nombre = ["niveau", "porte", "lit", "recherche", "vip", "puissance"].includes(k);
+    const nombre = ["niveau", "porte", "lit", "recherche", "vip", "puissance", "coffreCurios", "equipementNiveau", "palierEquipement"].includes(k);
     const v = nombre ? Number(String(x.valeur).replace(/[\s  ]/g, "")) : String(x.valeur).trim();
     if (nombre && !Number.isFinite(v)) continue;
     etat.joueur[k] = v; n++;
@@ -448,6 +529,14 @@ function appliquerImport() {
   }
   for (const x of p.artefacts) {
     if (!x.garder || !String(x.nom || "").trim()) continue;
+    // Curio du catalogue : on le marque comme possédé, sans doublon.
+    const fiche = x.ref && cat().artefacts.find((a) => a.id === x.ref);
+    if (fiche?.set) {
+      let inv = etat.inventaire.find((i) => i.ref === fiche.id);
+      if (!inv) { inv = { id: nouvelId("art"), ref: fiche.id, etoiles: 1, niveau: 0 }; etat.inventaire.push(inv); }
+      if (x.etoiles !== null && x.etoiles !== "" && Number.isFinite(Number(x.etoiles))) inv.etoiles = Math.max(0, Number(x.etoiles));
+      n++; continue;
+    }
     let ref = x.ref && cat().artefacts.some((a) => a.id === x.ref) ? x.ref : null;
     if (!ref) {
       const meme = cat().artefacts.find((a) => norm(a.nom) === norm(x.nom));
@@ -462,6 +551,12 @@ function appliquerImport() {
     let s = x.ref ? cat().skins.find((k) => k.id === x.ref) : cat().skins.find((k) => norm(k.nom) === norm(x.nom) && k.heroId === x.heroId);
     if (!s) { s = { id: nouvelId("skin"), nom: String(x.nom).trim(), heroId: x.heroId, bonusStat: "", bonusValeur: "", obtention: "" }; cat().skins.push(s); }
     etat.skinsPossedes[s.id] = true; n++;
+  }
+  for (const sorte of ["pieges", "betes"]) for (const x of p[sorte] || []) {
+    if (!x.garder) continue;
+    const actuel = etat[sorte][x.id] || {};
+    etat[sorte][x.id] = { ...actuel, possede: !x.verrouille || actuel.possede, ...(x.niveau !== null && x.niveau !== "" && Number.isFinite(Number(x.niveau)) ? { niveau: Math.max(1, Number(x.niveau)) } : {}) };
+    n++;
   }
   etat.joueur.majImport = new Date().toISOString();
   viderImport();
@@ -485,8 +580,10 @@ const FEUILLES = {
     return ["Profil du joueur", `
       ${section("Identité", `${champTexte("p-pseudo", "Pseudo", "pseudo", j.pseudo, { ph: "Votre pseudo" })}${champTexte("p-id", "ID joueur", "idJoueur", j.idJoueur, { mode: "numeric", ph: "—" })}${champTexte("p-guilde", "Guilde", "guilde", j.guilde, { ph: "Aucune" })}`)}
       ${section("Progression", `${champStepper("Niveau", "joueur.niveau", j.niveau, 1)}${champTexte("p-etape", "Étape", "etape", j.etape, { ph: "Ex. 24-5" })}${champTexte("p-puiss", "Puissance", "puissance", j.puissance, { type: "number", mode: "numeric", ph: "—" })}${champTexte("p-vip", "VIP", "vip", j.vip, { type: "number", mode: "numeric", ph: "—" })}`)}
+      ${section("Équipement", `${champTexte("p-vault", "Curio Vault (niv.)", "coffreCurios", j.coffreCurios, { type: "number", mode: "numeric", ph: "—" })}${champTexte("p-gear", "Gear (amélioration)", "equipementNiveau", j.equipementNiveau, { type: "number", mode: "numeric", ph: "+—" })}${champTexte("p-tier", "Palier Gear (Tier)", "palierEquipement", j.palierEquipement, { type: "number", mode: "numeric", ph: "—" })}${champTexte("p-serveur", "Serveur", "serveur", j.serveur, { ph: "Ex. Europe" })}`,
+        { pied: `Curio Vault : ${esc(CURIO_VAULT.bonusParNiveau)}. Niveau 400 : ${esc(CURIO_VAULT.paliers[0].bonus)}.` })}
       ${section("Pièce", `${champStepper("Porte", "joueur.porte", j.porte)}${champStepper("Lit", "joueur.lit", j.lit)}${champStepper("Room Research", "joueur.recherche", j.recherche || 0)}${champStepper("Emplacements d'artefact", "joueur.emplacements", j.emplacements, 1)}`,
-        { pied: "La Porte plafonne le Lit. Room Research relève les plafonds des deux." })}`];
+        { pied: "La Porte plafonne le Lit. Room Research relève les plafonds des deux. Les héros portent 4 curios : un set complet." })}`];
   },
   ressources() {
     return ["Ressources", `${section("", RESSOURCES.map((r) => `<div class="champ"><label for="r-${r.id}">${esc(r.nom)}</label><input id="r-${r.id}" type="number" inputmode="numeric" min="0" data-stock="${r.id}" value="${esc(etat.stock[r.id] ?? "")}" placeholder="—"></div>`).join(""),
@@ -517,10 +614,10 @@ const FEUILLES = {
         <label class="champ"><span class="etiquette">Dans mon équipe</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-equipe="${id}" ${etat.equipe.includes(id) ? "checked" : ""}></label>`)}
       ${p.possede ? section("Progression", `${champStepper("Niveau", `roster.${id}.niveau`, p.niveau, 1)}${champStepper("Promotion", `roster.${id}.promotion`, p.promotion)}${champStepper("Étoiles", `roster.${id}.etoiles`, p.etoiles)}`,
         { pied: pal ? `Prochain palier P${pal.niveau} : ${esc(pal.bonus)}.` : "Palier de promotion maximal atteint." }) : ""}
-      ${p.possede ? section("Équipement", `${Array.from({ length: empl }, (_, i) => `<div class="champ"><span class="etiquette">Artefact ${i + 1}</span>${sel(`data-slot="${id}" data-index="${i}" aria-label="Artefact ${i + 1}"`, `<option value="">Vide</option>${arts.map((a) => { const autre = qui.get(a.id); return `<option value="${a.id}" ${p.artefacts[i] === a.id ? "selected" : ""}>${esc(a.nom)} (${esc(STATS_ARTEFACT[a.stat])})${autre && autre !== id ? ` · sur ${esc(heroParId(autre)?.nom || "?")}` : ""}</option>`; }).join("")}`)}</div>`).join("")}
+      ${p.possede ? section("Équipement", `${Array.from({ length: empl }, (_, i) => `<div class="champ"><span class="etiquette">Curio ${i + 1}</span>${sel(`data-slot="${id}" data-index="${i}" aria-label="Curio ${i + 1}"`, `<option value="">Vide</option>${arts.map((a) => { const autre = qui.get(a.id); return `<option value="${a.id}" ${p.artefacts[i] === a.id ? "selected" : ""}>${esc(a.nom)} (${esc(STATS_ARTEFACT[a.stat])})${autre && autre !== id ? ` · sur ${esc(heroParId(autre)?.nom || "?")}` : ""}</option>`; }).join("")}`)}</div>`).join("")}
         <div class="champ"><span class="etiquette">Skin</span>${sel(`data-hero-skin="${id}" aria-label="Skin"`, `<option value="">Aucun</option>${skins.map((s) => `<option value="${s.id}" ${p.skin === s.id ? "selected" : ""}>${esc(s.nom)}${etat.skinsPossedes[s.id] ? "" : " (non possédé)"}</option>`).join("")}`)}</div>
         ${ligneNav("fiche-skin", "Ajouter un skin pour ce héros")}`.replace('data-f="fiche-skin" data-id=""', `data-f="fiche-skin" data-id="" data-hero="${id}"`),
-        { pied: `Stats à viser : ${statsIdeales(h).slice(0, 3).map((s) => esc(s.libelle)).join(" › ")}.` }) : ""}
+        { pied: `Sets de curios à viser : ${setsIdeaux(h).map((x) => esc(x.nom)).join(" › ")}.` }) : ""}
       ${section("Fiche", `${h.competences ? `<div class="ligne"><span class="corps"><small>Compétences</small><b style="white-space:normal;font-size:15px">${esc(h.competences)}</b></span></div>` : ""}
         ${h.aura ? `<div class="ligne"><span class="corps"><small>Aura</small><b style="white-space:normal;font-size:15px">${esc(h.aura)}</b></span></div>` : ""}
         ${h.note ? `<div class="ligne"><span class="corps"><small>Note</small><b style="white-space:normal;font-size:15px">${esc(h.note)}</b></span></div>` : ""}
@@ -528,7 +625,7 @@ const FEUILLES = {
         ${ligneNav("fiche-hero", "Modifier la fiche", `Source : ${h.source || "vous"}`, { id })}`)}`];
   },
   "fiche-hero"(id) {
-    const h = heroParId(id) || { nom: "", rarete: "Légendaire", type: "physique", effet: "aucun", role: "mono", tier: "B", competences: "", aura: "", note: "" };
+    const h = heroParId(id) || { nom: "", rarete: "UR", type: "physique", effet: "aucun", role: "mono", tier: "B", competences: "", aura: "", note: "" };
     const ch = (label, inner) => `<div class="champ"><label>${label}</label>${inner}</div>`;
     return [id ? "Modifier la fiche" : "Nouveau héros", `<form data-form="hero" data-id="${esc(id)}">
       ${section("", `<div class="champ bloc"><label for="fh-nom">Nom</label><input id="fh-nom" name="nom" required value="${esc(h.nom)}"></div>
@@ -543,12 +640,12 @@ const FEUILLES = {
   "ajout-artefact"() {
     return ["Ajouter un artefact", `
       <form data-form="artefact-inventaire">${section("Depuis le catalogue", `<div class="champ"><label for="aa-ref">Artefact</label><select id="aa-ref" name="ref">${cat().artefacts.map((a) => `<option value="${a.id}">${esc(a.nom)}</option>`).join("")}</select></div>
-        <div class="champ"><label>Rareté</label><select name="rarete">${optsListe(RARETES, "Épique")}</select></div>
+        <div class="champ"><label>Rareté</label><select name="rarete">${optsListe(RARETES, "SSR")}</select></div>
         <div class="champ"><label for="aa-niv">Niveau</label><input id="aa-niv" name="niveau" type="number" inputmode="numeric" min="0" value="0"></div>`)}
         <div style="margin-top:10px"><button class="btn or plein" type="submit">Ajouter à mon inventaire</button></div></form>
       <form data-form="artefact-catalogue">${section("Nouvel artefact", `<div class="champ bloc"><label for="ac-nom">Nom exact dans le jeu</label><input id="ac-nom" name="nom" required></div>
         <div class="champ"><label>Stat principale</label><select name="stat">${opts(STATS_ARTEFACT, "patk")}</select></div>
-        <div class="champ"><label>Rareté</label><select name="rarete">${optsListe(RARETES, "Épique")}</select></div>
+        <div class="champ"><label>Rareté</label><select name="rarete">${optsListe(RARETES, "SSR")}</select></div>
         <div class="champ bloc"><label for="ac-eff">Effet spécial</label><input id="ac-eff" name="effet" placeholder="Ex. +10 % de durée de Brûlure"></div>`)}
         <div style="margin-top:10px"><button class="btn plein" type="submit">Créer et ajouter</button></div></form>`];
   },
@@ -557,12 +654,27 @@ const FEUILLES = {
     const a = artefactsResolus(etat).find((x) => x.id === id);
     if (!inv || !a) return ["Artefact", `<div class="vide-etat">Artefact introuvable.</div>`];
     const qui = porteurs(etat).get(id) || "";
-    return [a.nom, `${section("", `<div class="champ"><span class="etiquette">Stat</span><span class="valeur" style="flex:1;text-align:right">${esc(STATS_ARTEFACT[a.stat])}</span></div>
+    const set = SETS_CURIO[a.set];
+    return [a.nom, `${section("", `${set ? `<div class="champ"><span class="etiquette">Set</span><span class="valeur" style="flex:1;text-align:right">${esc(set.nom)}</span></div>
+      <div class="champ"><span class="etiquette">Rareté</span><span style="flex:1"></span>${pastilleRarete(a.rarete)}</div>${champStepper("Étoiles", `inv.${id}.etoiles`, a.etoiles)}`
+      : `<div class="champ"><span class="etiquette">Stat</span><span class="valeur" style="flex:1;text-align:right">${esc(STATS_ARTEFACT[a.stat])}</span></div>
+      <div class="champ"><label>Rareté</label><select data-inv="${id}" data-champ="rarete">${optsListe(RARETES, a.rarete)}</select></div>${champStepper("Niveau", `inv.${id}.niveau`, a.niveau)}`}
       ${a.effet ? `<div class="champ"><span class="etiquette">Effet</span><span class="valeur" style="flex:1;text-align:right;white-space:normal">${esc(a.effet)}</span></div>` : ""}
-      <div class="champ"><label>Rareté</label><select data-inv="${id}" data-champ="rarete">${optsListe(RARETES, a.rarete)}</select></div>
-      ${champStepper("Niveau", `inv.${id}.niveau`, a.niveau)}
       <div class="champ"><label for="porteur">Porté par</label><select id="porteur" data-porteur="${id}"><option value="">Personne</option>${herosDe(etat).filter((h) => progression(etat, h.id).possede).map((h) => `<option value="${h.id}" ${qui === h.id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select></div>`)}
-      <div style="margin-top:16px"><button class="btn danger plein" data-act="suppr-inv" data-id="${id}" data-confirmer="Touchez encore pour retirer">Retirer de l'inventaire</button></div>`];
+      ${set ? `<p class="pied">Effet du set : ${esc(set.effet)}</p>` : ""}
+      <div style="margin-top:16px"><button class="btn danger plein" data-act="suppr-inv" data-id="${id}" data-confirmer="Touchez encore pour retirer">Je ne l'ai plus</button></div>`];
+  },
+  compagnon(cle) {
+    const [sorte, id] = cle.split(":");
+    const x = (cat()[sorte] || []).find((y) => y.id === id);
+    if (!x) return ["Introuvable", `<div class="vide-etat">Élément introuvable.</div>`];
+    const p = etat[sorte][id] || {};
+    return [x.nom, `
+      <div class="entete-fiche">${pastilleRarete(x.rarete)}<div><h3>${esc(x.nom)}</h3><div class="pied" style="padding:2px 0 0">${sorte === "pieges" ? "Piège" : "Bête"}${x.competence ? ` · ${esc(x.competence)}` : ""}${x.effet && x.effet !== "aucun" ? ` · ${esc(EFFETS[x.effet])}` : ""}${x.type ? ` · ${esc(TYPES[x.type])}` : ""}</div></div></div>
+      ${section("", `<label class="champ"><span class="etiquette">Je l'ai</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-comp-possede="${sorte}:${id}" ${p.possede ? "checked" : ""}></label>
+        <label class="champ"><span class="etiquette">Déployé</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-comp-deploye="${sorte}:${id}" ${p.deploye ? "checked" : ""}></label>`)}
+      ${p.possede ? section("Progression", `${champStepper("Niveau", `${sorte}.${id}.niveau`, p.niveau || 1, 1)}${champStepper("Étoiles", `${sorte}.${id}.etoiles`, p.etoiles || 0)}`) : ""}
+      ${x.fragments && !p.possede ? `<p class="pied">Se débloque avec ${x.fragments} fragment(s).</p>` : ""}`];
   },
   "fiche-skin"(id, extra) {
     const s = cat().skins.find((x) => x.id === id) || { nom: "", heroId: extra || "", bonusStat: "", bonusValeur: "", obtention: "" };
@@ -700,8 +812,8 @@ function retour() { ui.feuille = ui.pile.pop() || null; rendreFeuille(); }
 const ONGLETS = {
   accueil: { titre: "Tableau de bord", vue: vueAccueil, actions: () => `<button class="bouton-icone" data-act="ouvrir" data-f="import" aria-label="Importer des captures">${ic("photo")}</button><button class="bouton-icone" data-act="ouvrir" data-f="reglages" aria-label="Réglages">${ic("reglages")}</button>` },
   heros: { titre: "Héros", vue: vueHeros, actions: () => {
-    const f = { equipe: "equipe", collection: "fiche-hero", artefacts: "ajout-artefact", skins: "fiche-skin" }[ui.segHeros];
-    return `<button class="bouton-icone" data-act="ouvrir" data-f="${f}" data-id="" aria-label="Ajouter">${ic("ajouter")}</button>`;
+    const f = { equipe: "equipe", collection: "fiche-hero", artefacts: "ajout-artefact", skins: "fiche-skin", pieges: "import", betes: "import" }[ui.segHeros];
+    return `<button class="bouton-icone" data-act="ouvrir" data-f="${f}" data-id="" aria-label="${f === "import" ? "Importer des captures" : "Ajouter"}">${ic(f === "import" ? "photo" : "ajouter")}</button>`;
   } },
   strategie: { titre: "Stratégie", vue: vueStrategie, actions: () => "" },
   boss: { titre: "Boss", vue: vueBoss, actions: () => `<button class="bouton-icone" data-act="ouvrir" data-f="fiche-boss" data-id="" aria-label="Ajouter un boss">${ic("ajouter")}</button>` },
@@ -733,15 +845,28 @@ function setCle(cle, valeur) {
   if (racine === "joueur") etat.joueur[a] = valeur;
   if (racine === "roster") fiche(a)[b] = valeur;
   if (racine === "inv") { const i = etat.inventaire.find((x) => x.id === a); if (i) i[b] = valeur; }
+  if (racine === "pieges" || racine === "betes") etat[racine][a] = { ...(etat[racine][a] || {}), [b]: valeur };
 }
 function getCle(cle) {
   const [racine, a, b] = cle.split(".");
   if (racine === "joueur") return Number(etat.joueur[a]) || 0;
   if (racine === "roster") return Number(progression(etat, a)[b]) || 0;
   if (racine === "inv") return Number(etat.inventaire.find((x) => x.id === a)?.[b]) || 0;
+  if (racine === "pieges" || racine === "betes") return Number(etat[racine][a]?.[b]) || (b === "niveau" ? 1 : 0);
   return 0;
 }
 const minimumDe = (cle) => (/\.(niveau|emplacements)$/.test(cle) && !cle.startsWith("inv.") ? 1 : 0);
+function basculerCurio(ref, oui) {
+  const existant = etat.inventaire.find((i) => i.ref === ref);
+  if (oui && !existant) etat.inventaire.push({ id: nouvelId("art"), ref, etoiles: 1, niveau: 0 });
+  if (!oui && existant) { etat.inventaire = etat.inventaire.filter((i) => i.ref !== ref); for (const i of [existant]) retirerArtefactPartout(i.id); }
+}
+function basculerDeploiement(sorte, id, oui) {
+  const max = sorte === "betes" ? placesBetes() : NOMS_COMPAGNONS[sorte][2];
+  if (oui && cat()[sorte].filter((x) => x.id !== id && etat[sorte][x.id]?.deploye).length >= max) { toast(`${max} place(s) seulement : retirez d'abord un ${NOMS_COMPAGNONS[sorte][1]}`); return false; }
+  etat[sorte][id] = { ...(etat[sorte][id] || {}), deploye: oui, ...(oui ? { possede: true } : {}) };
+  return true;
+}
 
 document.querySelector(".onglets").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-onglet]");
@@ -770,6 +895,9 @@ document.addEventListener("change", (e) => {
   }
   if (d.equipe) { if (!basculerEquipe(d.equipe, t.checked)) t.checked = false; return enregistrer(); }
   if (d.skin) { etat.skinsPossedes[d.skin] = t.checked; return enregistrer(); }
+  if (d.curio) { basculerCurio(d.curio, t.checked); return enregistrer(); }
+  if (d.compPossede) { const [so, id] = d.compPossede.split(":"); etat[so][id] = { ...(etat[so][id] || {}), possede: t.checked, ...(t.checked ? {} : { deploye: false }) }; return enregistrer(); }
+  if (d.compDeploye) { const [so, id] = d.compDeploye.split(":"); if (!basculerDeploiement(so, id, t.checked)) t.checked = false; return enregistrer(); }
   if (d.heroSkin) { fiche(d.heroSkin).skin = t.value || null; return enregistrer(); }
   if (d.slot) { equiper(d.slot, Number(d.index), t.value); return enregistrer(); }
   if (d.inv) { const i = etat.inventaire.find((x) => x.id === d.inv); if (i) i[d.champ] = t.value; return enregistrer(); }
