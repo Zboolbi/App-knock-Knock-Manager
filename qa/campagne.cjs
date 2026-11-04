@@ -102,7 +102,7 @@ async function main() {
   });
   await cas("NAV-03", "Petit titre au défilement", async () => {
     const p = await page(avec((e) => possede(e, ["archangel"])));
-    await p.click(".onglets [data-onglet=strategie]");
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=investir]");
     await p.evaluate(() => { const d = document.getElementById("defile"); d.scrollTop = 600; d.dispatchEvent(new Event("scroll")); }); await p.waitForTimeout(300);
     verifier(await p.locator("#barre-haut.defile").count() === 1, "pas d'état défilé");
     await p.ctx.close();
@@ -374,7 +374,7 @@ async function main() {
   });
   await cas("SKI-02", "Skin à bonus proposé puis équipé", async () => {
     const p = await page(avec((e) => { possede(e, ["lazerman"]); e.equipe = ["lazerman"]; e.catalogue.skins.push({ id: "s1", nom: "Doré", heroId: "lazerman", bonusStat: "matk", bonusValeur: "8" }); e.skinsPossedes.s1 = true; }));
-    await p.click(".onglets [data-onglet=strategie]");
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=investir]");
     await p.click("[data-act=mettre-skin]");
     verifier((await p.etat()).roster.lazerman.skin === "s1", "skin non équipé");
     await p.ctx.close();
@@ -394,7 +394,7 @@ async function main() {
   await cas("CUR-02", "Héros Brûlure : set Sky Scorch complet appliqué", async () => {
     const p = await page(avec((e) => { possede(e, ["bride-wraith"]); e.equipe = ["bride-wraith"]; e.joueur.emplacements = 4;
       ["purgatory-oven", "dynamite-battery", "ghost-lighter", "sacrifice-candle", "rusty-knife"].forEach((r, i) => e.inventaire.push({ id: `k${i}`, ref: r, etoiles: 3 })); }));
-    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=appliquer-tout]");
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=curios]"); await p.click("[data-act=appliquer-sets]");
     const e = await p.etat();
     const refs = e.roster["bride-wraith"].artefacts.map((id) => e.inventaire.find((i) => i.id === id).ref).sort();
     verifier(JSON.stringify(refs) === JSON.stringify(["dynamite-battery", "ghost-lighter", "purgatory-oven", "sacrifice-candle"]), refs.join(","));
@@ -428,35 +428,42 @@ async function main() {
   });
 
   /* ---------- 4.5 Stratégie ---------- */
-  const premiereEtape = async (e) => { const p = await page(e); await p.click(".onglets [data-onglet=strategie]"); const t = await p.textContent(".section .ligne b"); await p.ctx.close(); return t; };
+  // Le plan d'action est sur l'accueil (« À faire maintenant ») ; la Stratégie fait du coaching long terme.
+  const premiereEtape = async (e) => { const p = await page(e); const t = await p.locator(".section", { hasText: "À faire maintenant" }).locator(".ligne b").first().textContent(); await p.ctx.close(); return t; };
   await cas("STR-01", "Lit = Porte → monter la Porte", async () => { const t = await premiereEtape(avec((e) => { e.joueur.porte = 5; e.joueur.lit = 5; possede(e, ["spiker"]); })); verifier(/Porte/.test(t), t); return t; });
   await cas("STR-02", "Porte − Lit ≥ 2 → rattraper le Lit", async () => { const t = await premiereEtape(avec((e) => { e.joueur.porte = 9; e.joueur.lit = 6; possede(e, ["spiker"]); })); verifier(/Lit/.test(t), t); return t; });
   await cas("STR-03", "Promotion vers 6", async () => {
-    const p = await page(avec((e) => { possede(e, ["spiker"], { promotion: 4 }); e.equipe = ["spiker"]; }));
+    const p = await page(avec((e) => { possede(e, ["spiker"], { promotion: 4 }); e.equipe = ["spiker"]; e.joueur.porte = 3; e.joueur.lit = 2; }));
+    const accueil = await p.getByText("Spiker : promotion 4 → 6").count();
     await p.click(".onglets [data-onglet=strategie]");
-    verifier(await p.getByText("Spiker : promotion 4 → 6").count() === 1, "étape P6 absente");
+    const noyau = await p.getByText("P4 → P6", { exact: false }).count();
+    verifier(accueil === 1 && noyau >= 1, `accueil ${accueil}, noyau ${noyau}`);
     await p.ctx.close();
   });
-  await cas("STR-04", "P.ATK déplacé vers un physique", async () => {
-    const p = await page(etatArtefacts());
-    const compteur = await p.textContent("#compteur-strategie");
-    await p.click(".onglets [data-onglet=strategie]");
-    await p.click("[data-act=appliquer-tout]");
+  await cas("STR-04", "Curios : pastille puis « Équiper ces sets »", async () => {
+    const p = await page(avec((e) => { possede(e, ["bride-wraith", "ghost-captain"]); e.equipe = ["bride-wraith", "ghost-captain"];
+      ["purgatory-oven", "ghost-lighter", "gore-grinder", "rusty-knife"].forEach((r, i) => e.inventaire.push({ id: `k${i}`, ref: r, etoiles: 2 })); }));
+    const avant = await p.textContent("#compteur-strategie");
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=curios]");
+    const texte = await p.textContent("main");
+    await p.click("[data-act=appliquer-sets]");
     const e = await p.etat();
-    const pk = e.roster["poison-knight"].artefacts, lz = e.roster.archangel.artefacts;
-    verifier(Number(compteur) >= 1 && pk.includes("i1") && lz.includes("i2") && await p.locator("#compteur-strategie").isHidden(), JSON.stringify({ compteur, pk, lz }));
+    const sets = (id) => e.roster[id].artefacts.map((x) => e.inventaire.find((i) => i.id === x).ref);
+    verifier(avant === "2" && /Set Sky Scorch/.test(texte) && /Set Wild Bloodlust/.test(texte) && /Manquant/.test(texte)
+      && sets("bride-wraith").sort().join() === "ghost-lighter,purgatory-oven" && sets("ghost-captain").sort().join() === "gore-grinder,rusty-knife"
+      && await p.locator("#compteur-strategie").isHidden(), JSON.stringify({ avant, bw: sets("bride-wraith"), gc: sets("ghost-captain") }));
     await p.ctx.close();
   });
   await cas("STR-05", "Alerte sans soigneur", async () => {
     const p = await page(avec((e) => { possede(e, ["spiker", "lazerman"]); e.equipe = ["spiker", "lazerman"]; }));
     await p.click(".onglets [data-onglet=strategie]");
-    verifier(await p.getByText("Pas de soigneur", { exact: false }).count() >= 1, "alerte absente");
+    verifier(await p.getByText("Personne ne soigne la Porte", { exact: false }).count() >= 1, "alerte absente");
     await p.ctx.close();
   });
   await cas("STR-06", "Abonnement qui expire", async () => {
     const fin = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
     const p = await page(avec((e) => { e.abonnements["deluxe-pass"] = { actif: true, fin }; }));
-    await p.click(".onglets [data-onglet=strategie]");
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=investir]");
     const ok = await p.getByText("expire dans", { exact: false }).count() >= 1 && await p.getByText("Combat automatique", { exact: false }).count() >= 1;
     verifier(ok, "alerte ou conseil auto absent");
     await p.ctx.close();
@@ -464,7 +471,9 @@ async function main() {
   await cas("STR-07", "Stratégie sans données", async () => {
     const p = await page(null);
     await p.click(".onglets [data-onglet=strategie]");
-    verifier(!p.erreurs.length && await p.getByText("Ajoutez vos héros").count() >= 1, p.erreurs.join(" | ") || "étape d'amorçage absente");
+    let ok = await p.getByText("Importer l'écran de mon équipe").count() >= 1;
+    for (const sg of ["curios", "boss", "investir"]) { await p.click(`[data-act=seg-strat][data-id=${sg}]`); }
+    verifier(!p.erreurs.length && ok, p.erreurs.join(" | ") || "invitation à choisir l'équipe absente");
     await p.ctx.close();
   });
 
@@ -473,6 +482,35 @@ async function main() {
     await p.click("[data-act=equipe-proposee]");
     const eq = (await p.etat()).equipe;
     verifier(eq.length === 5 && await p.locator("[data-act=equipe-proposee]").count() === 0, JSON.stringify(eq));
+    await p.ctx.close();
+  });
+
+  await cas("STR-09", "Noyau : ordre d'investissement et objectif de palier", async () => {
+    const ids = ["cannon-girl", "spiker", "frosthealer", "poseidon", "archmage"];
+    const p = await page(avec((e) => { possede(e, ids, { promotion: 5 }); e.equipe = ids; }));
+    await p.click(".onglets [data-onglet=strategie]");
+    const t = await p.textContent("main");
+    verifier(/Carry/.test(t) && /Synergie/.test(t) && /Soutien/.test(t) && /tout le noyau en P6/.test(t), t.slice(0, 200));
+    await p.ctx.close();
+  });
+  await cas("STR-10", "Boss : « Jouer cette équipe » remplace l'équipe", async () => {
+    const p = await page(avec((e) => possede(e, ["cannon-girl", "poseidon", "archangel", "frosthealer", "spiker", "lazerman", "bride-wraith"])));
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=boss]");
+    await p.click("[data-act=equipe-type] >> nth=2");
+    const e = await p.etat();
+    const heros = Object.fromEntries(e.catalogue.heros.map((h) => [h.id, h]));
+    verifier(e.equipe.length === 5 && heros[e.equipe[0]].type === "magique", JSON.stringify(e.equipe));
+    await p.ctx.close();
+  });
+  await cas("EQU-01", "Choix d'équipe : tous les héros proposés, recherche", async () => {
+    const p = await page(avec((e) => possede(e, ["spiker"])));
+    await p.click(".onglets [data-onglet=heros]"); await p.click("[data-act=ouvrir][data-f=equipe] >> nth=0");
+    await p.fill("#recherche-equipe", "cannon");
+    const vus = await p.$$eval(".feuille [data-equipe]", (els) => els.map((e) => e.dataset.equipe));
+    await p.check('.feuille [data-equipe="cannon-girl"]');
+    const e = await p.etat();
+    const focus = await p.evaluate(() => document.activeElement?.id);
+    verifier(vus.join() === "cannon-girl" && e.equipe.includes("cannon-girl") && e.roster["cannon-girl"].possede, JSON.stringify({ vus, eq: e.equipe, focus }));
     await p.ctx.close();
   });
 
@@ -575,7 +613,7 @@ async function main() {
     await p.click(".feuille form[data-form=offre] button[type=submit]");
     const o = (await p.etat()).catalogue.offres.find((x) => x.nom === "Carte mensuelle");
     await p.check(`[data-offre="${o.id}"]`);
-    await p.click(".onglets [data-onglet=strategie]");
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=investir]");
     verifier(await p.getByText("Pass actif", { exact: false }).count() >= 1, "conseil absent");
     await p.ctx.close();
   });
@@ -749,7 +787,7 @@ async function main() {
   await cas("BOU-04", "Passes : gains quotidiens et suggestion du Deluxe", async () => {
     const fin = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
     const p = await page(avec((e) => { e.abonnements["value-pass"] = { actif: true, fin }; }));
-    await p.click(".onglets [data-onglet=strategie]");
+    await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=investir]");
     const t = await p.textContent("main");
     verifier(/chaque jour 10 diamants/.test(t) && /Deluxe Pass non souscrit/.test(t) && /Quick Sweeps/.test(t), "conseils de passes absents");
     await p.ctx.close();
@@ -795,6 +833,24 @@ async function main() {
     verifier(await p.locator(".carte-install").count() === 0, "bouton toujours affiché");
     await ctx.close();
   });
+
+  if (fs.existsSync(path.join(dossierReel, "10.png"))) {
+    await cas("REEL-03", "Vraie capture de l'équipe : 5 portraits et niveaux", async () => {
+      const p = await page(null);
+      await p.click(".onglets [data-onglet=heros]"); await p.click("[data-f=import-equipe] >> nth=0");
+      await p.setInputFiles(".feuille input[data-import-equipe]", path.join(dossierReel, "10.png"));
+      await p.waitForSelector(".feuille [data-imp-eq]", { timeout: 120000 });
+      const niv = await p.$$eval('.feuille input[data-imp-eq]', (els) => els.map((e) => e.value));
+      const vignettes = await p.$$eval(".feuille img[alt^=Carte]", (els) => els.filter((i) => i.naturalWidth > 0).length);
+      const ids = ["cannon-girl", "frosthealer", "poseidon", "archmage", "bright-spirit"];
+      for (let i = 0; i < 5; i++) await p.selectOption(`.feuille select[data-imp-eq="${i}"]`, ids[i]);
+      await p.click(".feuille-pied [data-act=import-equipe-appliquer]");
+      const e = await p.etat();
+      verifier(vignettes === 5 && niv.join() === "68,68,68,68,67" && e.equipe.join() === ids.join() && e.roster.poseidon.niveau === 68 && !JSON.stringify(e).includes("data:image"), JSON.stringify({ vignettes, niv, eq: e.equipe }));
+      await p.ctx.close();
+      return "5 portraits, niveaux 68-68-68-68-67, aucune image enregistrée";
+    });
+  }
 
   /* ---------- 4.9 Données ---------- */
   await cas("DON-01", "Rechargement", async () => {

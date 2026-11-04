@@ -189,3 +189,53 @@ export async function lireCaptures(fichiers, progression, catalogue = null) {
   }
   return textes;
 }
+
+/**
+ * Écran d'équipe (« Main ») : les cartes n'ont pas de nom, seulement « Lv.68 ».
+ * Renvoie, de gauche à droite, une vignette de chaque carte (gardée en mémoire
+ * le temps de la saisie, jamais enregistrée) et le niveau lu.
+ */
+export async function lireEquipe(fichier, progression) {
+  const m = await obtenirMoteur(progression);
+  const couleur = await toile(fichier);
+  const W = couleur.width, H = couleur.height;
+  const canvas = preparer(couleur, "clair");
+  const { data } = await m.recognize(canvas);
+  canvas.width = canvas.height = 0;
+  const niv = (t) => { const x = String(t).replace(/(lv)[?'’`]/gi, "$1.").match(/lv\.?\s*(\d{1,3})/i); return x ? Number(x[1]) : null; };
+  // Repère la rangée de l'équipe : les « Lv.68 » lus en haut de l'écran.
+  const ys = (data.lines || []).filter((l) => l.bbox.y0 < H * 0.3 && (niv(l.text) !== null || /\b\d{1,2}[.,]\d{2}\b/.test(l.text))).map((l) => l.bbox.y0).sort((x, y) => x - y);
+  if (!ys.length) { couleur.width = couleur.height = 0; return []; }
+  const y = ys[Math.floor(ys.length / 2)];
+  // Niveaux déjà lus par la lecture d'ensemble, rattachés à leur carte.
+  const lus = (data.lines || []).filter((l) => l.bbox.y0 < H * 0.3).map((l) => ({ cx: (l.bbox.x0 + l.bbox.x1) / 2, v: niv(l.text) })).filter((x) => x.v !== null && x.v >= 10);
+  // 5 cartes de même largeur sur toute la largeur de l'écran (géométrie fixe du jeu).
+  const resultat = [];
+  await m.setParameters({ tessedit_pageseg_mode: "7", tessedit_char_whitelist: "Lv.0123456789 " });
+  for (let k = 0; k < 5; k++) {
+    const cx = W * (0.110 + k * 0.1935);
+    const zoneNiv = [cx - W * 0.075, y - W * 0.012, W * 0.15, W * 0.05];
+    const petit = preparer(couleur, "clair", zoneNiv, 3);
+    const { data: d } = await m.recognize(petit);
+    petit.width = petit.height = 0;
+    const t = (d.text || "").replace(/\s+/g, " ").replace(/(^|\s)[1lI|]v\.?/g, "$1Lv.");
+    const n = t.match(/lv\.?\s*(\d{2,3})/i) || t.match(/(\d{2,3})/);
+    const [sx, sy, sw, sh] = [Math.max(0, cx - W * 0.09), Math.max(0, y - W * 0.17), W * 0.18, W * 0.22];
+    const v = document.createElement("canvas");
+    v.width = 120; v.height = Math.round(120 * sh / sw);
+    v.getContext("2d").drawImage(couleur, sx, sy, sw, sh, 0, 0, v.width, v.height);
+    const deja = lus.find((x) => Math.abs(x.cx - cx) < W * 0.09);
+    resultat.push({ vignette: v.toDataURL("image/jpeg", 0.8), niveau: deja ? deja.v : n ? Number(n[1]) : null });
+    v.width = v.height = 0;
+  }
+  await m.setParameters({ tessedit_pageseg_mode: "11", tessedit_char_whitelist: "" });
+  // Niveau manquant : celui des autres cartes (une équipe est montée au même niveau), signalé « à vérifier ».
+  const connus = resultat.map((r) => r.niveau).filter(Boolean).sort((a, b) => a - b);
+  const median = connus.length ? connus[Math.floor(connus.length / 2)] : null;
+  for (const r of resultat) {
+    if (r.niveau && median && (r.niveau > median * 1.5 || r.niveau < median / 1.5)) r.niveau = null; // « Lv267 » pour 67
+    if (!r.niveau && median) { r.niveau = median; r.devine = true; }
+  }
+  couleur.width = couleur.height = 0;
+  return resultat;
+}

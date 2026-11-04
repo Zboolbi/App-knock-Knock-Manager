@@ -19,22 +19,22 @@
 | Onglet | Contenu |
 |---|---|
 | Accueil | Logo, carte joueur (niveau, guilde, VIP, étape, Porte/Lit, puissance, Curio Vault, Gear, palier), **Importer**, ressources, équipe, « À faire maintenant », routine du jour. Réglages (roue dentée). |
-| Héros | Segments **Équipe · Collection · Curios · Pièges · Bêtes · Skins**. Fiche héros : obtenu, niveau, promotion, étoiles, 4 curios, skin. |
-| Stratégie | Étapes priorisées, analyse d'équipe, **curios par set** (« Tout appliquer »), promotions, pièges & bêtes, ressources, skins, options payantes, modes, astuces. |
+| Héros | Segments **Équipe · Collection · Curios · Pièges · Bêtes · Skins**. Équipe : choix parmi **tous les héros** (recherche), **import de la capture d'équipe** (5 portraits + niveaux lus, héros à choisir). Fiche héros : obtenu, niveau, promotion, étoiles, 4 curios, skin. |
+| Stratégie | Coaching long terme en 4 segments : **Noyau** (postes Carry/Synergie/Soutien… dans l'ordre d'investissement, palier P6 commun, principes), **Curios** (un set par héros sans conflit, pièces manquantes, « Équiper ces sets »), **Boss** (6 types de boss → équipe à jouer, « Jouer cette équipe »), **Investir** (diamants → tirage ×10, jalons, ressources, skins, offres). Le plan « À faire maintenant » reste sur l'accueil. |
 | Boss | Faiblesses/résistances/traits, équipe conseillée argumentée, héros par faiblesse, curios du combat. |
 | Boutique | Options payantes souscrites (dates de fin), codes cadeaux. |
 
 ## 4. Fichiers
 | Fichier | Rôle |
 |---|---|
-| `js/data.js` | Catalogue : 40 héros, 40 curios + 10 sets, 8 pièges, 8 bêtes, offres, modes, ressources, codes, astuces |
-| `js/engine.js` | Règles (fonctions pures) : scores boss, équipe, répartition des curios par set, plan, conseils |
+| `js/data.js` | Catalogue : 41 héros (dont Cannon Girl), 40 curios + 10 sets, 8 pièges, 8 bêtes, offres, modes, ressources, codes, astuces |
+| `js/engine.js` | Règles (fonctions pures) : scores boss, équipe, curios par set, plan, conseils, coaching (`coachNoyau`, `coachCurios`, `coachBoss`, `coachDiamants`, `coachJalons`) |
 | `js/store.js` | Stockage, migration v1→v2, anciennes raretés → R/SSR/UR/CR, mise à jour des fiches non modifiées |
 | `js/capture.js` | Analyse du texte des captures (héros, curios, pièges, bêtes, profil, ressources, écrans à chiffres sans libellé) |
 | `js/ocr.js` | Tesseract.js embarqué (`vendor/`, eng+fra), **2 passes** (textes clairs / textes colorés), image jamais conservée |
 | `js/app.js` | Interface (vues, feuilles, import, événements) |
-| `tests/*.mjs` | 35 tests unitaires (`npm test`) |
-| `qa/campagne.cjs` | 87 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
+| `tests/*.mjs` | 38 tests unitaires (`npm test`) |
+| `qa/campagne.cjs` | 91 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
 | `docs/qa/` | Cahier des tests, résultats, anomalies, diagnostic |
 | `outils/build.py` | Page unique + archive PWA (`dist/`) |
 
@@ -75,6 +75,7 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 | 04/11 | V1 : PWA 6 onglets (plan, héros, boss, artefacts, ressources, données). |
 | 04/11 | V2 : refonte façon Instagram, import OCR (eng+fra), publication GitHub Pages. |
 | 04/11 | V3 : refonte Apple noir/blanc/or, import complet du profil, campagne QA 71 cas (10 anomalies corrigées). |
+| 04/11 | V8 : Stratégie refondue en coaching long terme (Noyau, Curios, Boss, Investir ; « Prochaines étapes » retirée), import de la capture d'équipe, choix d'équipe parmi tous les héros (Archmage, Cannon Girl, Poseidon, Frosthealer…), Cannon Girl ajoutée, QA 91/91. |
 | 04/11 | V7.1 : icône d'app « K » (iPhone, Android, favicon). |
 | 04/11 | V7 : étoiles des curios et niveaux des pièges/bêtes lus sur l'image, bouton « Enregistrer » fixe dans les résultats, coches non barrées, clavier iOS géré, barre d'onglets fixe, carte joueur lisible (Train/Gear), Porte/Lit inconnus détectés, logo du jeu + fond citrouille, QA 87/87. |
 | 04/11 | V6.1 : correction de l'adresse (404) : le chemin GitHub Pages respecte la casse du dépôt → `/App-knock-Knock-Manager/` ; l'app utilise désormais son adresse réelle. |

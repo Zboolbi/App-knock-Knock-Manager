@@ -72,6 +72,9 @@ export const HEROS_DEPART = [
     competences: "Ultime : 3 coups de zone, chance de repousser les ennemis.", aura: "Déployé : +10 % de défense physique aux alliés.", source: `${TREY}, ${CAP}` }),
   h({ id: "thundermaster", nom: "Thundermaster", rarete: "CR", type: "magique", effet: "paralysie", role: "zone", tier: "B",
     note: "Nom évoquant la foudre : effet Paralysie supposé.", source: CAP }),
+  h({ id: "cannon-girl", nom: "Cannon Girl", rarete: "CR", type: "physique", effet: "aucun", role: "zone", tier: "A",
+    competences: "Ultime : charge 5 s puis tire un coup massif (400 % de l'ATK) sur tous les ennemis de sa trajectoire.", aura: "Déployée : +10 % de vitesse d'attaque aux héros alliés.",
+    note: "Excellente contre les vagues regroupées ; la longue charge est son point faible.", source: `${PGG}, ${TREY}` }),
   h({ id: "mad-alice", nom: "Mad Alice", rarete: "CR", type: "physique", effet: "aucun", role: "mono", tier: "B", source: CAP }),
   h({ id: "puncher", nom: "Puncher", rarete: "CR", type: "magique", effet: "aucun", role: "mono", tier: "B",
     note: "Cité dans une équipe anti-boss avec Archangel, Spiker, Laserman et Metaman.", source: `${PGG}, ${CAP}` }),
@@ -114,6 +117,8 @@ export const HEROS_DEPART = [
 export const EQUIPES_REFERENCE = [
   { nom: "Progression", but: "Résultats fiables partout", heros: ["metaman", "archangel", "hades", "spiker", "oni-samurai"], source: PGG },
   { nom: "Anti-boss", but: "Mélange de types contre les boss ; Frosthealer à la place de Puncher si la Porte tombe", heros: ["archangel", "spiker", "lazerman", "metaman", "puncher"], source: PGG },
+  { nom: "Équilibrée", but: "Carry mono-cible, zone, double soin : solide partout", heros: ["power-ogre", "poison-knight", "poseidon", "frosthealer", "bright-spirit"], source: PGG },
+  { nom: "Vagues", but: "Cannon Girl et Poseidon nettoient, Frosthealer tient la Porte", heros: ["cannon-girl", "poseidon", "metaman", "archangel", "frosthealer"], source: `${PGG}, ${TREY}` },
   { nom: "Brûlure", but: "Pyrogon Mech et Redhood amplifient, Bride Wraith presse les groupes", heros: ["archangel", "lazerman", "pyro-mech", "bride-wraith", "redhood"], source: PGG },
   { nom: "Saignement", but: "Dégâts soutenus contre les ennemis résistants", heros: ["hades", "archangel", "scarecrow", "blue-giant", "ghost-captain"], source: PGG },
   { nom: "Gel", but: "Contrôle et survie", heros: ["frosthealer", "archangel", "hades", "archmage", "pinocchio"], source: PGG },
@@ -322,4 +327,21 @@ export const ASTUCES_JEU = [
   { texte: "Room Research (depuis votre personnage sur l'écran principal) donne des bonus permanents et relève les plafonds du Lit et de la Porte.", source: PGG },
   { texte: "Un tirage de 10 coûte 2 200 diamants : évitez les invocations standard au coup par coup.", source: PGG },
   { texte: "Visez l'étape 20 de la campagne avant de farmer le meilleur équipement.", source: PGG },
+];
+
+// Ordre d'investissement dans le noyau de 5 (guides) : à qui donner les ressources d'abord.
+export const ORDRE_INVESTISSEMENT = [
+  { poste: "Carry", roles: ["mono", "polyvalent", "zone"], pourquoi: "Il fait l'essentiel des dégâts : chaque niveau et chaque promotion se voient sur l'étape franchie." },
+  { poste: "Synergie", roles: ["amplificateur"], pourquoi: "Il multiplie les dégâts du carry (amplification, effet partagé avec le set de curios)." },
+  { poste: "Soutien", roles: ["soin", "controle"], pourquoi: "Il garde la Porte en vie : sans lui, le carry n'a pas le temps de finir le boss." },
+  { poste: "Dégâts secondaires", roles: ["zone", "mono", "polyvalent"], pourquoi: "Il couvre ce que le carry fait mal (vagues ou boss)." },
+  { poste: "Poste libre", roles: [], pourquoi: "À changer selon le boss : c'est le héros qu'on n'investit qu'au minimum." },
+];
+
+export const PRINCIPES = [
+  { titre: "Un noyau de 5, pas plus", texte: "Le jeu a un système de Résonance : 5 héros bien montés valent mieux que 15 moyens. Tout l'EXP, l'or et les matériaux de promotion vont au noyau." },
+  { titre: "Les diamants se gardent", texte: "Un tirage de 10 coûte 2 200 diamants. Ne dépensez rien en tirages simples ni en rafraîchissements : attendez une bannière qui contient le héros CR qui manque à votre noyau." },
+  { titre: "La Stamina, c'est de l'EXP de compte", texte: "Où qu'elle soit dépensée, elle fait monter le compte : ne la laissez jamais plafonner, et utilisez le Sweep sur l'étape la plus haute déjà battue." },
+  { titre: "La campagne d'abord", texte: "Avancer dans les Main Stages débloque modes, places de bête (220) et meilleures récompenses : c'est le moteur de tout le reste." },
+  { titre: "Les promotions clés", texte: "P3 (énergie), P6 et P9 (amélioration propre au héros), P12 (vitesse d'attaque), P15 (dégâts finaux) : visez un palier pour tout le noyau avant d'aller plus loin sur un seul héros." },
 ];

@@ -99,10 +99,15 @@ Légende priorité : P1 bloquant, P2 majeur, P3 mineur.
 | STR-01 | Lit = Porte | Première étape : monter la Porte | P2 |
 | STR-02 | Porte − Lit ≥ 2 | Première étape : rattraper le Lit | P2 |
 | STR-03 | Héros d'équipe en P0–P5 | Étape « promotion → 6 » (et palier P3 indiqué) | P2 |
+| STR-04 (v2) | Curios de l'équipe | Un set par héros, pièces manquantes signalées, « Équiper ces sets », pastille mise à jour | P1 |
 | STR-04 | Artefact P.ATK sur un héros magique | Proposé sur un héros physique, compteur sur l'onglet Stratégie, « Tout appliquer » le déplace | P1 |
 | STR-05 | Équipe sans soigneur | Alerte « Pas de soigneur » | P2 |
 | STR-06 | Abonnement actif finissant dans 2 jours | Alerte d'expiration + conseils auto / x2 | P3 |
 | STR-07 | Aucune donnée | Aucun plantage, étapes d'amorçage | P1 |
+| STR-09 | Noyau de 5 | Postes (carry, synergie, soutien…), ordre d'investissement, palier commun à viser | P2 |
+| STR-10 | Boss par type | « Jouer cette équipe » applique l'équipe adaptée (magique contre un boss résistant au physique) | P2 |
+| EQU-01 | Choix d'équipe | Tous les héros proposés (obtenus d'abord), recherche, un héros ajouté est marqué obtenu | P1 |
+| REEL-03 | Vraie capture de l'équipe (local) | 5 portraits découpés, niveaux lus, aucune image enregistrée | P2 |
 | STR-08 | Équipe proposée sans équipe choisie | Bouton « Utiliser » qui l'enregistre en un geste | P3 |
 
 ### 4.6 Boss

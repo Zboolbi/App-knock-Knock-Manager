@@ -428,3 +428,107 @@ export function conseilsOffres(etat, aujourdhui = new Date()) {
   else if (!av.has("auto")) c.push({ niveau: "info", texte: "Sans combat auto, gardez les combats manuels pour les boss et faites les étapes faciles en série." });
   return c;
 }
+
+/* ---------- Coaching long terme ---------- */
+
+const triPuissance = (etat) => (a, b) => puissance(b, etat) - puissance(a, etat);
+
+/** Postes du noyau de 5 (carry, synergie, soutien, dégâts secondaires, libre) et manques. */
+export function coachNoyau(etat) {
+  const equipe = equipeActuelle(etat);
+  const restants = [...equipe];
+  const prendre = (pred) => { const c = restants.filter(pred).sort(triPuissance(etat))[0]; if (c) restants.splice(restants.indexOf(c), 1); return c || null; };
+  const carry = prendre((h) => ["mono", "polyvalent", "zone"].includes(h.role)) || prendre(() => true);
+  const synergie = prendre((h) => h.role === "amplificateur" || (carry && h.effet !== "aucun" && h.effet === carry.effet));
+  const soutien = prendre((h) => ["soin", "controle"].includes(h.role));
+  const second = prendre((h) => ["zone", "mono", "polyvalent"].includes(h.role));
+  const postes = [["Carry", carry], ["Synergie", synergie], ["Soutien", soutien], ["Dégâts secondaires", second], ...restants.map((h) => ["Poste libre", h])]
+    .filter(([, h]) => h).map(([poste, h], i) => {
+      const p = progression(etat, h.id);
+      return { ordre: i + 1, poste, hero: h, niveau: p.niveau, promotion: p.promotion, palier: prochainPalier(p.promotion) };
+    });
+  // Remplaçants possibles pour les postes vides, parmi les héros possédés hors équipe.
+  const horsEquipe = herosDe(etat).filter((h) => progression(etat, h.id).possede && !equipe.includes(h)).sort(triPuissance(etat));
+  const manques = [];
+  if (equipe.length && !soutien) manques.push({ poste: "Soutien", texte: "Personne ne soigne la Porte.", candidats: horsEquipe.filter((h) => h.role === "soin" || h.role === "controle").slice(0, 3) });
+  if (equipe.length && !synergie) manques.push({ poste: "Synergie", texte: "Aucun héros ne multiplie les dégâts du carry.", candidats: horsEquipe.filter((h) => h.role === "amplificateur" || (carry && h.effet === carry.effet && h.effet !== "aucun")).slice(0, 3) });
+  if (equipe.length && !equipe.some((h) => h.role === "zone" || h.role === "polyvalent")) manques.push({ poste: "Zone", texte: "Rien pour nettoyer les vagues.", candidats: horsEquipe.filter((h) => h.role === "zone").slice(0, 3) });
+  // Palier de promotion commun à viser pour tout le noyau.
+  const promos = postes.map((x) => x.promotion);
+  const cible = promos.length ? PALIERS_PROMOTION.find((pl) => promos.some((v) => v < pl.niveau)) : null;
+  return { postes, manques, cible, enRetard: cible ? postes.filter((x) => x.promotion < cible.niveau) : [] };
+}
+
+/** Un set de curios par héros de l'équipe, sans conflit (chaque curio n'existe qu'une fois). */
+export function coachCurios(etat) {
+  const equipe = coachNoyau(etat).postes.map((x) => x.hero);
+  const possedes = new Map(artefactsResolus(etat).map((a) => [a.ref, a]));
+  const curios = (catalogue(etat).artefacts || []).filter((a) => a.set);
+  const qualite = (c) => { const a = possedes.get(c.id); return a ? (RARETES.indexOf(c.rarete) + 1) * (1 + (a.etoiles || 0) / 5) : 0; };
+  const pris = new Set();
+  return equipe.map((h) => {
+    let meilleur = null;
+    for (const id of Object.keys(SETS_CURIO)) {
+      if (pris.has(id)) continue;
+      const pieces = curios.filter((c) => c.set === id);
+      const score = adequationSet(id, h) * (1 + pieces.reduce((s, c) => s + qualite(c), 0) / 4);
+      if (!meilleur || score > meilleur.score) meilleur = { id, score };
+    }
+    if (!meilleur) return { hero: h, set: null };
+    pris.add(meilleur.id);
+    const set = SETS_CURIO[meilleur.id];
+    const pieces = curios.filter((c) => c.set === meilleur.id).sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete))
+      .map((c) => ({ nom: c.nom, rarete: c.rarete, possede: possedes.has(c.id), etoiles: possedes.get(c.id)?.etoiles || 0 }));
+    const raison = set.affinite.effet ? (h.effet === set.affinite.effet ? `${h.nom} applique ${EFFETS[h.effet]} : le set en profite à chaque fois.` : "Meilleur set disponible pour ce héros.")
+      : set.affinite.roles.includes(h.role) ? `Adapté à un héros ${ROLES[h.role].toLowerCase()}.` : "Meilleur set encore libre pour ce héros.";
+    return { hero: h, set: meilleur.id, nomSet: set.nom, effet: set.effet, raison, pieces, complet: pieces.every((p) => p.possede) };
+  });
+}
+
+/** Les héros possédés à jouer contre chaque grand type de boss. */
+export const TYPES_BOSS = [
+  { nom: "Vagues de sbires", ennemi: { faiblesses: [], resistances: [], traits: ["sbires", "rapide"] }, cle: "Zone et contrôle avant tout." },
+  { nom: "Boss à gros PV", ennemi: { faiblesses: [], resistances: [], traits: ["pvEleves"] }, cle: "Un amplificateur et un carry mono-cible ; ultimes gardés pour le boss." },
+  { nom: "Boss qui résiste au physique", ennemi: { faiblesses: ["magique"], resistances: ["physique"], traits: ["pvEleves"] }, cle: "Équipe magique, curios adaptés aux magiques." },
+  { nom: "Boss qui résiste au magique", ennemi: { faiblesses: ["physique"], resistances: ["magique"], traits: ["pvEleves"] }, cle: "Équipe physique." },
+  { nom: "Boss qui se régénère", ennemi: { faiblesses: [], resistances: [], traits: ["regen", "pvEleves"] }, cle: "Dégâts sur la durée (Brûlure, Saignement, Poison) en continu." },
+  { nom: "Boss qui frappe fort", ennemi: { faiblesses: [], resistances: [], traits: ["frappeFort"] }, cle: "Soin et Gel pour tenir ; montez la Porte avant." },
+];
+export function coachBoss(etat) {
+  const possedes = herosDe(etat).filter((h) => progression(etat, h.id).possede);
+  const liste = possedes.length ? possedes : herosDe(etat);
+  const equipe = new Set(etat?.equipe || []);
+  return TYPES_BOSS.map((t) => {
+    const choix = composerEquipe(liste, t.ennemi, etat, { taille: 5 }).map((e) => e.hero);
+    return { ...t, heros: choix, changements: choix.filter((h) => !equipe.has(h.id)) };
+  });
+}
+
+/** Plan diamants : revenu des passes, prochain tirage de 10, cible conseillée. */
+export function coachDiamants(etat, aujourdhui = new Date()) {
+  const stock = Number(etat?.stock?.diamants) || 0;
+  const actives = offresActives(etat, aujourdhui);
+  const parJour = actives.reduce((s, o) => s + (o.journalier?.diamants || 0), 0);
+  const tirages = Math.floor(stock / 2200);
+  const manque = tirages ? 0 : 2200 - stock;
+  const jours = manque && parJour ? Math.ceil(manque / parJour) : null;
+  const noyau = coachNoyau(etat);
+  const posteVise = noyau.manques[0]?.poste || null;
+  return { stock, parJour, tirages, manque, jours, posteVise };
+}
+
+/** Jalons à long terme du compte, du plus proche au plus lointain. */
+export function coachJalons(etat) {
+  const j = etat?.joueur || {};
+  const jal = [];
+  const coffre = Number(j.coffreCurios) || 0;
+  if (coffre && coffre < 400) jal.push({ titre: `Curio Vault ${coffre} → 400`, reste: `${400 - coffre} niveau(x)`, gain: "DMG Boost +12 % et DMG Immunity +12 % pour toute l'équipe", proche: 400 - coffre <= 20 });
+  const etape = parseInt(String(j.etape || "").split("-")[0], 10);
+  if (etape && etape < 220) jal.push({ titre: `Main Stage ${etape} → 220`, reste: `${220 - etape} étapes`, gain: "3e place de bête déployée", proche: 220 - etape <= 30 });
+  const n = coachNoyau(etat);
+  if (n.cible && n.enRetard.length) jal.push({ titre: `Tout le noyau en P${n.cible.niveau}`, reste: n.enRetard.map((x) => `${x.hero.nom} P${x.promotion}`).join(", "), gain: n.cible.bonus, proche: n.enRetard.length <= 2 });
+  const pieges = catalogue(etat).pieges || [];
+  const verr = pieges.filter((p) => p.fragments && !etat?.pieges?.[p.id]?.possede);
+  if (verr.length) jal.push({ titre: `Débloquer ${verr[0].nom}`, reste: `${verr[0].fragments} fragments`, gain: "Un piège de plus à déployer", proche: false });
+  return jal.sort((a, b) => b.proche - a.proche);
+}

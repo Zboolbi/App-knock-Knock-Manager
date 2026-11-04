@@ -1,15 +1,17 @@
 import {
   TYPES, EFFETS, ROLES, RARETES, TIERS, TRAITS, STATS_ARTEFACT, EQUIPES_REFERENCE, CONSEILS_SOURCES,
   PALIERS_PROMOTION, AVANTAGES, RESSOURCES, MODES, CODES_CADEAUX, ASTUCES_JEU, NOMS_RARETES, SETS_CURIO, CURIO_VAULT, PLACES_BETES,
+  ORDRE_INVESTISSEMENT, PRINCIPES,
 } from "./data.js";
 import {
   progression, herosDe, artefactsResolus, porteurs, skinEquipe, composerEquipe, classerContre, conseilsCombat,
   configurationArtefacts, statsIdeales, analyseEquipe, equipeActuelle, planProgression, prochainPalier,
   conseilsSkins, offresActives, conseilsOffres, TAILLE_EQUIPE, setsIdeaux,
+  coachNoyau, coachCurios, coachBoss, coachDiamants, coachJalons, herosPrincipaux,
 } from "./engine.js";
 import { charger, sauver, etatInitial, fusionner, nouvelId } from "./store.js";
 import { analyserTexte, ordonnerParCartes, lireProfil, lireEcrans } from "./capture.js";
-import { lireCaptures } from "./ocr.js";
+import { lireCaptures, lireEquipe } from "./ocr.js";
 
 let etat = charger();
 const ui = { onglet: "accueil", segHeros: "equipe", filtre: "", possedes: false, mesHeros: true, rechercheBoss: "", feuille: null, pile: [] };
@@ -278,7 +280,7 @@ function segEquipe() {
   return `${section("", Array.from({ length: TAILLE_EQUIPE }, (_, i) => equipe[i]).map((h, i) => h
     ? `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${h.id}">${avatar(h)}<span class="corps"><b>${esc(h.nom)}</b><small>${esc(resumeHero(h.id))} · ${esc(ROLES[h.role])}</small></span><span class="puce or tier">${esc(h.tier)}</span>${chevron()}</button>`
     : `<button class="ligne" data-act="ouvrir" data-f="equipe">${avatar(null)}<span class="corps"><b style="color:var(--or-vif)">Ajouter un héros</b><small>Place ${i + 1}</small></span></button>`).join(""))}
-  <div style="margin-top:10px"><button class="btn plein" data-act="ouvrir" data-f="equipe">Modifier l'équipe</button></div>
+  <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn plein" data-act="ouvrir" data-f="equipe">Modifier l'équipe</button><button class="btn or plein" data-act="ouvrir" data-f="import-equipe">${ic("photo", 20)} Importer</button></div>
   ${equipe.length ? section("Analyse", notes(ana.notes)) : ""}
   ${section("Équipes de référence", EQUIPES_REFERENCE.map((eq) => {
     const ok = eq.heros.filter((id) => progression(etat, id).possede).length;
@@ -357,39 +359,79 @@ function segSkins() {
 /* ---------- Stratégie ---------- */
 
 function vueStrategie() {
-  const ana = analyseEquipe(etat);
-  const equipe = ana.equipe;
-  const conf = equipe.length ? configurationArtefacts(etat, equipe) : null;
-  const skins = conseilsSkins(etat);
-  const nomsArts = (l) => (l.length ? l.map((a) => esc(a.nom)).join(", ") : "Rien");
+  const segs = [["noyau", "Noyau"], ["curios", "Curios"], ["boss", "Boss"], ["investir", "Investir"]];
+  const seg = ui.segStrat || "noyau";
+  const vue = { noyau: stratNoyau, curios: stratCurios, boss: stratBoss, investir: stratInvestir }[seg];
   return `<h1 class="grand-titre">Stratégie</h1>
-  <p class="sous-titre">Recalculée à chaque modification de votre profil.</p>
-  ${section("Prochaines étapes", etapes(planProgression(etat)))}
+  <p class="sous-titre">Votre plan à long terme, recalculé à chaque mise à jour du profil.</p>
+  <div class="segments" role="tablist">${segs.map(([k, l]) => `<button role="tab" aria-selected="${seg === k}" data-act="seg-strat" data-id="${k}">${l}</button>`).join("")}</div>
+  ${vue()}`;
+}
 
-  ${section("Équipe", equipe.length ? notes(ana.notes) : `<button class="ligne" data-act="onglet" data-id="heros"><span class="corps"><b>Composez votre équipe</b><small>Héros › Équipe</small></span>${chevron()}</button>`)}
+function sansEquipe() {
+  const prop = herosPrincipaux(herosDe(etat), etat);
+  return section("Votre équipe", `<div class="note or">Le coaching part de vos 5 héros joués. Importez l'écran de votre équipe ou choisissez-les.</div>
+    <div style="display:grid;gap:8px;padding:10px 14px"><button class="btn or plein" data-act="ouvrir" data-f="import-equipe">${ic("photo", 20)} Importer l'écran de mon équipe</button>
+    <button class="btn plein" data-act="ouvrir" data-f="equipe">Choisir mes 5 héros</button>
+    ${prop.length ? `<button class="btn plein" data-act="equipe-proposee" data-id="${esc(prop.map((h) => h.id).join(","))}">Utiliser l'équipe proposée : ${esc(prop.map((h) => h.nom).join(", "))}</button>` : ""}</div>`);
+}
 
-  ${conf ? section("Curios", `${conf.lignes.map((l) => `<div class="ligne" style="align-items:flex-start">${avatar(l.hero, { taille: 36 })}<span class="corps">
-      <b>${esc(l.hero.nom)}</b>${l.identique ? `<small>Configuration optimale</small>` : `<div class="fleche"><span>${nomsArts(l.actuels)}</span><span>→</span><b>${nomsArts(l.optimaux)}</b></div>`}
-      <small class="multi">À viser : ${l.ideales.map((s) => esc(s.libelle)).join(" › ")}</small></span>
-      ${l.identique ? `<span class="puce bon">OK</span>` : `<button class="btn" style="min-height:34px;padding:6px 12px;font-size:15px" data-act="appliquer" data-id="${l.hero.id}">Appliquer</button>`}</div>`).join("")}
-    ${conf.aChanger ? `<div style="padding:10px 14px"><button class="btn or plein" data-act="appliquer-tout">Tout appliquer</button></div>` : ""}`,
-    { pied: !etat.inventaire.length ? "Indiquez vos curios (Héros › Curios ou import du Curio Codex) pour une répartition automatique par set." : conf.inutilises.length ? `Sans bon porteur : ${esc(conf.inutilises.map((a) => a.nom).join(", "))}.` : "Après « Appliquer », reproduisez la configuration dans le jeu." }) : ""}
+function stratNoyau() {
+  const n = coachNoyau(etat);
+  if (!n.postes.length) return sansEquipe();
+  const pourquoi = Object.fromEntries(ORDRE_INVESTISSEMENT.map((o) => [o.poste, o.pourquoi]));
+  return `${section("Ordre d'investissement", n.postes.map((x) => `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${x.hero.id}" style="align-items:flex-start">
+      <span class="etape-num">${x.ordre}</span>${avatar(x.hero, { taille: 38 })}
+      <span class="corps"><b>${esc(x.hero.nom)} <span class="puce or" style="margin-left:4px">${esc(x.poste)}</span></b>
+      <small>${etat.roster[x.hero.id]?.niveauInconnu ? "Niv. à saisir" : `Niv. ${x.niveau}`} · P${x.promotion}${x.palier ? ` → P${x.palier.niveau} : ${esc(x.palier.bonus)}` : " · palier maximal"}</small>
+      <small class="multi">${esc(pourquoi[x.poste] || "")}</small></span></button>`).join(""),
+    { pied: "Le jeu récompense un noyau de 5 (Résonance) : donnez l'EXP, l'or et les matériaux de promotion dans cet ordre, à personne d'autre." })}
+  ${n.cible ? section(`Objectif commun : tout le noyau en P${n.cible.niveau}`, `<div class="note or">Bonus du palier : ${esc(n.cible.bonus)}.</div>
+      ${n.enRetard.map((x) => `<div class="ligne"><span class="corps"><b>${esc(x.hero.nom)}</b><small>P${x.promotion} / ${n.cible.niveau}</small><div class="barre-prog"><i style="width:${Math.round((x.promotion / n.cible.niveau) * 100)}%"></i></div></span></div>`).join("")}`,
+    { pied: "Amenez tout le monde au même palier avant de pousser un seul héros plus loin : un maillon faible fait tomber la Porte." }) : ""}
+  ${n.manques.length ? section("Ce qui manque à l'équipe", n.manques.map((m) => `<div class="note alerte">${esc(m.poste)} : ${esc(m.texte)}${m.candidats.length ? ` Parmi vos héros : ${esc(m.candidats.map((h) => h.nom).join(", "))}.` : " Aucun de vos héros ne convient : c'est la cible de vos prochains tirages."}</div>`).join("")) : ""}
+  ${section("Pièges et bêtes", conseilsCompagnons().map((c) => `<div class="note ${c.niveau}">${esc(c.texte)}</div>`).join(""))}`;
+}
 
-  ${equipe.length ? section("Promotions", equipe.map((h) => {
-    const p = progression(etat, h.id), pal = prochainPalier(p.promotion);
-    const pct = pal ? Math.min(100, Math.round((p.promotion / pal.niveau) * 100)) : 100;
-    return `<div class="ligne"><span class="corps"><b>${esc(h.nom)}</b><small>P${p.promotion}${pal ? ` → P${pal.niveau} : ${esc(pal.bonus)}` : " · palier maximal"}</small><div class="barre-prog"><i style="width:${pct}%"></i></div></span></div>`;
-  }).join("")) : ""}
+function stratCurios() {
+  const plan = coachCurios(etat);
+  if (!plan.length) return sansEquipe();
+  if (!etat.inventaire.length) return section("Curios", `<div class="note or">Indiquez vos curios pour savoir lesquels associer à chaque héros : importez les 4 onglets du Curio Codex (R, SSR, UR, CR).</div>
+    <div style="padding:10px 14px"><button class="btn or plein" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer le Curio Codex</button></div>`);
+  return `${plan.filter((x) => x.set).map((x) => section("", `<div class="ligne" style="align-items:flex-start">${avatar(x.hero, { taille: 40 })}
+      <span class="corps"><b>${esc(x.hero.nom)}</b><small style="color:var(--or-vif);font-weight:600">Set ${esc(x.nomSet)}${x.complet ? " · complet" : ""}</small><small class="multi">${esc(x.effet)}</small><small class="multi">${esc(x.raison)}</small></span></div>
+    ${x.pieces.map((pc) => `<div class="ligne" style="min-height:40px;padding-top:6px;padding-bottom:6px">${pastilleRarete(pc.rarete)}<span class="corps"><b style="font-size:15px;${pc.possede ? "" : "color:var(--texte-3)"}">${esc(pc.nom)}</b></span>
+      ${pc.possede ? etoilesTexte(pc.etoiles) || `<small class="discret">0★</small>` : `<span class="puce mauvais">Manquant</span>`}</div>`).join("")}`)).join("")}
+  <div style="margin-top:12px"><button class="btn or plein" data-act="appliquer-sets">Équiper ces sets dans l'app</button></div>
+  <p class="pied">Un set par héros, sans conflit : chaque curio n'existe qu'une fois. Les étoiles comptent : montez d'abord les pièces CR et UR du carry. Reproduisez ensuite l'équipement dans le jeu.</p>`;
+}
 
-  ${section("Pièges et bêtes", conseilsCompagnons().map((c) => `<div class="note ${c.niveau}">${esc(c.texte)}</div>`).join(""))}
+function stratBoss() {
+  const types = coachBoss(etat);
+  const perso = cat().boss.filter((b) => !b.modele);
+  return `${types.map((t) => section(t.nom, `<div class="ligne" style="align-items:flex-start"><span class="corps"><small class="multi">${esc(t.cle)}</small>
+      <div style="display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap">${t.heros.map((h) => `<span style="display:grid;justify-items:center;gap:3px;width:56px">${avatar(h, { taille: 40 })}<small style="font-size:11px;text-align:center;white-space:normal;line-height:1.15">${esc(h.nom)}</small></span>`).join("")}</div>
+      ${t.changements.length && etat.equipe.length ? `<small class="multi">Par rapport à votre équipe : faites entrer ${esc(t.changements.map((h) => h.nom).join(", "))}.</small>` : etat.equipe.length ? `<small>Votre équipe actuelle convient.</small>` : ""}</span></div>
+    <div style="padding:0 14px 12px"><button class="btn plein" data-act="equipe-type" data-id="${esc(t.heros.map((h) => h.id).join(","))}">Jouer cette équipe</button></div>`)).join("")}
+  ${section("Vos boss", perso.length ? perso.map((b) => ligneNav("boss", b.nom, b.chapitre ? `Chapitre ${b.chapitre}` : "", { id: b.id })).join("") : `<div class="note">Ajoutez un boss précis (onglet Boss) pour une équipe sur mesure selon ses faiblesses.</div>`)}`;
+}
 
-  ${section("Ressources", RESSOURCES.map((r) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone">${ic(ICONE_RESSOURCE[r.id])}</span><span class="corps"><b>${esc(r.nom)} <span style="color:var(--texte-2);font-weight:400">${etat.stock[r.id] != null ? esc(fmt(etat.stock[r.id])) : ""}</span></b><small class="multi">${esc(r.conseil)}</small></span></div>`).join(""))}
-
-  ${skins.length ? section("Skins", skins.map((s) => `<div class="ligne"><span class="corps"><b style="white-space:normal">${esc(s.texte)}</b></span><button class="lien" data-act="mettre-skin" data-id="${s.hero.id}" data-skin="${s.skin.id}">Équiper</button></div>`).join("")) : ""}
-
-  ${section("Options payantes", notes(conseilsOffres(etat)))}
-  ${section("Modes de jeu", MODES.map((m) => `<div class="ligne"><span class="corps"><b>${esc(m.nom)}</b><small class="multi">${esc(m.note)}</small></span></div>`).join(""))}
-  ${section("Astuces", [...ASTUCES_JEU, ...CONSEILS_SOURCES].map((c) => `<div class="note or">${esc(c.texte)}</div>`).join(""), { pied: "Sources : guides communautaires ProGameGeek et TreyExGaming (2026)." })}`;
+function stratInvestir() {
+  const d = coachDiamants(etat);
+  const jalons = coachJalons(etat);
+  const skins = conseilsSkins(etat);
+  return `${section("Diamants", `<div class="ligne"><span class="pastille-icone or">${ic("gemme", 18)}</span><span class="corps"><b>${fmt(d.stock)} diamants</b>
+      <small class="multi">${d.tirages ? `De quoi faire ${d.tirages} tirage(s) de 10 (2 200 chacun).` : `Encore ${fmt(d.manque)} pour un tirage de 10${d.jours ? `, soit environ ${d.jours} jour(s) avec vos passes (${d.parJour}/jour)` : ""}.`}</small></span></div>
+    <div class="note or">${d.posteVise ? `Cible de vos prochains tirages : un héros CR pour le poste « ${esc(d.posteVise)} » qui manque à votre noyau.` : "Votre noyau est complet : ne tirez que sur une bannière qui améliore un poste (un CR plus fort que votre carry ou votre soutien)."}</div>
+    <div class="note">Jamais de tirage simple ni de rafraîchissement de boutique en diamants : tout pour les tirages de 10 sur bannière à taux augmenté.</div>`)}
+  ${jalons.length ? section("Jalons du compte", jalons.map((x) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone${x.proche ? " or" : ""}">${ic("etoile", 18)}</span><span class="corps"><b>${esc(x.titre)}</b><small class="multi">Reste : ${esc(x.reste)}</small><small class="multi">Gain : ${esc(x.gain)}</small></span></div>`).join("")) : ""}
+  ${section("Principes du long terme", PRINCIPES.map((p) => `<div class="ligne" style="align-items:flex-start"><span class="corps"><b style="white-space:normal">${esc(p.titre)}</b><small class="multi">${esc(p.texte)}</small></span></div>`).join(""))}
+  ${section("Où dépenser chaque ressource", RESSOURCES.map((r) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone">${ic(ICONE_RESSOURCE[r.id])}</span><span class="corps"><b>${esc(r.nom)} <span style="color:var(--texte-2);font-weight:400">${etat.stock[r.id] != null ? esc(fmt(etat.stock[r.id])) : ""}</span></b><small class="multi">${esc(r.conseil)}</small></span></div>`).join(""))}
+  ${section("Passes et options payantes", notes(conseilsOffres(etat)))}
+  ${skins.length ? section("Skins", skins.map((x) => `<div class="ligne"><span class="corps"><b style="white-space:normal">${esc(x.texte)}</b></span><button class="lien" data-act="mettre-skin" data-id="${x.hero.id}" data-skin="${x.skin.id}">Équiper</button></div>`).join("")) : ""}
+  <details class="section"><summary class="pied" style="cursor:pointer">Modes de jeu et astuces</summary>
+    <div class="groupe" style="margin-top:6px">${MODES.map((m) => `<div class="ligne"><span class="corps"><b>${esc(m.nom)}</b><small class="multi">${esc(m.note)}</small></span></div>`).join("")}</div>
+    <div class="groupe" style="margin-top:10px">${[...ASTUCES_JEU, ...CONSEILS_SOURCES].map((c) => `<div class="note or">${esc(c.texte)}</div>`).join("")}</div></details>`;
 }
 
 function conseilsCompagnons() {
@@ -650,8 +692,59 @@ function appliquerImport() {
   toast(`${n} info(s) enregistrée(s)`);
 }
 
+/* Import de l'écran d'équipe : vignettes + choix du nom par carte. */
+const impEquipe = { etat: "attente", cartes: [], message: "" };
+async function lancerImportEquipe(fichier) {
+  impEquipe.etat = "lecture"; rendreFeuille();
+  try {
+    const cartes = await lireEquipe(fichier);
+    if (cartes.length < 3) throw new Error("ecran");
+    impEquipe.cartes = cartes.map((c, i) => ({ ...c, heroId: etat.equipe[i] || "" }));
+    impEquipe.etat = "resultats";
+  } catch (e) {
+    impEquipe.etat = "erreur";
+    impEquipe.message = String(e?.message) === "ecran" ? "Ce n'est pas l'écran d'équipe : capturez l'écran des héros où l'équipe « Main » est affichée en haut (5 cartes avec « Lv. »)." : `La lecture a échoué : ${e?.message || e}.`;
+  }
+  rendreFeuille();
+}
+function appliquerImportEquipe() {
+  const ids = impEquipe.cartes.map((c) => c.heroId).filter(Boolean);
+  if (new Set(ids).size !== ids.length) return toast("Le même héros est choisi deux fois");
+  if (!ids.length) return toast("Choisissez au moins un héros");
+  for (const c of impEquipe.cartes) {
+    if (!c.heroId) continue;
+    const r = fiche(c.heroId);
+    r.possede = true;
+    if (Number(c.niveau) > 0) { r.niveau = Number(c.niveau); delete r.niveauInconnu; }
+  }
+  etat.equipe = ids.slice(0, TAILLE_EQUIPE);
+  impEquipe.etat = "attente"; impEquipe.cartes = [];
+  fermer(); enregistrer(); toast("Équipe enregistrée");
+}
+function feuilleImportEquipe() {
+  if (impEquipe.etat === "lecture") return ["Lecture de l'équipe", `<div style="padding:40px 8px;text-align:center"><b>Lecture des 5 cartes…</b><p class="pied">L'image n'est ni envoyée ni conservée.</p></div>`];
+  if (impEquipe.etat === "erreur") return ["Équipe", `${section("", `<div class="note alerte">${esc(impEquipe.message)}</div>`)}<div style="margin-top:12px"><button class="btn plein" data-act="import-equipe-recommencer">Réessayer</button></div>`];
+  if (impEquipe.etat === "resultats") {
+    const tri = [...herosDe(etat)].sort((a, b) => progression(etat, b.id).possede - progression(etat, a.id).possede || a.nom.localeCompare(b.nom));
+    return ["Qui est sur chaque carte ?", `
+      <p class="pied" style="padding-top:8px">Le jeu n'écrit pas le nom des héros de l'équipe : choisissez-le en face de chaque portrait. Le niveau lu est déjà rempli.</p>
+      ${section("", impEquipe.cartes.map((c, i) => `<div class="ligne"><img src="${c.vignette}" alt="Carte ${i + 1}" style="width:58px;height:72px;object-fit:cover;border-radius:10px;flex:none">
+        <span class="corps" style="display:grid;gap:6px"><select data-imp-eq="${i}" data-champ="heroId" aria-label="Héros de la carte ${i + 1}" style="${champSaisie}"><option value="">Choisir le héros…</option>
+          ${tri.map((h) => `<option value="${h.id}" ${h.id === c.heroId ? "selected" : ""}>${esc(h.nom)}${progression(etat, h.id).possede ? "" : " (non obtenu)"}</option>`).join("")}</select>
+          <span style="display:flex;align-items:center;gap:8px"><small>Niveau</small><input type="number" inputmode="numeric" enterkeyhint="done" min="1" data-imp-eq="${i}" data-champ="niveau" value="${esc(c.niveau ?? "")}" style="${champSaisie};width:84px" aria-label="Niveau de la carte ${i + 1}">${c.devine ? `<small style="color:var(--or-vif)">à vérifier</small>` : ""}</span></span></div>`).join(""))}`,
+      { act: "import-equipe-appliquer", libelle: "Utiliser cette équipe", court: "Utiliser" }];
+  }
+  return ["Importer mon équipe", `${section("Dans le jeu", etapes([
+      { titre: "Ouvrez l'écran des héros", detail: "L'équipe « Main » s'affiche en haut, 5 cartes avec leur niveau." },
+      { titre: "Faites une capture d'écran", detail: "Bouton latéral + volume haut." },
+      { titre: "Choisissez-la ci-dessous", detail: "Puis indiquez le nom de chaque héros en face de son portrait." },
+    ]))}
+    <label class="btn or plein" style="margin-top:14px">${ic("photo", 20)} Choisir la capture<input type="file" accept="image/*" data-import-equipe class="cache"></label>`];
+}
+
 const FEUILLES = {
   import: feuilleImport,
+  "import-equipe": feuilleImportEquipe,
   reglages() {
     return ["Réglages", `
       ${section("Compte", `${ligneNav("profil", "Profil du joueur", etat.joueur.pseudo || "À compléter", { icone: "utilisateur" })}${ligneNav("import", "Importer des captures", "Remplit le profil automatiquement", { icone: "photo" })}${ligneNav("ressources", "Ressources", "Diamants, Or, Soul Flame…", { icone: "gemme" })}`)}
@@ -677,12 +770,18 @@ const FEUILLES = {
       ${section("Comment les dépenser", RESSOURCES.map((r) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone">${ic(ICONE_RESSOURCE[r.id])}</span><span class="corps"><b>${esc(r.nom)}</b><small class="multi">${esc(r.conseil)}</small></span></div>`).join(""))}`];
   },
   equipe() {
-    const possedes = herosDe(etat).filter((h) => progression(etat, h.id).possede);
-    const liste = possedes.length ? possedes : herosDe(etat);
+    const f = norm(ui.filtreEquipe || "");
+    const tri = (a, b) => progression(etat, b.id).possede - progression(etat, a.id).possede || RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete) || a.nom.localeCompare(b.nom);
+    const liste = herosDe(etat).filter((h) => !f || norm(h.nom).includes(f) || (h.alias || []).some((x) => norm(x).includes(f))).sort(tri);
+    const ligne = (h) => `<label class="ligne">${avatar(h, { taille: 36, terne: !progression(etat, h.id).possede })}<span class="corps"><b>${esc(h.nom)}</b><small>${esc(resumeHero(h.id))} · ${esc(ROLES[h.role])}</small></span>
+        <input type="checkbox" class="coche" data-equipe="${h.id}" ${etat.equipe.includes(h.id) ? "checked" : ""}></label>`;
+    const miens = liste.filter((h) => progression(etat, h.id).possede), autres = liste.filter((h) => !progression(etat, h.id).possede);
     return [`Équipe · ${etat.equipe.length}/${TAILLE_EQUIPE}`, `
-      ${!possedes.length ? `<p class="pied" style="padding-top:8px">Aucun héros marqué comme obtenu : tout le catalogue est proposé.</p>` : ""}
-      ${section("", liste.map((h) => `<label class="ligne">${avatar(h, { taille: 36 })}<span class="corps"><b>${esc(h.nom)}</b><small>${esc(resumeHero(h.id))} · ${esc(ROLES[h.role])}</small></span>
-        <input type="checkbox" class="coche" data-equipe="${h.id}" ${etat.equipe.includes(h.id) ? "checked" : ""}></label>`).join(""))}`];
+      <div style="padding-top:8px"><button class="btn or plein" data-act="ouvrir" data-f="import-equipe">${ic("photo", 20)} Importer l'écran de mon équipe</button></div>
+      <input class="recherche" style="margin-top:12px" type="search" id="recherche-equipe" placeholder="Rechercher un héros" data-ui-feuille="filtreEquipe" value="${esc(ui.filtreEquipe || "")}" aria-label="Rechercher un héros">
+      ${miens.length ? section(`Mes héros (${miens.length})`, miens.map(ligne).join("")) : ""}
+      ${autres.length ? section(`Autres héros (${autres.length})`, autres.map(ligne).join(""), { pied: "Un héros ajouté à l'équipe est marqué comme obtenu." }) : ""}
+      ${!liste.length ? `<div class="vide-etat"><b>Aucun héros</b>Il n'est pas encore au catalogue : Héros › Collection › « Ajouter un héros absent du catalogue ».</div>` : ""}`];
   },
   hero(id) {
     const h = heroParId(id);
@@ -942,8 +1041,10 @@ function rendre() {
   $actions.innerHTML = o.actions();
   $vue.innerHTML = o.vue();
   document.querySelectorAll(".onglets button").forEach((b) => b.toggleAttribute("aria-current", b.dataset.onglet === ui.onglet));
-  const eq = equipeActuelle(etat);
-  const nb = eq.length ? configurationArtefacts(etat, eq).aChanger : 0;
+  // Pastille : héros de l'équipe dont les curios équipés ne sont pas le set conseillé.
+  const parId = new Map(etat.inventaire.map((i) => [i.id, i.ref]));
+  const nb = etat.inventaire.length ? coachCurios(etat).filter((x) => x.set && x.pieces.some((pc) => pc.possede)
+    && !progression(etat, x.hero.id).artefacts.some((id) => cat().artefacts.find((c) => c.id === parId.get(id))?.set === x.set)).length : 0;
   const c = document.getElementById("compteur-strategie");
   c.hidden = !nb; c.textContent = nb;
   if (idFocus) { const el = document.getElementById(idFocus); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
@@ -1002,6 +1103,12 @@ document.querySelector(".onglets").addEventListener("click", (e) => {
 });
 
 document.addEventListener("input", (e) => {
+  if (e.target.dataset.uiFeuille) {
+    ui[e.target.dataset.uiFeuille] = e.target.value;
+    const id = e.target.id; rendreFeuille();
+    const el = document.getElementById(id); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    return;
+  }
   if (e.target.dataset.ui) { ui[e.target.dataset.ui] = e.target.value; rendre(); }
 });
 
@@ -1018,7 +1125,11 @@ document.addEventListener("change", (e) => {
     if (d.champ === "possede" && !t.checked) etat.equipe = etat.equipe.filter((x) => x !== d.roster);
     return enregistrer();
   }
-  if (d.equipe) { if (!basculerEquipe(d.equipe, t.checked)) t.checked = false; return enregistrer(); }
+  if (d.equipe) {
+    if (!basculerEquipe(d.equipe, t.checked)) t.checked = false;
+    else if (t.checked && !progression(etat, d.equipe).possede) { fiche(d.equipe).possede = true; fiche(d.equipe).niveauInconnu = true; }
+    return enregistrer();
+  }
   if (d.skin) { etat.skinsPossedes[d.skin] = t.checked; return enregistrer(); }
   if (d.curio) { basculerCurio(d.curio, t.checked); return enregistrer(); }
   if (d.compPossede) { const [so, id] = d.compPossede.split(":"); etat[so][id] = { ...(etat[so][id] || {}), possede: t.checked, ...(t.checked ? {} : { deploye: false }) }; return enregistrer(); }
@@ -1040,6 +1151,8 @@ document.addEventListener("change", (e) => {
   if (d.code) { etat.codesUtilises[d.code] = t.checked; return enregistrer(); }
   if (d.quotidien !== undefined) { etat.quotidien.coches[d.quotidien] = t.checked; return enregistrer(); }
   if (d.uiCoche) { ui[d.uiCoche] = t.checked; return rendre(); }
+  if (t.hasAttribute("data-import-equipe") && t.files.length) { const f = t.files[0]; t.value = ""; lancerImportEquipe(f); return; }
+  if (d.impEq !== undefined) { const c = impEquipe.cartes[Number(d.impEq)]; if (c) c[d.champ] = t.value; return; }
   if (t.hasAttribute("data-import-captures") && t.files.length) {
     const fichiers = [...t.files];
     t.value = ""; // le champ ne garde pas la sélection
@@ -1085,6 +1198,19 @@ const ACTIONS = {
     enregistrer(); toast(`Artefacts de ${l.hero.nom} mis à jour`);
   },
   "appliquer-tout": () => { appliquerConfig(configurationArtefacts(etat, equipeActuelle(etat)).lignes); enregistrer(); toast("Configuration appliquée : reproduisez-la dans le jeu"); },
+  "seg-strat": (b) => { ui.segStrat = b.dataset.id; rendre(); remonter(); },
+  "equipe-type": (b) => { etat.equipe = b.dataset.id.split(",").filter((id) => heroParId(id)).slice(0, TAILLE_EQUIPE); enregistrer(); toast("Équipe mise à jour"); },
+  "appliquer-sets": () => {
+    const empl = Number(etat.joueur.emplacements) || 4;
+    const parRef = new Map(etat.inventaire.map((i) => [i.ref, i.id]));
+    for (const x of coachCurios(etat)) {
+      if (!x.set) continue;
+      fiche(x.hero.id).artefacts = [];
+      cat().artefacts.filter((c) => c.set === x.set && parRef.has(c.id)).sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete))
+        .slice(0, empl).forEach((c, i) => equiper(x.hero.id, i, parRef.get(c.id)));
+    }
+    enregistrer(); toast("Sets équipés : reproduisez-les dans le jeu");
+  },
   "equipe-proposee": (b) => { etat.equipe = b.dataset.id.split(",").filter((id) => heroParId(id)).slice(0, TAILLE_EQUIPE); enregistrer(); toast("Équipe enregistrée"); },
   "mettre-skin": (b) => { fiche(b.dataset.id).skin = b.dataset.skin; enregistrer(); toast("Skin équipé"); },
   "prendre-equipe": (b) => { const eq = EQUIPES_REFERENCE.find((x) => x.nom === b.dataset.id); if (!eq) return;
@@ -1112,6 +1238,8 @@ const ACTIONS = {
     catch { toast("Texte invalide : collez une sauvegarde copiée depuis l'app"); }
   },
   "import-appliquer": () => appliquerImport(),
+  "import-equipe-appliquer": () => appliquerImportEquipe(),
+  "import-equipe-recommencer": () => { impEquipe.etat = "attente"; impEquipe.cartes = []; rendreFeuille(); },
   "import-recommencer": () => { viderImport(); rendreFeuille(); },
   reinitialiser: () => { etat = etatInitial(); sauver(etat); fermer(); rendre(); toast("Profil effacé"); },
 };

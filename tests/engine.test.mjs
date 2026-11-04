@@ -172,3 +172,46 @@ test("passes : gains quotidiens cumulés et suggestion du Deluxe", () => {
   e.abonnements["deluxe-pass"] = { actif: true, fin: "2026-11-14" };
   assert.ok(conseilsOffres(e, new Date("2026-11-04")).some((x) => /chaque jour 30 diamants, 30 Stamina, 300 or/.test(x.texte)));
 });
+
+test("coaching : postes du noyau, manques et palier commun", async () => {
+  const { coachNoyau } = await import("../js/engine.js");
+  const e = etatAvec(["cannon-girl", "spiker", "poseidon", "archmage", "pinocchio"], { equipe: ["cannon-girl", "spiker", "poseidon", "archmage", "pinocchio"] });
+  e.roster["bright-spirit"] = { possede: true, niveau: 60, promotion: 3 };
+  const n = coachNoyau(e);
+  assert.equal(n.postes.length, 5);
+  assert.equal(n.postes.find((x) => x.poste === "Synergie").hero.id, "spiker");
+  assert.equal(n.postes.find((x) => x.poste === "Soutien").hero.id, "archmage");
+  assert.equal(n.cible.niveau, 6); // tous en P3 → objectif P6
+  assert.equal(n.manques.length, 0);
+  const e2 = etatAvec(["cannon-girl", "spiker", "lazerman"], { equipe: ["cannon-girl", "spiker", "lazerman"] });
+  e2.roster["bright-spirit"] = { possede: true, niveau: 60 };
+  const m = coachNoyau(e2).manques.find((x) => x.poste === "Soutien");
+  assert.ok(m && m.candidats.some((h) => h.id === "bright-spirit"));
+});
+
+test("coaching : un set de curios différent par héros", async () => {
+  const { coachCurios } = await import("../js/engine.js");
+  const e = etatAvec(["bride-wraith", "ghost-captain"], { equipe: ["bride-wraith", "ghost-captain"] });
+  ["purgatory-oven", "ghost-lighter", "gore-grinder", "rusty-knife"].forEach((r, i) => e.inventaire.push({ id: `c${i}`, ref: r, etoiles: 4 }));
+  const plan = coachCurios(e);
+  const sets = Object.fromEntries(plan.map((x) => [x.hero.id, x.set]));
+  assert.equal(sets["bride-wraith"], "sky-scorch");
+  assert.equal(sets["ghost-captain"], "wild-bloodlust");
+  assert.equal(new Set(Object.values(sets)).size, 2);
+  assert.ok(plan[0].pieces.some((p) => !p.possede)); // pièces manquantes signalées
+});
+
+test("coaching : boss, diamants et jalons", async () => {
+  const { coachBoss, coachDiamants, coachJalons } = await import("../js/engine.js");
+  const e = etatAvec(["cannon-girl", "poseidon", "archangel", "frosthealer", "spiker", "lazerman", "bride-wraith"]);
+  const b = coachBoss(e);
+  assert.equal(b.length, 6);
+  const physique = b.find((x) => /résiste au physique/.test(x.nom));
+  assert.ok(physique.heros[0].type === "magique");
+  e.stock.diamants = 1200; e.abonnements["value-pass"] = { actif: true, fin: "2026-12-30" };
+  const d = coachDiamants(e, new Date("2026-11-04"));
+  assert.deepEqual([d.tirages, d.manque, d.parJour, d.jours], [0, 1000, 10, 100]);
+  e.joueur.coffreCurios = 392; e.joueur.etape = "176";
+  const j = coachJalons(e).map((x) => x.titre);
+  assert.ok(j.some((t) => /Curio Vault 392 → 400/.test(t)) && j.some((t) => /Main Stage 176 → 220/.test(t)));
+});
