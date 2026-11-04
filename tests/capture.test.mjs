@@ -174,3 +174,9 @@ test("écran Infinity Train : arrêt et tentatives du jour", async () => {
   assert.equal(r.profil.arretTrain, 128);
   assert.deepEqual(r.profil.tentativesTrain, { restantes: 3, total: 10 });
 });
+
+test("pseudo sans libellé, juste au-dessus de l'ID", async () => {
+  const { lireProfil } = await import("../js/capture.js");
+  const { RESSOURCES } = await import("../js/data.js");
+  assert.equal(lireProfil("NightKnocker\nID: 48213977\nGuild: Owls", RESSOURCES).profil.pseudo, "NightKnocker");
+});
