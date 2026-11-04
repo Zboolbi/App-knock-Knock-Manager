@@ -157,7 +157,8 @@ const TACHE_TRAIN = TACHES.length - 1;
 
 /* ---------- Installation sur l'écran d'accueil ---------- */
 
-const URL_APP = "https://zboolbi.github.io/app-knock-knock-manager/";
+// Adresse réelle de l'app (le chemin GitHub Pages respecte la casse du nom du dépôt).
+const URL_APP = location.protocol.startsWith("http") ? new URL(".", location.href).href : "https://zboolbi.github.io/App-knock-Knock-Manager/";
 let invitationInstall = null; // fenêtre d'installation native (Android, Chrome, Edge)
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); invitationInstall = e; rendre(); });
 window.addEventListener("appinstalled", () => { invitationInstall = null; toast("App installée"); rendre(); });
@@ -560,7 +561,7 @@ async function lancerImport(fichiers) {
   } catch (e) {
     imp.etat = "erreur";
     imp.message = /introuvable|Failed to fetch|NetworkError|load/i.test(String(e?.message || e))
-      ? "Le moteur de lecture n'a pas pu se charger. Ouvrez l'app installée (zboolbi.github.io/app-knock-knock-manager) avec une connexion la première fois."
+      ? `Le moteur de lecture n'a pas pu se charger. Ouvrez l'app installée (${URL_APP.replace(/^https?:\/\//, "")}) avec une connexion la première fois.`
       : `La lecture a échoué : ${e?.message || e}. Essayez avec moins de captures à la fois.`;
   }
   if (ui.feuille?.type === "import") rendreFeuille();

@@ -7,7 +7,7 @@ répartition des artefacts et ordre de dépense des ressources.
 C'est une **PWA** : une page web installable sur l'écran d'accueil du téléphone, qui marche hors ligne.
 Aucune dépendance, aucun serveur, aucun compte : le profil reste sur l'appareil (export/import JSON).
 
-**Installer sur l'iPhone :** ouvrez https://zboolbi.github.io/app-knock-knock-manager/ dans Safari,
+**Installer sur l'iPhone :** ouvrez https://zboolbi.github.io/App-knock-Knock-Manager/ dans Safari,
 puis Partager › « Sur l'écran d'accueil ».
 
 ## Les 5 onglets
@@ -35,7 +35,7 @@ python3 outils/build.py   # dist/ : page unique + archive PWA
 Une app web s'installe sur iOS depuis Safari quand elle est servie en HTTPS :
 
 1. Ce dépôt se publie tout seul sur GitHub Pages à chaque push sur `main` (`.github/workflows/pages.yml`).
-2. Ouvrez https://zboolbi.github.io/app-knock-knock-manager/ dans **Safari** › Partager › **Sur l'écran d'accueil**.
+2. Ouvrez https://zboolbi.github.io/App-knock-Knock-Manager/ dans **Safari** › Partager › **Sur l'écran d'accueil**.
 3. L'app s'ouvre en plein écran, avec son icône, et marche hors ligne après la première ouverture.
 
 Une app native de l'App Store demanderait un Mac avec Xcode et un compte développeur Apple
