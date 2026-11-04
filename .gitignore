@@ -2,3 +2,4 @@ dist/
 qa/sortie/
 reelles-tmp
 qa/captures-reelles/
+profil-joueur*.json
