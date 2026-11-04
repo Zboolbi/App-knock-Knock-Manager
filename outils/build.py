@@ -18,7 +18,7 @@ DIST = RACINE / "dist"
 MODULES = ["js/data.js", "js/engine.js", "js/store.js", "js/capture.js", "js/ocr.js", "js/app.js"]
 PWA = ["index.html", "styles.css", "manifest.webmanifest", "sw.js", "icon.svg",
        "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", *MODULES,
-       *[str(p.relative_to(RACINE)) for p in sorted((RACINE / "vendor").rglob("*")) if p.is_file()]]
+       *[str(p.relative_to(RACINE)) for d in ("vendor", "assets") for p in sorted((RACINE / d).rglob("*")) if p.is_file()]]
 
 
 def bundle_js():

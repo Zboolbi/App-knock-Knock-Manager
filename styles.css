@@ -28,12 +28,15 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html { -webkit-text-size-adjust: 100%; background: var(--fond); }
+/* Écran fixe façon app : seul le contenu défile, la barre d'onglets ne bouge jamais
+   (sur iPhone, le rebond du défilement déplaçait toute la page, barre comprise). */
+html, body { height: 100%; overflow: hidden; }
 body {
-  margin: 0; min-height: 100vh; background: var(--fond); color: var(--texte);
+  margin: 0; position: fixed; inset: 0; display: flex; flex-direction: column;
+  background: var(--fond); color: var(--texte);
   font: 17px/1.35 var(--police); letter-spacing: -0.01em;
-  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-  overscroll-behavior-y: none;
 }
+.defile { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; position: relative; z-index: 1; }
 body.feuille-ouverte { overflow: hidden; }
 button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
 button { cursor: pointer; }
@@ -121,7 +124,7 @@ button.ligne:active, label.ligne:active { background: var(--groupe-2); }
 .coche { appearance: none; -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--texte-3); margin: 0; flex: none; display: grid; place-items: center; }
 .coche:checked { background: var(--or); border-color: var(--or); }
 .coche:checked::after { content: ""; width: 6px; height: 11px; border: solid var(--sur-or); border-width: 0 2.5px 2.5px 0; transform: translateY(-1px) rotate(45deg); }
-.ligne:has(.coche:checked) .corps b { color: var(--texte-2); text-decoration: line-through; }
+.tache:has(.coche:checked) .corps b { color: var(--texte-2); text-decoration: line-through; }
 
 /* Boutons */
 .btn { border: 0; border-radius: 12px; min-height: 48px; padding: 12px 16px; font-weight: 600; font-size: 17px; background: var(--groupe-2); color: var(--texte); display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
@@ -193,7 +196,7 @@ input::placeholder, textarea::placeholder { color: var(--texte-3); }
 .feuille-tete::before { content: ""; position: absolute; top: 5px; left: 50%; width: 36px; height: 5px; border-radius: 3px; background: #48484a; transform: translateX(-50%); }
 .feuille-tete h2 { font-size: 17px; font-weight: 600; color: var(--texte); text-align: center; max-width: 52vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feuille-tete .g { justify-self: start; } .feuille-tete .d { justify-self: end; font-weight: 600; }
-.feuille-corps { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); flex: 1; }
+.feuille-corps { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-height: 0; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); flex: 1; }
 .feuille-corps .section:first-child { margin-top: 6px; }
 .entete-fiche { display: flex; gap: 14px; align-items: center; padding: 8px 4px 0; }
 .entete-fiche .av { --t: 64px; }
@@ -203,7 +206,7 @@ input::placeholder, textarea::placeholder { color: var(--texte-3); }
 @media (prefers-reduced-motion: reduce) { .voile, .feuille { animation: none; } }
 
 /* Barre d'onglets */
-.onglets { position: fixed; inset: auto 0 0 0; z-index: 30; background: rgb(18 18 18 / 0.92); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+.onglets { position: relative; flex: none; z-index: 30; background: rgb(18 18 18 / 0.92); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
   border-top: 0.5px solid var(--sep); padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
 .onglets-int { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 720px; margin: 0 auto; }
 .onglets button { border: 0; background: none; min-height: 50px; padding: 6px 0 4px; display: grid; justify-items: center; gap: 3px; color: var(--texte-3); font-size: 10.5px; font-weight: 500; position: relative; }
@@ -215,7 +218,7 @@ input::placeholder, textarea::placeholder { color: var(--texte-3); }
 .vide-etat b { display: block; color: var(--texte); font-size: 17px; margin-bottom: 4px; }
 pre.lu { white-space: pre-wrap; font: 12px/1.4 ui-monospace, "SF Mono", Menlo, monospace; color: var(--texte-2); margin: 0; padding: 12px 14px; }
 
-#toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60;
+#toast { position: fixed; left: 50%; top: calc(52px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 80;
   background: #2c2c2e; color: var(--texte); border: 0.5px solid var(--sep); padding: 11px 18px; border-radius: 14px; font-size: 15px; font-weight: 500;
   box-shadow: 0 10px 30px rgb(0 0 0 / .5); opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); text-align: center; }
 #toast.visible { opacity: 1; }
@@ -247,3 +250,21 @@ pre.lu { white-space: pre-wrap; font: 12px/1.4 ui-monospace, "SF Mono", Menlo, m
 @keyframes rebond { 50% { transform: translateX(-50%) translateY(8px); } }
 @media (prefers-reduced-motion: reduce) { .fleche-partage { animation: none; } }
 @media (min-width: 700px) { .fleche-partage { top: calc(8px + env(safe-area-inset-top, 0px)); bottom: auto; left: auto; right: 90px; transform: rotate(180deg); animation: none; } }
+
+.feuille-pied { flex: none; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: rgb(13 13 14 / 0.94); border-top: 0.5px solid var(--sep); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.feuille-pied ~ * { display: none; }
+
+.chiffre em { display: block; font-style: normal; font-size: 12px; color: var(--texte-2); margin-top: 1px; }
+.chiffre small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+
+/* Logo du jeu et image de fond (si fournis dans assets/) */
+.logo-jeu { display: grid; justify-items: start; gap: 2px; padding: 0 0 10px; }
+.logo-jeu img { width: min(72%, 300px); height: auto; filter: drop-shadow(0 6px 18px rgb(0 0 0 / .7)); }
+.logo-jeu span { font-size: 12px; font-weight: 600; letter-spacing: .42em; text-transform: uppercase; color: var(--texte-2); padding-left: 6%; }
+body.avec-fond::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: url("assets/fond.jpg") center 42% / min(130vw, 760px) auto no-repeat; opacity: .22; }
+body.avec-fond .defile { background: transparent; }
+
+/* Clavier iOS ouvert : la feuille suit la zone visible et reste défilable */
+.voile { height: var(--hauteur-visible, 100%); bottom: auto; }

@@ -19,6 +19,8 @@ const $barre = document.getElementById("barre-haut");
 const $petitTitre = document.getElementById("petit-titre");
 const $actions = document.getElementById("actions-haut");
 const $feuille = document.getElementById("feuille");
+const $defile = document.getElementById("defile");
+const remonter = () => { $defile.scrollTop = 0; };
 
 /* ---------- Outils ---------- */
 
@@ -97,7 +99,8 @@ function avatar(h, { taille, terne = false } = {}) {
 function resumeHero(id) {
   const p = progression(etat, id);
   if (!p.possede) return "Pas encore obtenu";
-  return [`Niv. ${p.niveau}`, p.promotion ? `P${p.promotion}` : "", p.etoiles ? `${p.etoiles}★` : ""].filter(Boolean).join(" · ");
+  const inconnu = etat.roster[id]?.niveau == null || etat.roster[id]?.niveauInconnu;
+  return [inconnu ? "Niv. à saisir" : `Niv. ${p.niveau}`, p.promotion ? `P${p.promotion}` : "", p.etoiles ? `${p.etoiles}★` : ""].filter(Boolean).join(" · ");
 }
 function puces(h) {
   return `<span class="puce or tier">${esc(h.tier)}</span><span class="puce">${esc(h.rarete)}</span><span class="puce">${esc(TYPES[h.type] || h.type)}</span>
@@ -116,7 +119,7 @@ const etapes = (liste) => liste.map((e, i) => `<div class="ligne" style="align-i
 function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("visible");
-  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("visible"), 2200);
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("visible"), 1800);
 }
 function enregistrer() {
   if (!sauver(etat)) toast("Sauvegarde impossible : le stockage du navigateur est bloqué");
@@ -154,6 +157,13 @@ const TACHES = ["Récupérer le revenu du Lit", "Faire les missions quotidiennes
   "Vider la Stamina sur l'étape la plus haute battue", "Matériaux du jour sur les 5 héros de l'équipe", "Récompenses des passes et de la guilde",
   "Infinity Train : utiliser les 10 tentatives (Sweep)"];
 const TACHE_TRAIN = TACHES.length - 1;
+
+/* ---------- Visuels fournis par le joueur (logo du jeu, image de fond) ---------- */
+// Déposés dans assets/ : logo-jeu.png (détouré) remplace le titre, fond.png s'affiche en transparence.
+const visuels = { logo: false };
+const essayer = (src, ok) => { const i = new Image(); i.onload = ok; i.src = src; };
+essayer("assets/logo-jeu.png", () => { visuels.logo = true; rendre(); });
+essayer("assets/fond.jpg", () => document.body.classList.add("avec-fond"));
 
 /* ---------- Installation sur l'écran d'accueil ---------- */
 
@@ -212,7 +222,7 @@ function vueAccueil() {
   const meta = [j.niveau ? `Niv. ${j.niveau}` : "", j.guilde ? `Guilde ${j.guilde}` : "Sans guilde", j.vip ? `VIP ${j.vip}` : ""].filter(Boolean).join(" · ");
 
   return `
-  ${LOGO}
+  ${visuels.logo ? `<div class="logo-jeu"><img src="assets/logo-jeu.png" alt="Knock Knock Room Defense"><span>Manager</span></div>` : LOGO}
   ${carteInstallation()}
   <h1 class="grand-titre" style="margin-top:14px">Tableau de bord</h1>
   <p class="sous-titre">${j.majImport ? `Mis à jour par capture le ${esc(dateCourte(j.majImport))}` : "Importez une capture de votre profil pour tout remplir d'un coup."}</p>
@@ -222,11 +232,11 @@ function vueAccueil() {
       <div style="min-width:0"><h2>${esc(j.pseudo || "Joueur")}</h2><div class="meta">${esc(meta)}${j.idJoueur ? ` · ID ${esc(j.idJoueur)}` : ""}</div></div></div>
     <div class="chiffres">
       <div class="chiffre"><small>Étape</small><b>${esc(j.etape || "—")}</b></div>
-      <div class="chiffre"><small>Porte / Lit</small><b>${esc(j.porte || "—")} / ${esc(j.lit || "—")}</b></div>
       <div class="chiffre"><small>Puissance</small><b>${esc(fmt(j.puissance))}</b></div>
+      <div class="chiffre"><small>Porte · Lit</small><b>${j.porte > 1 || j.lit > 1 ? `${esc(j.porte || "—")} · ${esc(j.lit || "—")}` : "—"}</b></div>
       <div class="chiffre"><small>Curio Vault</small><b>${esc(j.coffreCurios || "—")}</b></div>
-      <div class="chiffre"><small>Gear</small><b>${j.equipementNiveau ? `+${esc(j.equipementNiveau)}${j.palierEquipement ? ` · T${esc(j.palierEquipement)}` : ""}` : "—"}</b></div>
-      <div class="chiffre"><small>Infinity Train</small><b>${j.arretTrain ? `Stop ${esc(j.arretTrain)}` : "—"}</b></div>
+      <div class="chiffre"><small>Gear</small><b>${j.equipementNiveau ? `+${esc(j.equipementNiveau)}` : "—"}</b>${j.palierEquipement ? `<em>Tier ${esc(j.palierEquipement)}</em>` : ""}</div>
+      <div class="chiffre"><small>Train</small><b>${esc(j.arretTrain || "—")}</b>${j.arretTrain ? "<em>Stop</em>" : ""}</div>
     </div>
     <div class="actions">
       <button class="btn or" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer</button>
@@ -249,7 +259,7 @@ function vueAccueil() {
 
   ${section("À faire maintenant", etapes(plan), { lien: `<button class="lien" data-act="onglet" data-id="strategie">Tout voir</button>` })}
 
-  ${section("Routine du jour", TACHES.map((t, i) => `<label class="ligne"><input type="checkbox" class="coche" data-quotidien="${i}" ${etat.quotidien.coches[i] ? "checked" : ""}><span class="corps"><b style="white-space:normal">${esc(t)}</b></span></label>`).join(""),
+  ${section("Routine du jour", TACHES.map((t, i) => `<label class="ligne tache"><input type="checkbox" class="coche" data-quotidien="${i}" ${etat.quotidien.coches[i] ? "checked" : ""}><span class="corps"><b style="white-space:normal">${esc(t)}</b></span></label>`).join(""),
     { lien: `<span class="valeur" style="color:var(--texte-2);font-size:15px">${faites}/${TACHES.length}</span>` })}`;
 }
 
@@ -476,7 +486,7 @@ function feuilleImport() {
     const champsProfil = Object.keys(p.profil);
     const nb = champsProfil.length + Object.keys(p.stock).length + p.heros.length + p.artefacts.length + p.skins.length + p.pieges.length + p.betes.length + p.abonnements.length + (p.tentativesTrain ? 1 : 0);
     const coche = (cle, x) => `<input type="checkbox" class="coche" data-imp-coche="${cle}" ${x.garder ? "checked" : ""} aria-label="Garder">`;
-    const nombre = (cle, v, label) => `<label style="min-width:0;display:block"><small style="color:var(--texte-2);font-size:12px">${label}</small><input type="number" inputmode="numeric" min="0" data-imp="${cle}" value="${v ?? ""}" placeholder="—" style="${champSaisie}"></label>`;
+    const nombre = (cle, v, label) => `<label style="min-width:0;display:block"><small style="color:var(--texte-2);font-size:12px">${label}</small><input type="number" inputmode="numeric" enterkeyhint="done" min="0" data-imp="${cle}" value="${v ?? ""}" placeholder="—" style="${champSaisie}"></label>`;
     const choixHero = (cle, id) => `<select data-imp="${cle}" aria-label="Héros" style="${champSaisie}"><option value="">Héros ?</option>${herosDe(etat).map((h) => `<option value="${h.id}" ${h.id === id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select>`;
     const champLibre = (cle, v, label) => `<input data-imp="${cle}" value="${esc(v)}" aria-label="${esc(label)}" style="${champSaisie}">`;
     return [`${nb} info(s) trouvée(s)`, `
@@ -503,8 +513,9 @@ function feuilleImport() {
         <div style="width:82px">${nombre(`${k}.${i}.niveau`, x.niveau, "Niveau")}</div></div>`).join("")) : "").join("")}
       ${p.skins.length ? section(`Skins (${p.skins.length})`, p.skins.map((x, i) => `<div class="ligne" style="align-items:flex-start">${coche(`skins.${i}`, x)}<span class="corps" style="display:grid;gap:6px">
         ${champLibre(`skins.${i}.nom`, x.nom, "Nom du skin")}${choixHero(`skins.${i}.heroId`, x.heroId)}</span></div>`).join("")) : ""}
-      <div style="display:grid;gap:8px;margin-top:16px">${nb ? `<button class="btn or plein" data-act="import-appliquer">Enregistrer la sélection</button>` : ""}<button class="btn plein" data-act="import-recommencer">Importer d'autres captures</button></div>
-      <details class="section"><summary class="pied" style="cursor:pointer">Voir le texte lu</summary><div class="groupe" style="margin-top:6px">${imp.textes.map((t) => `<pre class="lu">${esc(t)}</pre>`).join("")}</div></details>`];
+      <div style="display:grid;gap:8px;margin-top:16px"><button class="btn plein" data-act="import-recommencer">Importer d'autres captures</button></div>
+      <details class="section"><summary class="pied" style="cursor:pointer">Voir le texte lu</summary><div class="groupe" style="margin-top:6px">${imp.textes.map((t) => `<pre class="lu">${esc(t)}</pre>`).join("")}</div></details>`,
+      nb ? { act: "import-appliquer", libelle: `Enregistrer dans l'app (${nb})`, court: "Enregistrer" } : null];
   }
   return ["Importer des captures", `
     ${section("Captures à faire dans le jeu", `<div class="note or">Écran principal : niveau, puissance, étape, Diamants, Or, Stamina.</div>
@@ -531,7 +542,7 @@ async function lancerImport(fichiers) {
       else if (p.etape === "lecture") imp.part = Math.max(imp.part, p.part || 0);
       const now = Date.now();
       if (now - dernier > 150) { dernier = now; rendreFeuille(); }
-    });
+    }, cat());
     fichiers.length = 0; // on lâche les références aux images
     const ordonne = lus.map((t) => (t.elements?.length ? ordonnerParCartes(t.elements, cat()) : t.texte)).join("\n");
     const brut = lus.map((t) => t.texte).join("\n");
@@ -585,7 +596,10 @@ function appliquerImport() {
   for (const x of p.heros) {
     if (!x.garder || !x.heroId || !heroParId(x.heroId)) continue;
     const r = fiche(x.heroId);
+    const nouveau = !r.possede;
     r.possede = true;
+    if (nouveau && (x.niveau === null || x.niveau === "")) r.niveauInconnu = true;
+    if (x.niveau !== null && x.niveau !== "") delete r.niveauInconnu;
     for (const c of ["niveau", "promotion", "etoiles"]) if (x[c] !== null && x[c] !== "" && Number.isFinite(Number(x[c]))) r[c] = Math.max(c === "niveau" ? 1 : 0, Number(x[c]));
     n++;
   }
@@ -874,18 +888,24 @@ function rendreFeuille() {
   const corpsAvant = $feuille.querySelector(".feuille-corps");
   const meme = corpsAvant && $feuille.dataset.cle === ui.feuille.cle;
   const defil = meme ? corpsAvant.scrollTop : 0;
-  const [titre, corps] = FEUILLES[ui.feuille.type](ui.feuille.id, ui.feuille.extra);
+  // Une feuille peut fournir une action principale : bouton en haut à droite + barre fixe en bas.
+  const [titre, corps, action] = FEUILLES[ui.feuille.type](ui.feuille.id, ui.feuille.extra);
+  const avecRetour = ui.pile.length > 0;
+  const droite = action ? `<button class="bouton-texte d" data-act="${action.act}">${esc(action.court || action.libelle)}</button>`
+    : avecRetour ? `<button class="bouton-texte d" data-act="fermer">OK</button>` : "<span></span>";
+  const pied = action ? `<div class="feuille-pied"><button class="btn or plein" data-act="${action.act}">${esc(action.libelle)}</button></div>` : "";
   if (meme) {
     $feuille.querySelector(".feuille-tete h2").textContent = titre;
+    $feuille.querySelector(".feuille-tete .d, .feuille-tete > span")?.replaceWith(document.createRange().createContextualFragment(droite));
     corpsAvant.innerHTML = corps;
+    $feuille.querySelector(".feuille-pied")?.remove();
+    if (pied) corpsAvant.insertAdjacentHTML("afterend", pied);
     corpsAvant.scrollTop = defil;
     return;
   }
-  const avecRetour = ui.pile.length > 0;
   $feuille.innerHTML = `<div class="voile" data-act="fermer-fond"><div class="feuille" role="dialog" aria-modal="true" aria-label="${esc(titre)}">
-    <div class="feuille-tete"><button class="bouton-texte g" data-act="${avecRetour ? "retour" : "fermer"}">${avecRetour ? "‹ Retour" : "Fermer"}</button><h2>${esc(titre)}</h2>
-      ${avecRetour ? `<button class="bouton-texte d" data-act="fermer">OK</button>` : "<span></span>"}</div>
-    <div class="feuille-corps">${corps}</div></div></div>`;
+    <div class="feuille-tete"><button class="bouton-texte g" data-act="${avecRetour ? "retour" : "fermer"}">${avecRetour ? "‹ Retour" : "Fermer"}</button><h2>${esc(titre)}</h2>${droite}</div>
+    <div class="feuille-corps">${corps}</div>${pied}</div></div>`;
   $feuille.dataset.cle = ui.feuille.cle;
   document.body.classList.add("feuille-ouverte");
 }
@@ -930,14 +950,25 @@ function rendre() {
   if (ui.feuille) rendreFeuille();
 }
 
-window.addEventListener("scroll", () => $barre.classList.toggle("defile", window.scrollY > 40), { passive: true });
+// Clavier iOS : la feuille épouse la zone visible et le champ actif reste à l'écran.
+function ajusterHauteur() {
+  const vv = window.visualViewport;
+  document.documentElement.style.setProperty("--hauteur-visible", vv ? `${Math.round(vv.height)}px` : "100%");
+}
+window.visualViewport?.addEventListener("resize", ajusterHauteur);
+ajusterHauteur();
+document.addEventListener("focusin", (e) => {
+  if (!e.target.matches?.("input, textarea, select") || !e.target.closest(".feuille-corps")) return;
+  setTimeout(() => e.target.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
+});
+$defile.addEventListener("scroll", () => $barre.classList.toggle("defile", $defile.scrollTop > 40), { passive: true });
 
 /* ---------- Événements ---------- */
 
 function setCle(cle, valeur) {
   const [racine, a, b] = cle.split(".");
   if (racine === "joueur") etat.joueur[a] = valeur;
-  if (racine === "roster") fiche(a)[b] = valeur;
+  if (racine === "roster") { fiche(a)[b] = valeur; if (b === "niveau") delete fiche(a).niveauInconnu; }
   if (racine === "inv") { const i = etat.inventaire.find((x) => x.id === a); if (i) i[b] = valeur; }
   if (racine === "pieges" || racine === "betes") etat[racine][a] = { ...(etat[racine][a] || {}), [b]: valeur };
 }
@@ -967,7 +998,7 @@ document.querySelector(".onglets").addEventListener("click", (e) => {
   if (!b) return;
   ui.onglet = b.dataset.onglet;
   rendre();
-  window.scrollTo(0, 0);
+  remonter();
 });
 
 document.addEventListener("input", (e) => {
@@ -1042,7 +1073,7 @@ const ACTIONS = {
   ouvrir: (b) => ouvrir(b.dataset.f, b.dataset.id || "", b.dataset.hero || ""),
   fermer, retour,
   "fermer-fond": (b, e) => { if (e.target === b) fermer(); },
-  onglet: (b) => { ui.onglet = b.dataset.id; fermer(); rendre(); window.scrollTo(0, 0); },
+  onglet: (b) => { ui.onglet = b.dataset.id; fermer(); rendre(); remonter(); },
   seg: (b) => { ui.segHeros = b.dataset.id; rendre(); },
   possedes: (b) => { ui.possedes = b.dataset.id === "1"; rendre(); },
   pas: (b) => { const cle = b.dataset.cle; setCle(cle, Math.max(minimumDe(cle), getCle(cle) + Number(b.dataset.pas))); enregistrer(); },

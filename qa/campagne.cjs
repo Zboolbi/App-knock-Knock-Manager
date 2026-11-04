@@ -103,7 +103,7 @@ async function main() {
   await cas("NAV-03", "Petit titre au défilement", async () => {
     const p = await page(avec((e) => possede(e, ["archangel"])));
     await p.click(".onglets [data-onglet=strategie]");
-    await p.mouse.wheel(0, 600); await p.waitForTimeout(300);
+    await p.evaluate(() => { const d = document.getElementById("defile"); d.scrollTop = 600; d.dispatchEvent(new Event("scroll")); }); await p.waitForTimeout(300);
     verifier(await p.locator("#barre-haut.defile").count() === 1, "pas d'état défilé");
     await p.ctx.close();
   });
@@ -127,6 +127,18 @@ async function main() {
     verifier((await p.textContent(".feuille-tete h2")) === "Profil du joueur", "Profil non ouvert");
     await p.click(".feuille-tete [data-act=retour]");
     verifier((await p.textContent(".feuille-tete h2")) === "Réglages", "Retour inopérant");
+    await p.ctx.close();
+  });
+
+  await cas("NAV-06", "La barre d'onglets ne bouge pas au défilement", async () => {
+    const p = await page(avec((e) => possede(e, ["archangel", "spiker"])));
+    await p.click(".onglets [data-onglet=strategie]");
+    const avant = await p.locator(".onglets").boundingBox();
+    await p.evaluate(() => { document.getElementById("defile").scrollTop = 2000; });
+    await p.touchscreen.tap(195, 400).catch(() => {});
+    const apres = await p.locator(".onglets").boundingBox();
+    const { pageBouge, hauteur } = await p.evaluate(() => ({ pageBouge: window.scrollY, hauteur: innerHeight }));
+    verifier(Math.abs(avant.y - apres.y) < 1 && pageBouge === 0 && Math.abs(avant.y + avant.height - hauteur) < 2, JSON.stringify({ avant, apres, pageBouge, hauteur }));
     await p.ctx.close();
   });
 
@@ -407,9 +419,11 @@ async function main() {
     verifier(/2\/2/.test(t) && /220/.test(t) && refuse, `${t} / refus=${refuse}`);
     await p.ctx.close();
   });
-  await cas("LOGO-01", "Logo de l'app sur l'accueil", async () => {
+  await cas("LOGO-01", "Logo du jeu et image de fond", async () => {
     const p = await page(null);
-    verifier(await p.locator(".logo svg").count() === 1 && (await p.textContent(".logo")).includes("Knock Knock"), "logo absent");
+    await p.waitForSelector(".logo-jeu img", { timeout: 5000 });
+    const ok = await p.evaluate(() => { const i = document.querySelector(".logo-jeu img"); return i.complete && i.naturalWidth > 0 && document.body.classList.contains("avec-fond"); });
+    verifier(ok && (await p.textContent(".logo-jeu")).includes("Manager"), "logo ou fond absent");
     await p.ctx.close();
   });
 
@@ -628,6 +642,23 @@ async function main() {
     const e = await p.etat();
     verifier(e.roster[h0]?.niveau === 99 && !e.roster[h1]?.possede && e.joueur.guilde === "" && e.joueur.pseudo === "ArtKnight", JSON.stringify({ h0: e.roster[h0], h1: e.roster[h1], guilde: e.joueur.guilde, pseudo: e.joueur.pseudo }));
   });
+  await cas("IMP-11", "Bouton Enregistrer toujours visible dans les résultats", async () => {
+    const { titre } = await importer(["profil-en.png", "heros-en.png"]);
+    const bas = await pageImport.locator(".feuille-pied [data-act=import-appliquer]").boundingBox();
+    const haut = await pageImport.locator(".feuille-tete [data-act=import-appliquer]").count();
+    const h = await pageImport.evaluate(() => innerHeight);
+    verifier(bas && bas.y + bas.height <= h && haut === 1, `pied ${JSON.stringify(bas)}, haut ${haut}`);
+    return titre;
+  });
+  await cas("IMP-12", "Propositions cochées non barrées, clavier sans perte du champ", async () => {
+    await importer(["heros-en.png"]);
+    const barre = await pageImport.$$eval(".feuille .corps b, .feuille .corps small", (els) => els.some((e) => getComputedStyle(e).textDecorationLine.includes("line-through")));
+    const champ = pageImport.locator('.feuille [data-imp$=".niveau"]').last();
+    await champ.focus(); await pageImport.waitForTimeout(500);
+    const vis = await champ.boundingBox();
+    const h = await pageImport.evaluate(() => innerHeight);
+    verifier(!barre && vis && vis.y > 0 && vis.y + vis.height < h, `barré=${barre}, champ=${JSON.stringify(vis)}`);
+  });
   await cas("IMP-07", "Image sans texte", async () => {
     const avant = JSON.stringify(await pageImport.etat());
     const { titre } = await importer(["vide.png"]);
@@ -643,7 +674,7 @@ async function main() {
       const image = ls.some(([, v]) => /data:image|base64,|blob:/.test(v));
       const texteLu = ls.some(([, v]) => /HEROES|Reine des glaces Skin|Room Research Lv/.test(v));
       const enCache = "caches" in window ? await Promise.all((await window.caches.keys()).map(async (c) => (await (await window.caches.open(c)).keys()).map((r) => r.url))) : [];
-      const imagesEnCache = enCache.flat().filter((u) => /\.(png|jpe?g|heic)$/i.test(u) && !/icons\//.test(u));
+      const imagesEnCache = enCache.flat().filter((u) => /\.(png|jpe?g|heic)$/i.test(u) && !/(icons|assets)\//.test(u));
       const bases = indexedDB.databases ? (await indexedDB.databases()).map((d) => d.name) : [];
       return { total, image, texteLu, imagesEnCache, bases, sessionImg: Object.values(sessionStorage).some((v) => /data:image/.test(v)) };
     });
@@ -686,9 +717,17 @@ async function main() {
       const ok = heros === 31 && e.inventaire.length === 29 && Object.values(e.pieges).filter((x) => x.possede).length === 5 && Object.values(e.betes).filter((x) => x.possede).length === 4
         && e.stock.diamants === 352 && e.stock.or === 16630 && e.stock.endurance === 274 && e.joueur.niveau === 69 && e.joueur.coffreCurios === 392 && e.joueur.equipementNiveau === 171;
       const niveaux = Object.values(e.roster).filter((r) => r.possede && r.niveau === 67).length;
+      const parRef = Object.fromEntries(e.inventaire.map((i) => [i.ref, i.etoiles]));
+      const attendu = { "stygian-ouija": 1, "abyssal-mask": 1, "carnivore-stapler": 2, "necropedia": 4, "dynamite-battery": 2, "gore-grinder": 3, "spooky-screen": 3, "killer-camera": 4, "psycho-headphones": 4, "haunted-faucet": 4, "devil-router": 2,
+        "cannibal-shelf": 3, "skeleton-pendant": 3, "ghost-lighter": 4, "vampire-broom": 4, "shock-powerboard": 4, "glutton-can": 4, "tentacle-plug": 4, "backward-watch": 4, "scream-egg": 4, "bone-drill": 4, "rusty-knife": 4, "whitening-brush": 4 };
+      const etoilesFausses = Object.entries(attendu).filter(([k, v]) => parRef[k] !== v).map(([k, v]) => `${k}:${parRef[k]}≠${v}`);
+      const pieges = Object.fromEntries(Object.entries(e.pieges).map(([k, v]) => [k, v.niveau]));
+      const pf = Object.entries({ "iron-fist": 30, "blood-hammer": 17, "molten-furnace": 38, "lethal-fence": 22, "demon-spike": 10 }).filter(([k, v]) => pieges[k] !== v);
+      const bt = Object.entries({ "titan-mammoth": 10, "dreamweaver-spider": 4, "colossal-ape": 27 }).filter(([k, v]) => e.betes[k]?.niveau !== v);
+      verifier(!etoilesFausses.length && !pf.length && !bt.length, `étoiles ${etoilesFausses.join(",")} pièges ${JSON.stringify(pf)} bêtes ${JSON.stringify(bt)}`);
       verifier(ok, JSON.stringify({ heros, curios: e.inventaire.length, stock: e.stock, niveau: e.joueur.niveau }));
       await p.ctx.close();
-      return `31 héros (${niveaux} avec le bon niveau 67), 29 curios, 5 pièges, 4 bêtes, ressources et profil justes`;
+      return `31 héros (${niveaux} au niveau 67), 29 curios avec leurs étoiles, niveaux des 5 pièges et de 3 bêtes, ressources et profil justes`;
     });
   }
 
@@ -721,7 +760,7 @@ async function main() {
     await p.fill("#p-train", "40"); await p.press("#p-train", "Tab"); await p.fermerFeuille();
     const carte = await p.textContent(".carte-profil");
     const tache = await p.getByText("Infinity Train : utiliser les 10 tentatives", { exact: false }).count();
-    verifier(carte.includes("Stop 40") && tache === 1, `carte « ${carte.replace(/\s+/g, " ").slice(0, 120)} », tâche ${tache}`);
+    verifier(/Train\s*40\s*Stop/.test(carte) && tache === 1, `carte « ${carte.replace(/\s+/g, " ").slice(0, 120)} », tâche ${tache}`);
     await p.ctx.close();
   });
 

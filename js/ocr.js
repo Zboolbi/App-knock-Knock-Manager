@@ -2,6 +2,8 @@
 // anglais + français). Le moteur (~8 Mo) n'est chargé qu'à la première
 // utilisation, puis reste en cache : la lecture marche ensuite hors ligne.
 
+import { ancresDu, trouverNom } from "./capture.js";
+
 const BASE = new URL("vendor/tesseract/", document.baseURI).href;
 let moteur = null;
 
@@ -16,7 +18,7 @@ function chargerScript(src) {
   });
 }
 
-async function obtenirMoteur(progression) {
+export async function obtenirMoteur(progression) {
   if (moteur) return moteur;
   await chargerScript(`${BASE}tesseract.min.js`);
   moteur = await window.Tesseract.createWorker(["eng", "fra"], 1, {
@@ -35,11 +37,8 @@ async function obtenirMoteur(progression) {
   return moteur;
 }
 
-/**
- * Agrandit l'image et la passe en noir sur blanc. Sur fond sombre, ne garde
- * que le texte blanc : les cartes colorées du jeu ne gênent plus la lecture.
- */
-async function preparer(fichier, mode = "clair") {
+/** Image agrandie à ~1800 px de large, en couleurs (sert aux deux passes et aux étoiles). */
+export async function toile(fichier) {
   const bitmap = await createImageBitmap(fichier);
   const echelle = Math.min(3, Math.max(1, 1800 / bitmap.width));
   const w = Math.round(bitmap.width * echelle), h = Math.round(bitmap.height * echelle);
@@ -49,25 +48,32 @@ async function preparer(fichier, mode = "clair") {
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close?.();
+  return canvas;
+}
+
+/**
+ * Passe l'image en noir sur blanc. Sur fond sombre : mode « clair » (textes
+ * blancs ou jaunes) ou « couleur » (noms orange, rouges, violets).
+ */
+function preparer(source, mode = "clair", zone = null, agrandir = 1) {
+  const [sx, sy, sw, sh] = zone || [0, 0, source.width, source.height];
+  const w = Math.max(1, Math.round(sw * agrandir)), h = Math.max(1, Math.round(sh * agrandir));
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(source, sx, sy, sw, sh, 0, 0, w, h);
   const img = ctx.getImageData(0, 0, w, h), d = img.data;
   let somme = 0;
   for (let i = 0; i < d.length; i += 4) somme += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
   const sombre = somme / (d.length / 4) < 128;
   for (let i = 0; i < d.length; i += 4) {
     let g;
-    if (sombre) {
-      // Interface sombre aux cartes colorées, textes blancs ou jaunes. Le canal
-      // médian reste haut pour le blanc et le jaune, bas pour un rouge ou un
-      // orange vif : le texte ressort en noir sur fond clair.
-      if (mode === "couleur") {
-        // Textes de couleur vive (noms orange, rouges, violets) : on garde la
-        // luminosité du canal le plus fort, le fond sombre devient blanc.
-        const max = Math.max(d[i], d[i + 1], d[i + 2]);
-        g = 255 - (max - 150) * 3;
-      } else {
-        const median = [d[i], d[i + 1], d[i + 2]].sort((x, y) => x - y)[1];
-        g = 255 - (median - 120) * 3.5; // seuil doux : fond coloré → blanc, texte clair → noir
-      }
+    if (sombre && mode === "couleur") {
+      g = 255 - (Math.max(d[i], d[i + 1], d[i + 2]) - 150) * 3;
+    } else if (sombre) {
+      const median = [d[i], d[i + 1], d[i + 2]].sort((x, y) => x - y)[1];
+      g = 255 - (median - 120) * 3.5;
     } else {
       g = ((0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) - 128) * 1.8 + 128;
     }
@@ -78,18 +84,74 @@ async function preparer(fichier, mode = "clair") {
   return canvas;
 }
 
-/** Lit une liste de fichiers image ; renvoie le texte de chacun et ses lignes positionnées. */
-export async function lireCaptures(fichiers, progression) {
+const dore = (r, g, b) => r > 200 && g > 160 && b < 120 && r - b > 110;
+
+/**
+ * Compte les étoiles dorées sous l'icône d'une carte (Curio Codex) : sur
+ * chaque ligne de pixels de la bande, on compte les segments dorés séparés ;
+ * le maximum est le nombre d'étoiles.
+ */
+export function compterEtoiles(canvas, e) {
+  const W = canvas.width;
+  const cx = (e.x0 + e.x1) / 2;
+  const x0 = Math.max(0, Math.round(cx - W * 0.095)), x1 = Math.min(W, Math.round(cx + W * 0.095));
+  const y0 = Math.max(0, Math.round(e.y0 - W * 0.11)), y1 = Math.max(y0 + 1, Math.round(e.y0 - W * 0.008));
+  const d = canvas.getContext("2d", { willReadFrequently: true }).getImageData(x0, y0, x1 - x0, y1 - y0).data;
+  const larg = x1 - x0, minSeg = W * 0.007, trou = W * 0.004;
+  let max = 0;
+  for (let y = 0; y < y1 - y0; y += 2) {
+    const segments = [];
+    for (let x = 0; x < larg; x++) {
+      const i = (y * larg + x) * 4;
+      if (!dore(d[i], d[i + 1], d[i + 2])) continue;
+      const dernier = segments[segments.length - 1];
+      if (dernier && x - dernier[1] <= trou) dernier[1] = x; else segments.push([x, x]);
+    }
+    max = Math.max(max, segments.filter(([a, b]) => b - a >= minSeg).length);
+  }
+  return Math.min(max, 10);
+}
+
+/**
+ * Relit en gros plan le niveau d'une carte : « 30Lv. » en haut à gauche d'un
+ * piège, « Lv.10 » en haut à droite d'une bête.
+ */
+export async function relireNiveau(m, canvas, e, sorte, debug) {
+  const W = canvas.width;
+  const cx = (e.x0 + e.x1) / 2;
+  const zone = sorte === "betes"
+    ? [cx - W * 0.005, e.y0 - W * 0.24, W * 0.125, W * 0.07]
+    : [cx - W * 0.12, e.y0 - W * 0.27, W * 0.24, W * 0.14];
+  const petit = preparer(canvas, "clair", zone.map((v, i) => (i < 2 ? Math.max(0, v) : v)), 3);
+  await m.setParameters({ tessedit_pageseg_mode: sorte === "betes" ? "7" : "6", tessedit_char_whitelist: "Lv.0123456789 " });
+  const { data } = await m.recognize(petit);
+  await m.setParameters({ tessedit_pageseg_mode: "11", tessedit_char_whitelist: "" });
+  petit.width = petit.height = 0;
+  // « 1v10 » : le L de « Lv » est souvent lu comme un 1.
+  const t = (data.text || "").replace(/\s+/g, " ").trim().replace(/(^|\s)[1lI|]v\.?/g, "$1Lv.");
+  if (debug) debug.push(t);
+  const v = sorte === "betes"
+    ? t.match(/lv\.?\s*(\d{1,3})/i) || t.match(/^\D*(\d{1,3})\D*$/)
+    : t.match(/(\d{1,3})\s*lv/i) || t.match(/lv\.?\s*(\d{1,3})/i);
+  return v ? Number(v[1]) : null;
+}
+
+/**
+ * Lit une liste de fichiers image ; renvoie le texte de chacun et ses lignes
+ * positionnées. Avec le catalogue, ajoute les étoiles des curios et relit les
+ * niveaux des bêtes et des pièges.
+ */
+export async function lireCaptures(fichiers, progression, catalogue = null) {
   const m = await obtenirMoteur(progression);
   const textes = [];
+  const ancres = catalogue ? ancresDu(catalogue) : [];
   for (let i = 0; i < fichiers.length; i++) {
     progression?.({ etape: "image", index: i + 1, total: fichiers.length });
-    // Deux lectures : textes clairs (blanc, jaune), puis textes de couleur vive.
+    const couleur = await toile(fichiers[i]);
     const elements = [];
-    let texte = "", largeur = 0, hauteur = 0;
+    let texte = "";
     for (const mode of ["clair", "couleur"]) {
-      const canvas = await preparer(fichiers[i], mode);
-      largeur = canvas.width; hauteur = canvas.height;
+      const canvas = preparer(couleur, mode);
       const { data } = await m.recognize(canvas);
       texte += `${data.text || ""}\n`;
       for (const l of data.lines || []) {
@@ -99,9 +161,31 @@ export async function lireCaptures(fichiers, progression) {
         if (elements.some((e) => Math.abs(e.y0 - l.bbox.y0) < 20 && Math.abs(e.x0 - l.bbox.x0) < 40 && e.texte === t)) continue;
         elements.push({ texte: t, ...l.bbox, confiance: l.confidence });
       }
-      canvas.width = canvas.height = 0; // libère l'image
+      canvas.width = canvas.height = 0;
     }
-    textes.push({ nom: fichiers[i].name, texte, elements, largeur, hauteur });
+    if (ancres.length) {
+      const vus = new Set();
+      for (const e of [...elements]) {
+        let a = trouverNom(e.texte, ancres);
+        if (!a) {
+          // Nom sur deux lignes (« Psycho » / « Headphones ») : on le recolle.
+          const h = Math.max(1, e.y1 - e.y0);
+          const dessous = elements.find((f) => f !== e && f.y0 > e.y0 && f.y0 - e.y1 < h * 0.9 && Math.abs((f.x0 + f.x1) / 2 - (e.x0 + e.x1) / 2) < Math.max(e.x1 - e.x0, f.x1 - f.x0));
+          a = dessous && !trouverNom(dessous.texte, ancres) ? trouverNom(`${e.texte} ${dessous.texte}`, ancres) : null;
+          if (!a || a.sorte !== "artefacts") continue;
+        }
+        if (a.sorte === "artefacts" && (catalogue.artefacts.find((x) => x.id === a.id) || {}).set) {
+          const n = compterEtoiles(couleur, e);
+          if (n) e.texte = `${e.texte} ${"★".repeat(n)}`;
+        } else if ((a.sorte === "betes" || a.sorte === "pieges") && !vus.has(a.id) && e.y0 > couleur.height * 0.3) {
+          vus.add(a.id);
+          const niv = await relireNiveau(m, couleur, e, a.sorte).catch(() => null);
+          if (niv) e.texte = `${e.texte} Lv.${niv}`; else vus.delete(a.id);
+        }
+      }
+    }
+    textes.push({ nom: fichiers[i].name, texte, elements, largeur: couleur.width, hauteur: couleur.height });
+    couleur.width = couleur.height = 0; // l'image n'est pas conservée
   }
   return textes;
 }

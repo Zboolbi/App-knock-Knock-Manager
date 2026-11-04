@@ -187,7 +187,7 @@ export function analyserTexte(texte, catalogue) {
     const connu = trouverNom(l, artefactsNommes, 0.85);
     if (connu) {
       const fiche = artefactsNommes.find((a) => a.id === connu.id);
-      artefacts.push({ ref: connu.id, nom: fiche.nom, stat: fiche.stat, set: fiche.set || "", etoiles: null, rarete: fiche.set ? fiche.rarete : voisines.map(lireRarete).find(Boolean) || fiche.rarete,
+      artefacts.push({ ref: connu.id, nom: fiche.nom, stat: fiche.stat, set: fiche.set || "", etoiles: lireEtoiles(l), rarete: fiche.set ? fiche.rarete : voisines.map(lireRarete).find(Boolean) || fiche.rarete,
         niveau: voisines.map(lireNiveauArtefact).find((v) => v !== null) ?? 0, lu: l });
       return;
     }
@@ -208,7 +208,7 @@ export function analyserTexte(texte, catalogue) {
   const parAutre = new Map();
   toutes.filter((t) => t.a.sorte === "pieges" || t.a.sorte === "betes").forEach(({ i, a }) => {
     const suivante = toutes.find((t) => t.i > i);
-    const zone = lignes.slice(i + 1, Math.min(lignes.length, i + 7, suivante ? suivante.i : Infinity));
+    const zone = lignes.slice(i, Math.min(lignes.length, i + 7, suivante ? suivante.i : Infinity));
     const prop = parAutre.get(a.id) || { sorte: a.sorte, id: a.id, nom: a.nom, lu: lignes[i], niveau: null, etoiles: null, verrouille: false, garder: true };
     for (const l of zone) {
       const v = lireNiveau(l);
@@ -237,7 +237,7 @@ export function analyserTexte(texte, catalogue) {
   const dedoublonner = (liste, cle) => [...new Map(liste.map((x) => [cle(x), x])).values()];
   return {
     heros: [...parHero.values()],
-    artefacts: dedoublonner(artefacts, (a) => (a.ref ? a.ref : `${compact(a.nom)}|${a.niveau}`)),
+    artefacts: dedoublonner([...artefacts].sort((a, b) => (a.etoiles ?? -1) - (b.etoiles ?? -1)), (a) => (a.ref ? a.ref : `${compact(a.nom)}|${a.niveau}`)),
     skins: dedoublonner(skins, (s) => compact(s.nom)),
     pieges: [...parAutre.values()].filter((x) => x.sorte === "pieges"),
     betes: [...parAutre.values()].filter((x) => x.sorte === "betes"),
@@ -429,6 +429,14 @@ export function lireProfil(texte, ressources = []) {
       if (q !== null) stock[r.id] = q;
     }
   });
+  // Fiche joueur sans libellé « Name » : le pseudo est la ligne juste au-dessus de l'ID.
+  if (p.pseudo == null && p.idJoueur != null) {
+    const i = lignes.findIndex((l) => l.includes(p.idJoueur));
+    for (const l of lignes.slice(Math.max(0, i - 2), i).reverse()) {
+      const v = l.replace(/\b(?:lv|lvl|niv)\.?\s*\d+/gi, "").replace(/[^\p{L}\p{N}_ .'-]/gu, "").trim();
+      if (v.length >= 3 && v.length <= 20 && /\p{L}/u.test(v) && !/(guild|guilde|power|puissance|vip|server|serveur|\bid\b)/i.test(v)) { p.pseudo = v; break; }
+    }
+  }
   // Premier « Lv. N » d'un écran de profil sans nom de héros autour : niveau du joueur.
   if (p.niveau == null && p.pseudo != null) {
     const i = lignes.findIndex((l) => p.pseudo && l.includes(p.pseudo));

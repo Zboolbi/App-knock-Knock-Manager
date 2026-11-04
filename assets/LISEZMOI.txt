@@ -1,0 +1,1 @@
+Visuels fournis par le joueur : logo-jeu.png (logo détouré) et fond.png (image de fond). Absents = logo et fond par défaut.

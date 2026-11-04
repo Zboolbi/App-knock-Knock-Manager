@@ -13,7 +13,7 @@
 ## 2. Design (demandé par l'utilisateur)
 - Style **Apple** (listes groupées, grands titres, feuilles modales, contrôle segmenté), pratique comme une app de gestion.
 - **Fond noir, textes blancs, titres dorés** (`--or: #d8b45a`). Thème unique sombre.
-- Logo : **création originale** (porte dorée + « KNOCK KNOCK MANAGER »). Le logo officiel du jeu n'est **pas** utilisé (marque d'un tiers, l'app est non officielle).
+- Logo : **logo du jeu fourni par l'utilisateur** (`assets/logo-jeu.png`, détouré) à la place du titre, « MANAGER » dessous. Fond : tête-citrouille (`assets/fond.jpg`) en transparence (22 %). Icône d'app « K » : fournie mais **pas encore reçue en fichier** (icône actuelle : porte).
 
 ## 3. Onglets
 | Onglet | Contenu |
@@ -33,8 +33,8 @@
 | `js/capture.js` | Analyse du texte des captures (héros, curios, pièges, bêtes, profil, ressources, écrans à chiffres sans libellé) |
 | `js/ocr.js` | Tesseract.js embarqué (`vendor/`, eng+fra), **2 passes** (textes clairs / textes colorés), image jamais conservée |
 | `js/app.js` | Interface (vues, feuilles, import, événements) |
-| `tests/*.mjs` | 34 tests unitaires (`npm test`) |
-| `qa/campagne.cjs` | 84 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
+| `tests/*.mjs` | 35 tests unitaires (`npm test`) |
+| `qa/campagne.cjs` | 87 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
 | `docs/qa/` | Cahier des tests, résultats, anomalies, diagnostic |
 | `outils/build.py` | Page unique + archive PWA (`dist/`) |
 
@@ -56,10 +56,12 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 ## 7. Import par capture — état de la lecture (16 vraies captures)
 - ✔ Écran Value Pass (souscrit si « Renew » / « Claimable » dans la colonne, non souscrit si « Not Subscribed » / prix ; jours restants si lisibles), écran Infinity Train (arrêt, tentatives du jour → coche la tâche si 0 restante).
 - ✔ Noms des 31 héros, niveaux (« Lv.67 » au-dessus du nom), curios possédés (les non possédés, grisés, ne sont pas lus), pièges et bêtes (verrous « 0/50 »), écran principal (chiffres sans libellé repérés par position), écran Gear, Curio Vault, serveur.
-- ✘ Non lisible : **étoiles** (icônes), **promotion** (chiffre du losange vert), noms des 5 héros de l'équipe principale, niveaux de certaines bêtes. Niveaux incohérents écartés automatiquement.
+- ✔ **Étoiles des curios** : comptées par couleur (segments dorés sous l'icône) → 29/29 justes. **Niveaux des pièges/bêtes** : relecture en gros plan du coin de carte (chiffres seulement) → 5/5 pièges, 3/4 bêtes.
+- ✘ Non lisible : **promotion** (losange vert), noms des 5 héros de l'équipe principale, nom du joueur (absent des écrans reçus : il faut la fiche joueur), Porte/Lit (absents). Niveaux incohérents écartés ; héros sans niveau lu marqués « Niv. à saisir ».
 - Durée : ~7 s par capture sur ordinateur (2 passes).
 
 ## 8. Limites connues / pistes
+- Interface : écran fixe (`body` fixe, `#defile` défile seul) → la barre d'onglets ne bouge plus sur iPhone. Feuilles : action principale en haut à droite + barre fixe en bas ; hauteur = `visualViewport` (clavier iOS) et champ actif recentré.
 - L'adresse est sensible à la casse : `zboolbi.github.io/App-knock-Knock-Manager/`. Pour une adresse en minuscules, renommer le dépôt en `app-knock-knock-manager` (Settings › General).
 - Installation : bouton « Installer » sur l'accueil (masqué si déjà installée). Android/Chrome : fenêtre native (`beforeinstallprompt`). iPhone : Apple interdit l'installation par une page → étapes Safari guidées + flèche vers Partager ; navigateur intégré (Instagram, Gmail…) ou Chrome iOS → copie de l'adresse pour Safari.
 - Lire les étoiles par détection de couleur des icônes (non fait).
@@ -73,6 +75,7 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 | 04/11 | V1 : PWA 6 onglets (plan, héros, boss, artefacts, ressources, données). |
 | 04/11 | V2 : refonte façon Instagram, import OCR (eng+fra), publication GitHub Pages. |
 | 04/11 | V3 : refonte Apple noir/blanc/or, import complet du profil, campagne QA 71 cas (10 anomalies corrigées). |
+| 04/11 | V7 : étoiles des curios et niveaux des pièges/bêtes lus sur l'image, bouton « Enregistrer » fixe dans les résultats, coches non barrées, clavier iOS géré, barre d'onglets fixe, carte joueur lisible (Train/Gear), Porte/Lit inconnus détectés, logo du jeu + fond citrouille, QA 87/87. |
 | 04/11 | V6.1 : correction de l'adresse (404) : le chemin GitHub Pages respecte la casse du dépôt → `/App-knock-Knock-Manager/` ; l'app utilise désormais son adresse réelle. |
 | 04/11 | V6 : bouton « Installer l'app » adapté à l'appareil (Android natif, iPhone guidé, navigateurs intégrés), QA 84/84. |
 | 04/11 | V5 : Value Pass / Deluxe Pass (contenu, gains quotidiens, import de l'écran), Infinity Train (mode, arrêt dans le profil, tâche du jour, import), QA 80/80. Valeurs du joueur non figées dans les tests. |

@@ -1,8 +1,8 @@
 // Cache hors ligne : réseau d'abord, cache en secours.
-const CACHE = "kkrd-coach-v7";
+const CACHE = "kkrd-coach-v9";
 const FICHIERS = ["./", "index.html", "styles.css", "manifest.webmanifest", "icon.svg",
   "js/app.js", "js/data.js", "js/engine.js", "js/store.js", "js/capture.js", "js/ocr.js",
-  "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
+  "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", "assets/logo-jeu.png", "assets/fond.jpg"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FICHIERS)).then(() => self.skipWaiting()));

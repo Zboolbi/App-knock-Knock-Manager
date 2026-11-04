@@ -309,8 +309,10 @@ export function planProgression(etat) {
   const etapes = [];
   const j = etat?.joueur || {};
   const porte = Number(j.porte) || 0, lit = Number(j.lit) || 0;
-
-  if (porte || lit) {
+  // Porte et Lit à 1 sur un compte avancé : valeurs jamais renseignées (le jeu ne les affiche pas sur l'écran principal).
+  const inconnus = (!porte && !lit) || (porte <= 1 && lit <= 1 && (Number(j.niveau) > 15 || parseInt(j.etape, 10) > 20));
+  if (inconnus) etapes.push({ priorite: 3, titre: "Renseignez vos niveaux de Porte et de Lit", detail: "Accueil › Modifier : la Porte plafonne le Lit, l'app vous dira lequel monter." });
+  else {
     if (lit >= porte) etapes.push({ priorite: 1, titre: `Montez la Porte (${porte} → ${porte + 1})`, detail: "Elle plafonne le Lit : sans elle, le Lit ne progresse plus." });
     else if (porte - lit >= 2) etapes.push({ priorite: 1, titre: `Rattrapez le Lit (${lit} → ${porte})`, detail: "Le Lit fait votre revenu : gardez-le au niveau de la Porte." });
   }
@@ -335,7 +337,10 @@ export function planProgression(etat) {
   if (ecart >= 10) etapes.push({ priorite: 3, titre: `Rattrapez ${plusFaible.nom} (niv. ${progression(etat, plusFaible.id).niveau})`, detail: `${ecart} niveaux de retard sur ${meilleur.nom} : le maillon faible fait tomber l'équipe.` });
 
   const gaspilles = heros.filter((h) => !coeur.includes(h) && progression(etat, h.id).possede && progression(etat, h.id).niveau > 20);
-  if (gaspilles.length) etapes.push({ priorite: 5, titre: "Arrêtez d'investir hors équipe", detail: `${gaspilles.map((h) => h.nom).join(", ")} : à garder pour les boss qui craignent leurs effets.` });
+  if (gaspilles.length) {
+    const noms = gaspilles.slice(0, 4).map((h) => h.nom).join(", ") + (gaspilles.length > 4 ? ` et ${gaspilles.length - 4} autres` : "");
+    etapes.push({ priorite: 5, titre: `Arrêtez d'investir dans ${gaspilles.length} héros hors équipe`, detail: `${noms} : gardez-les pour les boss qui craignent leurs effets.` });
+  }
 
   const conf = configurationArtefacts(etat, coeur);
   if (conf.aChanger) etapes.push({ priorite: 2, titre: `${conf.aChanger} héros avec de meilleurs curios disponibles`, detail: "Stratégie › Curios › « Appliquer »." });

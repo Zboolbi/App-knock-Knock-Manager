@@ -55,6 +55,7 @@ Légende priorité : P1 bloquant, P2 majeur, P3 mineur.
 | NAV-02 | Les 5 onglets | Chaque onglet s'affiche avec son grand titre doré, l'onglet actif est doré | P1 |
 | NAV-03 | Barre du haut au défilement | Le petit titre apparaît après défilement | P3 |
 | NAV-04 | Feuille ouverte puis Fermer / Échap / toucher le fond | La feuille se ferme, la page ne défile plus derrière | P2 |
+| NAV-06 | Défilement long | La barre d'onglets reste fixe en bas, la page entière ne bouge pas | P1 |
 | NAV-05 | Navigation imbriquée (Réglages › Profil › Retour) | « ‹ Retour » revient à Réglages | P2 |
 
 ### 4.2 Profil du joueur et ressources
@@ -133,6 +134,8 @@ Légende priorité : P1 bloquant, P2 majeur, P3 mineur.
 | IMP-04 | Fiche héros française avec artefact jaune et skin | Héros + artefact (nom, stat, rareté, niveau) + skin rattaché au héros | P1 |
 | IMP-05 | Plusieurs captures en une fois | Toutes lues, résultats fusionnés | P2 |
 | IMP-06 | Décocher / corriger une proposition | Seul ce qui est coché et corrigé est enregistré | P1 |
+| IMP-11 | Résultats d'import longs | « Enregistrer » visible en haut à droite et en barre fixe en bas | P1 |
+| IMP-12 | Résultats d'import : éléments cochés, saisie d'un niveau | Rien n'est barré ; le champ actif reste visible au-dessus du clavier | P1 |
 | IMP-07 | Image sans texte utile | « Rien de reconnu », aucune donnée modifiée | P2 |
 | IMP-08 | **Aucune capture conservée** | Après import : rien de l'image ni du texte lu dans localStorage ; champ fichier vidé ; texte lu oublié à la fermeture | P1 |
 | IMP-09 | Import répété du même artefact | Pas de doublon au catalogue (l'inventaire peut en contenir plusieurs) | P3 |
