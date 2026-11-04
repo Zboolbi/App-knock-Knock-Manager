@@ -108,6 +108,7 @@ Légende priorité : P1 bloquant, P2 majeur, P3 mineur.
 | STR-10 | Boss par type | « Jouer cette équipe » applique l'équipe adaptée (magique contre un boss résistant au physique) | P2 |
 | EQU-01 | Choix d'équipe | Tous les héros proposés (obtenus d'abord), recherche, un héros ajouté est marqué obtenu | P1 |
 | REEL-03 | Vraie capture de l'équipe (local) | 5 portraits découpés, niveaux lus, aucune image enregistrée | P2 |
+| UI-09 | Interrupteurs | Taille iOS 51×31 dans les fiches (non étirés) | P2 |
 | STR-08 | Équipe proposée sans équipe choisie | Bouton « Utiliser » qui l'enregistre en un geste | P3 |
 
 ### 4.6 Boss

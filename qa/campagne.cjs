@@ -514,6 +514,16 @@ async function main() {
     await p.ctx.close();
   });
 
+  await cas("UI-09", "Interrupteurs de la fiche héros à la taille iOS (51×31)", async () => {
+    const p = await page(avec((e) => { possede(e, ["metaman"]); e.equipe = ["metaman"]; }));
+    await p.click(".onglets [data-onglet=heros]"); await p.click("[data-act=seg][data-id=collection]").catch(() => {});
+    await p.evaluate(() => document.querySelector('[data-f=hero][data-id=metaman]')?.click());
+    await p.waitForSelector(".feuille .interrupteur");
+    const tailles = await p.$$eval(".feuille .interrupteur", (els) => els.map((e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; }));
+    verifier(tailles.length >= 2 && tailles.every((t) => t === "51x31"), tailles.join());
+    await p.ctx.close();
+  });
+
   /* ---------- 4.6 Boss ---------- */
   await cas("BOS-01", "Création et équipe conseillée", async () => {
     const p = await page(null);

@@ -180,7 +180,7 @@ input::placeholder, textarea::placeholder { color: var(--texte-3); }
 .stepper button { width: 44px; height: 34px; border: 0; background: none; font-size: 22px; line-height: 1; color: var(--texte); }
 .stepper button + input, .stepper input + button { border-left: 0.5px solid var(--sep); }
 .stepper input { width: 56px; border: 0; background: none; text-align: center; font-size: 17px; font-weight: 600; color: var(--texte); font-variant-numeric: tabular-nums; padding: 0; height: 34px; }
-.interrupteur { appearance: none; -webkit-appearance: none; width: 51px; height: 31px; border-radius: 16px; background: #39393d; position: relative; flex: none; margin: 0; transition: background .2s; }
+input.interrupteur, .champ input.interrupteur { appearance: none; -webkit-appearance: none; width: 51px; height: 31px; border-radius: 16px; background: #39393d; position: relative; flex: none; margin: 0; padding: 0; min-width: 51px; max-width: 51px; transition: background .2s; }
 .interrupteur::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgb(0 0 0 / .3); transition: transform .2s; }
 .interrupteur:checked { background: var(--bon); }
 .interrupteur:checked::after { transform: translateX(20px); }
