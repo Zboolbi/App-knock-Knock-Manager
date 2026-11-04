@@ -1,4 +1,4 @@
-# Room Defense Coach
+# Knock Knock Manager
 
 Application compagnon **non officielle** pour *Knock Knock: Room Defense* (iOS / Android).
 Elle aide à faire progresser un profil vite : plan d'action priorisé, équipe à composer contre chaque boss,
@@ -12,17 +12,15 @@ puis Partager › « Sur l'écran d'accueil ».
 
 ## Les 5 onglets
 
+Style Apple (listes groupées, grands titres, feuilles modales), fond noir, textes blancs, titres dorés.
+
 | Onglet | Contenu |
 |---|---|
-| **Profil** | Façon profil Instagram : compteurs (héros, artefacts, skins), l'équipe en « stories », grille des héros. Touchez un héros : possédé, niveau, promotion, étoiles (boutons + et −), skin porté, artefacts équipés, fiche (compétences, aura). Sous-onglets Artefacts (inventaire, porteur) et Skins (possédés, bonus). |
-| **Stratégie** | Fil mis à jour à chaque modification du profil : analyse de l'équipe (rôles manquants, synergies), configuration optimale des artefacts avec « Appliquer », prochaines étapes, paliers de promotion, skins à équiper, effet des options payantes, où dépenser, routine du jour, équipes de référence. La pastille sur l'onglet compte les héros à rééquiper. |
-| **Boss** | Chaque boss avec forces, faiblesses, résistances, traits, spécificités ; l'équipe conseillée et ses raisons, les meilleurs héros par faiblesse, les artefacts pour ce combat, « En faire mon équipe ». |
-| **Options payantes** | Les options repérées (abonnement, Value Pass, packs, offres d'événement) : cochez celles souscrites et leur date de fin. La Stratégie s'adapte (combat auto, vitesse x2, passes quotidiens) et prévient avant l'expiration. |
-| **Plus** | Installation iPhone, connexion au jeu, sauvegarde (copier-coller ou fichier), catalogue modifiable des héros et artefacts, paliers de promotion. |
-
-Tout est gardé sur l'appareil (stockage du navigateur) et modifiable à la main. Le catalogue
-(héros, artefacts, skins, boss, offres) est la « mémoire » de l'app : chaque fiche corrigée ou ajoutée
-est conservée, et les nouvelles fiches d'une mise à jour de l'app s'y ajoutent sans écraser les vôtres.
+| **Accueil** | Tableau de bord : carte du joueur (pseudo, niveau, guilde, VIP, ID, étape, Porte / Lit, puissance), bouton **Importer**, ressources (Diamants, Or, Soul Flame, Hero Pact, Leather, Stamina, tirages de 10 possibles), équipe, « À faire maintenant », routine du jour. Réglages par l'icône en haut à droite. |
+| **Héros** | Contrôle segmenté **Équipe** (5 places, analyse, équipes de référence) · **Collection** (par rareté, recherche, « Les miens ») · **Artefacts** (inventaire, porteur) · **Skins**. Chaque héros : obtenu, niveau, promotion, étoiles, artefacts, skin, fiche. |
+| **Stratégie** | Recalculée à chaque modification : prochaines étapes, analyse d'équipe, configuration optimale des artefacts (« Tout appliquer »), promotions, ressources, skins, options payantes, modes de jeu, astuces. |
+| **Boss** | Forces, faiblesses, résistances, spécificités, équipe conseillée argumentée, meilleurs héros par faiblesse, artefacts du combat. |
+| **Boutique** | Options payantes souscrites (dates de fin), codes cadeaux. |
 
 ## Lancer en local
 
@@ -36,8 +34,7 @@ python3 outils/build.py   # dist/ : page unique + archive PWA
 
 Une app web s'installe sur iOS depuis Safari quand elle est servie en HTTPS :
 
-1. Ce dépôt se publie tout seul sur GitHub Pages à chaque push sur `main`
-   (`.github/workflows/pages.yml`).
+1. Ce dépôt se publie tout seul sur GitHub Pages à chaque push sur `main` (`.github/workflows/pages.yml`).
 2. Ouvrez https://zboolbi.github.io/app-knock-knock-manager/ dans **Safari** › Partager › **Sur l'écran d'accueil**.
 3. L'app s'ouvre en plein écran, avec son icône, et marche hors ligne après la première ouverture.
 
@@ -46,8 +43,10 @@ Une app native de l'App Store demanderait un Mac avec Xcode et un compte dévelo
 
 ## Import par capture d'écran
 
-Profil › icône appareil photo (ou Plus › Importer des captures) : choisissez des captures du jeu
-(liste des héros, fiche d'un héros, artefacts, skins). L'app lit le texte **en anglais ou en
+Accueil › **Importer** : choisissez des captures du jeu (profil, écran principal, collection,
+fiche d'un héros, artefacts, skins). Tout ce qui est lisible remplit le profil : pseudo, ID,
+niveau, guilde, puissance, VIP, étape, Porte, Lit, Room Research, ressources, héros, artefacts,
+skins. **Les captures ne sont pas conservées** : seules les infos validées sont enregistrées. L'app lit le texte **en anglais ou en
 français** avec Tesseract.js, embarqué dans `vendor/tesseract/` (environ 12 Mo, chargé seulement à
 la première utilisation puis gardé en cache, donc hors ligne ensuite). Rien n'est envoyé : la
 lecture se fait sur le téléphone.
@@ -103,3 +102,8 @@ le catalogue démarre avec des artefacts génériques (un par statistique), aucu
 et d'avis de joueurs ; seuls deux prix sont publiés (packs 0,99 $ et 2,99 $).
 Les paliers de promotion (P3 énergie, P6 et P9 amélioration du héros, P12 vitesse d'attaque,
 P15 dégâts finaux) viennent de ProGameGeek.
+
+## Qualité
+
+Cahier des charges de test, résultats des passes, rapport d'anomalies et diagnostic : `docs/qa/`.
+`node qa/campagne.cjs <passe>` rejoue les 71 cas dans Chromium (émulation iPhone).

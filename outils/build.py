@@ -46,7 +46,7 @@ def page_unique(fragment: bool) -> str:
     corps = re.search(r"<body>([\s\S]*)</body>", html).group(1)
     corps = corps.replace('<script type="module" src="js/app.js"></script>', "")
     script = f'<script type="module">\n{bundle_js()}\n</script>'
-    tete = ('<title>Room Defense Coach</title>\n'
+    tete = ('<title>Knock Knock Manager</title>\n'
             '<meta name="description" content="Coach de progression pour Knock Knock: Room Defense">\n'
             f"<style>\n{css}\n</style>")
     if fragment:

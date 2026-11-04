@@ -71,20 +71,33 @@ export const HEROS_DEPART = [
   h({ id: "frosthealer", nom: "Frosthealer", rarete: "Légendaire", type: "magique", effet: "gel", role: "soin", tier: "A",
     competences: "Attaque normale : rend 300 PV à la Porte. Ultime : dégâts de zone autour de la Porte et Gel 3 s.",
     aura: "Déployée : +15 % de PV à toutes les unités.", note: "Apporte la survie à l'équipe Gel.", source: PGG }),
-  h({ id: "pyro-mech", nom: "Pyro Mech", rarete: "Légendaire", type: "physique", effet: "brulure", role: "amplificateur", tier: "A",
+  h({ id: "pyro-mech", nom: "Pyrogon Mech", alias: ["Pyro Mech"], rarete: "Légendaire", type: "physique", effet: "brulure", role: "amplificateur", tier: "A",
     competences: "Passif : +5 % de dégâts de Brûlure subis par cumul de Brûlure, jusqu'à +50 %.", note: "Cœur de l'équipe Brûlure.", source: PGG }),
   h({ id: "flame-demon", nom: "Flame Demon", rarete: "Légendaire", type: "magique", effet: "brulure", role: "zone", tier: "A", note: "Classé A.", source: PGG }),
   h({ id: "power-ogre", nom: "Power Ogre", rarete: "Légendaire", type: "physique", effet: "aucun", role: "mono", tier: "A", note: "Classé A.", source: PGG }),
   h({ id: "omicron", nom: "Omicron", rarete: "Légendaire", type: "magique", effet: "aucun", role: "zone", tier: "A", note: "Classé A.", source: PGG }),
+  h({ id: "bride-wraith", nom: "Bride Wraith", rarete: "Mythique", type: "magique", effet: "brulure", role: "zone", tier: "A",
+    note: "Équipe Brûlure : met la pression sur les groupes.", source: `${PGG}, ${TREY}` }),
+  h({ id: "redhood", nom: "Redhood", rarete: "Légendaire", type: "physique", effet: "brulure", role: "amplificateur", tier: "B",
+    note: "Équipe Brûlure : augmente les dégâts. Classé bas par un autre tier list.", source: PGG }),
+  h({ id: "scarecrow", nom: "Scarecrow", rarete: "Légendaire", type: "physique", effet: "saignement", role: "mono", tier: "B",
+    note: "Source de Saignement importante de l'équipe Saignement.", source: PGG }),
+  h({ id: "blue-giant", nom: "Blue Giant", rarete: "Mythique", type: "physique", effet: "saignement", role: "zone", tier: "B",
+    note: "Saignement et dégâts de zone. Classé B (TreyExGaming), S ailleurs.", source: `${PGG}, ${TREY}` }),
+  h({ id: "pinocchio", nom: "Pinocchio", rarete: "Légendaire", type: "magique", effet: "gel", role: "zone", tier: "C",
+    note: "Équipe Gel : Gel et dégâts de zone.", source: PGG }),
+  h({ id: "puncher", nom: "Puncher", rarete: "Légendaire", type: "physique", effet: "aucun", role: "mono", tier: "B",
+    note: "Cité dans une équipe anti-boss avec Archangel, Spiker, Lazerman et Metaman.", source: PGG }),
   h({ id: "archmage", nom: "Archmage", rarete: "Légendaire", type: "magique", effet: "gel", role: "controle", tier: "B",
     competences: "Applique Gel avec son ultime et sa compétence de base.", source: PGG }),
 ];
 
 export const EQUIPES_REFERENCE = [
   { nom: "Progression", but: "Résultats fiables partout", heros: ["metaman", "archangel", "hades", "spiker", "oni-samurai"], source: PGG },
-  { nom: "Brûlure", but: "Dégâts sur la durée, amplifiés par Pyro Mech", heros: ["pyro-mech", "flame-demon", "archangel", "lazerman", "bright-spirit"], source: `${PGG} (compléments de l'app)` },
-  { nom: "Saignement", but: "Dégâts soutenus contre les ennemis résistants", heros: ["ghost-captain", "archangel", "spiker", "poison-knight", "bright-spirit"], source: `${PGG} (compléments de l'app)` },
-  { nom: "Gel", but: "Contrôle et survie", heros: ["frosthealer", "archmage", "archangel", "poseidon", "spiker"], source: `${PGG} (compléments de l'app)` },
+  { nom: "Anti-boss", but: "Mélange de types contre les boss ; Frosthealer à la place de Puncher si la Porte tombe", heros: ["archangel", "spiker", "lazerman", "metaman", "puncher"], source: PGG },
+  { nom: "Brûlure", but: "Pyrogon Mech et Redhood amplifient, Bride Wraith presse les groupes", heros: ["archangel", "lazerman", "pyro-mech", "bride-wraith", "redhood"], source: PGG },
+  { nom: "Saignement", but: "Dégâts soutenus contre les ennemis résistants", heros: ["hades", "archangel", "scarecrow", "blue-giant", "ghost-captain"], source: PGG },
+  { nom: "Gel", but: "Contrôle et survie", heros: ["frosthealer", "archangel", "hades", "archmage", "pinocchio"], source: PGG },
 ];
 
 export const TRAITS = {
@@ -172,4 +185,44 @@ export const DEPENSES = [
   { ressource: "Matériaux de promotion", conseil: "Promotions 6 puis 9 : carry, puis amplificateur, puis soigneur." },
   { ressource: "Matériaux d'artefact", conseil: "Sur les artefacts au bon type (P.ATK / M.ATK) du carry. Rien sur Commun ou Rare." },
   { ressource: "Énergie", conseil: "Ne la laissez jamais plafonner : étape la plus haute battue de façon fiable." },
+];
+
+// Ressources du compte. `motsOcr` : libellés reconnus sur les captures (EN/FR).
+export const RESSOURCES = [
+  { id: "diamants", nom: "Diamants", motsOcr: ["diamonds", "diamond", "diamants", "diamant", "gems", "gemmes"],
+    conseil: "Gardez-les pour les tirages de 10 (2 200 diamants) sur la bannière qui a le Mythique manquant à l'équipe." },
+  { id: "or", nom: "Or", motsOcr: ["gold", "or", "coins", "pieces"],
+    conseil: "Porte et Lit d'abord, puis les niveaux des 5 héros de l'équipe." },
+  { id: "flammeAme", nom: "Soul Flame", motsOcr: ["soul flame", "soulflame", "soulfire", "soul fire", "flamme d'ame", "flamme ame"],
+    conseil: "Ressource clé pour renforcer le compte : réservez-la aux 5 héros de l'équipe." },
+  { id: "pacteHeros", nom: "Hero Pact", motsOcr: ["hero pact", "hero pacts", "hero contract", "hero contracts", "pacte de heros", "pacte heros", "contrat de heros"],
+    conseil: "Sert aux invocations de héros : utilisez-les avant les diamants." },
+  { id: "cuir", nom: "Leather", motsOcr: ["leather", "cuir"],
+    conseil: "Matériau d'amélioration : sur le carry et l'amplificateur d'abord." },
+  { id: "endurance", nom: "Stamina", motsOcr: ["stamina", "energy", "endurance", "energie"],
+    conseil: "Ne la laissez jamais plafonner : étape la plus haute battue de façon fiable." },
+];
+
+export const MODES = [
+  { id: "campagne", nom: "Campagne principale", note: "Débloque les autres modes. Objectif conseillé : étape 20 avant de farmer l'équipement." },
+  { id: "arena", nom: "Arena", note: "Débloquée par la campagne." },
+  { id: "infinity-train", nom: "Infinity Train", note: "Débloqué par la campagne." },
+  { id: "school-trip", nom: "School Trip", note: "Débloqué par la campagne." },
+  { id: "endless-nightmare", nom: "Endless Nightmare", note: "Débloqué par la campagne." },
+  { id: "beast", nom: "Beast", note: "Arrivé avec la mise à jour Spring Tales." },
+];
+
+export const CODES_CADEAUX = [
+  { code: "knock2026", recompense: "Diamants et Soul Flame" },
+  { code: "knock1m", recompense: "Récompenses variées" },
+  { code: "knock500k", recompense: "Récompenses variées" },
+  { code: "knock100k", recompense: "Récompenses variées" },
+  { code: "knockdc", recompense: "Récompenses variées" },
+];
+
+export const ASTUCES_JEU = [
+  { texte: "En combat, une amélioration de Porte remet ses PV au maximum : gardez-la pour le boss final ou une vague difficile.", source: PGG },
+  { texte: "Room Research (depuis votre personnage sur l'écran principal) donne des bonus permanents et relève les plafonds du Lit et de la Porte.", source: PGG },
+  { texte: "Un tirage de 10 coûte 2 200 diamants : évitez les invocations standard au coup par coup.", source: PGG },
+  { texte: "Visez l'étape 20 de la campagne avant de farmer le meilleur équipement.", source: PGG },
 ];

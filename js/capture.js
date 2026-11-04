@@ -33,7 +33,8 @@ export function trouverNom(ligne, candidats, seuil = 0.8) {
   if (brut.length < 3) return null;
   const mots = normaliser(ligne).split(/[^a-z0-9]+/).filter(Boolean);
   let meilleur = null;
-  for (const c of candidats) {
+  for (const c0 of candidats.flatMap((c) => [c, ...(c.alias || []).map((a) => ({ ...c, nom: a, nomOfficiel: c.nom }))])) {
+    const c = c0;
     const cible = compact(c.nom);
     if (cible.length < 3) continue;
     let sim = brut.includes(cible) ? 1 : 0;
@@ -46,7 +47,7 @@ export function trouverNom(ligne, candidats, seuil = 0.8) {
       }
     }
     if (sim >= seuil && (!meilleur || sim > meilleur.sim || (sim === meilleur.sim && cible.length > compact(meilleur.nom).length))) {
-      meilleur = { id: c.id, nom: c.nom, sim: Math.round(sim * 100) / 100 };
+      meilleur = { id: c.id, nom: c.nomOfficiel || c.nom, sim: Math.round(sim * 100) / 100 };
     }
   }
   return meilleur;
@@ -120,8 +121,16 @@ function nettoyerNom(ligne) {
  * proximité du nom), artefacts et skins.
  */
 export function analyserTexte(texte, catalogue) {
-  const lignes = String(texte || "").split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length >= 2);
+  const brutes = String(texte || "").split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length >= 2);
   const heros = catalogue.heros || [];
+  // Recolle un nom de héros coupé sur deux lignes consécutives.
+  const lignes = [];
+  for (let i = 0; i < brutes.length; i++) {
+    const l = brutes[i], suiv = brutes[i + 1];
+    if (suiv && !trouverNom(l, heros) && !trouverNom(suiv, heros) && /^\p{L}[\p{L}' .-]*$/u.test(l) && /^\p{L}[\p{L}' .-]*$/u.test(suiv)
+      && trouverNom(`${l} ${suiv}`, heros)?.sim >= 0.9) { lignes.push(`${l} ${suiv}`); i++; }
+    else lignes.push(l);
+  }
   const artefactsNommes = (catalogue.artefacts || []).filter((a) => !a.generique);
   const skinsConnus = catalogue.skins || [];
 
@@ -206,7 +215,25 @@ export function analyserTexte(texte, catalogue) {
  */
 export function ordonnerParCartes(elements, catalogue) {
   if (!elements?.length) return "";
-  const tries = [...elements].sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
+  const heros = catalogue.heros || [];
+  // Un nom coupé sur deux lignes dans une carte (« Ghost » / « Captain ») est recollé.
+  const base = [...elements].sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
+  const pris = new Set();
+  const tries = [];
+  for (const e of base) {
+    if (pris.has(e)) continue;
+    if (!trouverNom(e.texte, heros)) {
+      const h = Math.max(1, e.y1 - e.y0);
+      const dessous = base.find((f) => f !== e && !pris.has(f) && f.y0 > e.y0 && f.y0 - e.y1 < h * 0.9
+        && Math.abs((f.x0 + f.x1) / 2 - (e.x0 + e.x1) / 2) < Math.max(e.x1 - e.x0, f.x1 - f.x0));
+      if (dessous && trouverNom(`${e.texte} ${dessous.texte}`, heros) && !trouverNom(dessous.texte, heros)) {
+        pris.add(dessous);
+        tries.push({ texte: `${e.texte} ${dessous.texte}`, x0: Math.min(e.x0, dessous.x0), y0: e.y0, x1: Math.max(e.x1, dessous.x1), y1: dessous.y1 });
+        continue;
+      }
+    }
+    tries.push(e);
+  }
   const ancres = tries.filter((e) => trouverNom(e.texte, catalogue.heros || []));
   if (!ancres.length) return tries.map((e) => e.texte).join("\n");
   const rattaches = new Map(ancres.map((a) => [a, []]));
@@ -226,4 +253,73 @@ export function ordonnerParCartes(elements, catalogue) {
   const blocs = ancres.map((a) => [a, ...rattaches.get(a)].map((e) => e.texte).join("\n"));
   return [...libres.filter((e) => e.y0 < ancres[0].y0).map((e) => e.texte), ...blocs,
     ...libres.filter((e) => e.y0 >= ancres[0].y0).map((e) => e.texte)].join("\n");
+}
+
+/** Quantité lue : « 12,500 », « 12 500 », « 12.5K », « 1,2 M », « 3B ». */
+export function lireQuantite(t) {
+  const m = String(t).replace(/[\u00a0\u202f]/g, " ").match(/(\d{1,3}(?:[ ,.]\d{3})+|\d+(?:[.,]\d+)?)\s*([kmb])?\b/i);
+  if (!m) return null;
+  let brut = m[1], mult = { k: 1e3, m: 1e6, b: 1e9 }[(m[2] || "").toLowerCase()] || 1;
+  if (/^\d{1,3}([ ,.]\d{3})+$/.test(brut) && !(mult > 1 && /[.,]\d{1,2}$/.test(brut))) brut = brut.replace(/[ ,.]/g, "");
+  else brut = brut.replace(",", ".").replace(/ /g, "");
+  const v = Number(brut) * mult;
+  return Number.isFinite(v) ? Math.round(v) : null;
+}
+
+const apres = (ligne, re) => {
+  const m = ligne.match(re);
+  return m ? ligne.slice(m.index + m[0].length).replace(/^\s*[:#=\-–]\s*/, "").trim() : null;
+};
+
+/**
+ * Infos du compte lisibles sur les écrans de profil, d'accueil et de guilde :
+ * pseudo, ID, niveau, guilde, puissance, VIP, étape, Porte, Lit, Room Research
+ * et quantités des ressources. Ne renvoie que ce qui a été lu.
+ */
+export function lireProfil(texte, ressources = []) {
+  const lignes = String(texte || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const p = {};
+  const stock = {};
+  lignes.forEach((l, i) => {
+    const n = normaliser(l);
+    const suivante = lignes[i + 1] || "";
+    const valeurOuSuivante = (re) => { const v = apres(l, re); return v || (re.test(l) && suivante) || null; };
+    let m;
+    if (p.idJoueur == null && (m = n.match(/\b(?:id|uid|player id|id joueur)\s*[:#.]?\s*(\d{5,12})\b/))) p.idJoueur = m[1];
+    if (p.guilde == null && /\b(guild|guilde|clan)\b/.test(n) && !/\b(guild shop|boutique de guilde|join|rejoindre|create|creer)\b/.test(n)) {
+      const v = valeurOuSuivante(/\b(?:guild|guilde|clan)\b(?:\s*name|\s*nom)?/i);
+      if (v && /\p{L}/u.test(v) && v.length <= 30) p.guilde = v;
+    }
+    if (p.pseudo == null && /\b(name|nom|pseudo|nickname|player|joueur)\s*[:\-]/.test(n)) {
+      const v = apres(l, /\b(?:name|nom|pseudo|nickname|player|joueur)\b/i);
+      if (v && v.length <= 24) p.pseudo = v;
+    }
+    if (p.puissance == null && (m = n.match(/\b(?:combat power|power|puissance|force|cp)\s*[:.]?\s*([\d][\d ,.]*\s*[kmb]?)/))) p.puissance = lireQuantite(m[1]);
+    else if (p.puissance == null && /^(?:combat power|power|puissance|force|cp)\s*[:.]?$/.test(n) && lireQuantite(suivante) !== null && !/[a-z]{3,}/.test(normaliser(suivante))) p.puissance = lireQuantite(suivante);
+    if (p.vip == null && (m = n.match(/\bvip\s*[:.]?\s*(\d{1,2})\b/))) p.vip = Number(m[1]);
+    if (p.etape == null && (m = n.match(/\b(?:main stage|stage|etape|chapter|chapitre|level|niveau)\s*[:.]?\s*(\d{1,3}\s*-\s*\d{1,3})\b/))) p.etape = m[1].replace(/\s/g, "");
+    else if (p.etape == null && (m = n.match(/\b(?:main stage|stage|etape)\s*[:.]?\s*(\d{1,4})\b/))) p.etape = m[1];
+    if (p.porte == null && (m = n.match(/\b(?:door|porte)\b\s*(?:lv|lvl|level|niv|niveau|nv)?\s*[.:]?\s*(\d{1,3})\b/))) p.porte = Number(m[1]);
+    if (p.lit == null && (m = n.match(/\b(?:bed|lit)\b\s*(?:lv|lvl|level|niv|niveau|nv)?\s*[.:]?\s*(\d{1,3})\b/))) p.lit = Number(m[1]);
+    if (p.recherche == null && (m = n.match(/\b(?:room research|research|recherche)\b\s*(?:lv|lvl|level|niv|niveau|nv)?\s*[.:]?\s*(\d{1,3})\b/))) p.recherche = Number(m[1]);
+    if (p.niveau == null && (m = n.match(/\b(?:player level|account level|niveau du joueur|niveau joueur|niveau du compte)\s*[.:]?\s*(\d{1,3})\b/))) p.niveau = Number(m[1]);
+    for (const r of ressources) {
+      if (stock[r.id] != null) continue;
+      const mot = r.motsOcr.find((mo) => new RegExp(`(^|[^a-z])${mo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z]|$)`).test(n));
+      if (!mot) continue;
+      // « or » est aussi un mot courant : ligne courte exigée.
+      if (mot.length <= 3 && n.split(/\s+/).length > 4) continue;
+      const reste = n.replace(mot, " ");
+      const q = lireQuantite(reste) ?? (lireQuantite(suivante) !== null && !/[a-z]{4,}/.test(normaliser(suivante)) ? lireQuantite(suivante) : null);
+      if (q !== null) stock[r.id] = q;
+    }
+  });
+  // Premier « Lv. N » d'un écran de profil sans nom de héros autour : niveau du joueur.
+  if (p.niveau == null && p.pseudo != null) {
+    const i = lignes.findIndex((l) => p.pseudo && l.includes(p.pseudo));
+    const zone = lignes.slice(Math.max(0, i - 1), i + 3).join(" ");
+    const v = lireNiveau(zone);
+    if (v !== null) p.niveau = v;
+  }
+  return { profil: p, stock };
 }

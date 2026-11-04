@@ -8,7 +8,10 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 export function etatInitial() {
   return {
     version: 2,
-    joueur: { pseudo: "", niveau: 1, porte: 1, lit: 1, chapitre: "", emplacements: 2 },
+    joueur: { pseudo: "", idJoueur: "", niveau: 1, guilde: "", puissance: "", vip: "", etape: "", chapitre: "",
+      porte: 1, lit: 1, recherche: "", emplacements: 2, majImport: "" },
+    stock: {},            // ressources du compte : { diamants: 1234, ... }
+    codesUtilises: {},
     catalogue: {
       heros: clone(HEROS_DEPART),
       artefacts: clone(ARTEFACTS_DEPART),
@@ -64,7 +67,7 @@ export function fusionner(d) {
   etat.catalogue = { ...base.catalogue, ...(d.catalogue || {}) };
   for (const k of Object.keys(base.catalogue)) if (!Array.isArray(etat.catalogue[k])) etat.catalogue[k] = base.catalogue[k];
   for (const k of ["equipe", "inventaire", "ressources"]) if (!Array.isArray(etat[k])) etat[k] = [];
-  for (const k of ["roster", "skinsPossedes", "abonnements"]) if (!etat[k] || typeof etat[k] !== "object") etat[k] = {};
+  for (const k of ["roster", "skinsPossedes", "abonnements", "stock", "codesUtilises"]) if (!etat[k] || typeof etat[k] !== "object") etat[k] = {};
   if (!etat.quotidien || typeof etat.quotidien !== "object") etat.quotidien = base.quotidien;
   // Ajoute les entrées de départ apparues dans une nouvelle version de l'app,
   // sans toucher à celles que l'utilisateur a modifiées ou supprimées exprès.

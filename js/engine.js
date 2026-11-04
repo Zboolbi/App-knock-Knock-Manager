@@ -160,7 +160,8 @@ export function conseilsCombat(ennemi) {
   const f = ennemi?.faiblesses || [], r = ennemi?.resistances || [], t = ennemi?.traits || [];
   const nom = (k) => EFFETS[k] || TYPES[k] || k;
   if (f.length) c.push(`Jouez sur ses faiblesses : ${f.map(nom).join(", ")}.`);
-  if (r.length) c.push(`Laissez sur le banc les héros ${r.map(nom).join(", ")}.`);
+  const PLURIEL = { physique: "physiques", magique: "magiques" };
+  if (r.length) c.push(`Laissez sur le banc les héros ${r.map((k) => (PLURIEL[k] || `à ${nom(k)}`).toLowerCase()).join(", ")} : le boss y résiste.`);
   if (r.includes("physique")) c.push("Résiste au physique : artefacts M.ATK sur vos magiques, pas de carry physique.");
   if (r.includes("magique")) c.push("Résiste au magique : misez sur vos physiques avec des artefacts P.ATK.");
   if (t.includes("sbires")) c.push("Vagues : au moins un héros de zone (Poseidon perce les rangs).");
@@ -250,7 +251,7 @@ export function herosPrincipaux(heros, etat) {
 export function analyseEquipe(etat) {
   const equipe = equipeActuelle(etat);
   const notes = [];
-  if (!equipe.length) return { equipe, notes: [{ niveau: "info", texte: "Choisissez vos 5 héros dans l'onglet Profil." }], score: 0 };
+  if (!equipe.length) return { equipe, notes: [{ niveau: "info", texte: "Choisissez vos 5 héros : Héros › Équipe." }], score: 0 };
   const roles = new Set(equipe.map((h) => h.role));
   if (equipe.length < TAILLE_EQUIPE) notes.push({ niveau: "alerte", texte: `${TAILLE_EQUIPE - equipe.length} place(s) libre(s) dans l'équipe.` });
   if (!roles.has("soin")) notes.push({ niveau: "alerte", texte: "Pas de soigneur : la Porte encaisse tout. Bright Spirit ou Frosthealer." });
@@ -288,10 +289,10 @@ export function planProgression(etat) {
   const equipe = equipeActuelle(etat).filter((h) => progression(etat, h.id).possede);
   const coeur = equipe.length ? equipe : herosPrincipaux(heros, etat);
   if (!coeur.length) {
-    etapes.push({ priorite: 1, titre: "Ajoutez vos héros", detail: "Profil › touchez un héros › « Je l'ai »." });
+    etapes.push({ priorite: 1, titre: "Ajoutez vos héros", detail: "Importez une capture de votre collection, ou Héros › Collection › touchez un héros › « Je l'ai »." });
     return etapes;
   }
-  if (!equipe.length) etapes.push({ priorite: 2, titre: "Équipe proposée", detail: `${coeur.map((h) => h.nom).join(", ")}. Ajoutez-la dans Profil pour la suivre.` });
+  if (!equipe.length) etapes.push({ priorite: 2, titre: "Équipe proposée", detail: `${coeur.map((h) => h.nom).join(", ")}.`, action: { libelle: "Utiliser", ids: coeur.map((h) => h.id) } });
 
   for (const h of coeur) {
     const p = progression(etat, h.id);

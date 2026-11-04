@@ -122,3 +122,17 @@ test("grille de cartes : chaque valeur va au héros de sa colonne", () => {
   assert.deepEqual(v.poseidon, [37, null, null]);
   assert.deepEqual(v["ghost-captain"], [30, null, null]);
 });
+
+test("nom de héros coupé sur deux lignes", () => {
+  const r = analyserTexte("Ghost\nCaptain\nLv. 30\n3 stars", catalogue);
+  assert.deepEqual([r.heros[0]?.heroId, r.heros[0]?.niveau, r.heros[0]?.etoiles], ["ghost-captain", 30, 3]);
+  const el = (texte, x, y) => ({ texte, x0: x, y0: y, x1: x + 180, y1: y + 50 });
+  const t = ordonnerParCartes([el("Ghost", 1223, 1304), el("Captain", 1223, 1378), el("Lv. 30", 1356, 1472)], catalogue);
+  assert.match(t, /^Ghost Captain\nLv\. 30/);
+});
+
+test("libellé et valeur sur deux lignes (Power / 125,400)", async () => {
+  const { lireProfil } = await import("../js/capture.js");
+  const { RESSOURCES } = await import("../js/data.js");
+  assert.equal(lireProfil("Power\n125,400\nDiamonds\n2,450", RESSOURCES).profil.puissance, 125400);
+});

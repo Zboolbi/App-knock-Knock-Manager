@@ -1,0 +1,506 @@
+{
+  "passe": "passe-2",
+  "date": "2026-11-04T10:01:32.927Z",
+  "total": 71,
+  "reussis": 71,
+  "echecs": 0,
+  "resultats": [
+    {
+      "id": "NAV-01",
+      "titre": "Premier lancement",
+      "ok": true,
+      "detail": "",
+      "ms": 353
+    },
+    {
+      "id": "NAV-02",
+      "titre": "Les 5 onglets",
+      "ok": true,
+      "detail": "Tableau de bord, Héros, Stratégie, Boss, Boutique",
+      "ms": 1905
+    },
+    {
+      "id": "NAV-03",
+      "titre": "Petit titre au défilement",
+      "ok": true,
+      "detail": "",
+      "ms": 487
+    },
+    {
+      "id": "NAV-04",
+      "titre": "Fermeture des feuilles",
+      "ok": true,
+      "detail": "",
+      "ms": 679
+    },
+    {
+      "id": "NAV-05",
+      "titre": "Navigation imbriquée",
+      "ok": true,
+      "detail": "",
+      "ms": 926
+    },
+    {
+      "id": "PRO-01",
+      "titre": "Identité conservée",
+      "ok": true,
+      "detail": "",
+      "ms": 580
+    },
+    {
+      "id": "PRO-02",
+      "titre": "Steppers et minimums",
+      "ok": true,
+      "detail": "",
+      "ms": 831
+    },
+    {
+      "id": "PRO-03",
+      "titre": "Saisie négative ou décimale",
+      "ok": true,
+      "detail": "",
+      "ms": 279
+    },
+    {
+      "id": "PRO-04",
+      "titre": "Ressources saisies et formatées",
+      "ok": true,
+      "detail": "",
+      "ms": 511
+    },
+    {
+      "id": "PRO-05",
+      "titre": "Tirages de 10 possibles",
+      "ok": true,
+      "detail": "",
+      "ms": 130
+    },
+    {
+      "id": "PRO-06",
+      "titre": "Très grand nombre",
+      "ok": true,
+      "detail": "",
+      "ms": 131
+    },
+    {
+      "id": "HER-01",
+      "titre": "Recherche",
+      "ok": true,
+      "detail": "",
+      "ms": 248
+    },
+    {
+      "id": "HER-02",
+      "titre": "Recherche par alias",
+      "ok": true,
+      "detail": "",
+      "ms": 234
+    },
+    {
+      "id": "HER-03",
+      "titre": "Filtre Les miens",
+      "ok": true,
+      "detail": "",
+      "ms": 278
+    },
+    {
+      "id": "HER-04",
+      "titre": "Fiche héros modifiée et conservée",
+      "ok": true,
+      "detail": "",
+      "ms": 980
+    },
+    {
+      "id": "HER-05",
+      "titre": "Sixième héros refusé",
+      "ok": true,
+      "detail": "",
+      "ms": 676
+    },
+    {
+      "id": "HER-06",
+      "titre": "Héros retiré de l'équipe s'il n'est plus obtenu",
+      "ok": true,
+      "detail": "",
+      "ms": 622
+    },
+    {
+      "id": "HER-07",
+      "titre": "Équipe de référence avec confirmation",
+      "ok": true,
+      "detail": "",
+      "ms": 256
+    },
+    {
+      "id": "HER-08",
+      "titre": "Doublon de nom refusé",
+      "ok": true,
+      "detail": "",
+      "ms": 662
+    },
+    {
+      "id": "HER-09",
+      "titre": "Injection HTML neutralisée",
+      "ok": true,
+      "detail": "",
+      "ms": 1010
+    },
+    {
+      "id": "HER-10",
+      "titre": "Suppression d'un héros du catalogue",
+      "ok": true,
+      "detail": "",
+      "ms": 1086
+    },
+    {
+      "id": "ART-01",
+      "titre": "Ajout d'artefacts",
+      "ok": true,
+      "detail": "",
+      "ms": 1017
+    },
+    {
+      "id": "ART-02",
+      "titre": "Un artefact n'est jamais sur deux héros",
+      "ok": true,
+      "detail": "",
+      "ms": 270
+    },
+    {
+      "id": "ART-03",
+      "titre": "Emplacements respectés via « Porté par »",
+      "ok": true,
+      "detail": "",
+      "ms": 307
+    },
+    {
+      "id": "ART-04",
+      "titre": "Retrait de l'inventaire",
+      "ok": true,
+      "detail": "",
+      "ms": 710
+    },
+    {
+      "id": "ART-05",
+      "titre": "Suppression d'une fiche encore possédée refusée",
+      "ok": true,
+      "detail": "",
+      "ms": 972
+    },
+    {
+      "id": "SKI-01",
+      "titre": "Skin créé depuis la fiche du héros",
+      "ok": true,
+      "detail": "",
+      "ms": 1117
+    },
+    {
+      "id": "SKI-02",
+      "titre": "Skin à bonus proposé puis équipé",
+      "ok": true,
+      "detail": "",
+      "ms": 260
+    },
+    {
+      "id": "STR-01",
+      "titre": "Lit = Porte → monter la Porte",
+      "ok": true,
+      "detail": "Montez la Porte (5 → 6)",
+      "ms": 186
+    },
+    {
+      "id": "STR-02",
+      "titre": "Porte − Lit ≥ 2 → rattraper le Lit",
+      "ok": true,
+      "detail": "Rattrapez le Lit (6 → 9)",
+      "ms": 175
+    },
+    {
+      "id": "STR-03",
+      "titre": "Promotion vers 6",
+      "ok": true,
+      "detail": "",
+      "ms": 220
+    },
+    {
+      "id": "STR-04",
+      "titre": "P.ATK déplacé vers un physique",
+      "ok": true,
+      "detail": "",
+      "ms": 247
+    },
+    {
+      "id": "STR-05",
+      "titre": "Alerte sans soigneur",
+      "ok": true,
+      "detail": "",
+      "ms": 251
+    },
+    {
+      "id": "STR-06",
+      "titre": "Abonnement qui expire",
+      "ok": true,
+      "detail": "",
+      "ms": 199
+    },
+    {
+      "id": "STR-07",
+      "titre": "Stratégie sans données",
+      "ok": true,
+      "detail": "",
+      "ms": 194
+    },
+    {
+      "id": "STR-08",
+      "titre": "Équipe proposée appliquée en un geste",
+      "ok": true,
+      "detail": "",
+      "ms": 177
+    },
+    {
+      "id": "BOS-01",
+      "titre": "Création et équipe conseillée",
+      "ok": true,
+      "detail": "Lazerman, Bright Spirit, Archangel, Metaman, Flame Demon",
+      "ms": 1240
+    },
+    {
+      "id": "BOS-02",
+      "titre": "Faiblesse = résistance refusée",
+      "ok": true,
+      "detail": "",
+      "ms": 674
+    },
+    {
+      "id": "BOS-03",
+      "titre": "Mes héros seulement sans héros",
+      "ok": true,
+      "detail": "",
+      "ms": 233
+    },
+    {
+      "id": "BOS-04",
+      "titre": "En faire mon équipe",
+      "ok": true,
+      "detail": "",
+      "ms": 600
+    },
+    {
+      "id": "BOS-05",
+      "titre": "Modifier puis supprimer un boss",
+      "ok": true,
+      "detail": "",
+      "ms": 1845
+    },
+    {
+      "id": "BOS-06",
+      "titre": "Conseils boss bien formulés",
+      "ok": true,
+      "detail": "",
+      "ms": 216
+    },
+    {
+      "id": "BOU-01",
+      "titre": "Option active avec date de fin",
+      "ok": true,
+      "detail": "10 j restants",
+      "ms": 356
+    },
+    {
+      "id": "BOU-02",
+      "titre": "Code cadeau coché et copié",
+      "ok": true,
+      "detail": "",
+      "ms": 480
+    },
+    {
+      "id": "BOU-03",
+      "titre": "Option personnalisée prise en compte",
+      "ok": true,
+      "detail": "",
+      "ms": 738
+    },
+    {
+      "id": "IMP-01",
+      "titre": "Profil anglais",
+      "ok": true,
+      "detail": "15 champs justes en 3 s",
+      "ms": 2997
+    },
+    {
+      "id": "IMP-02",
+      "titre": "Profil français",
+      "ok": true,
+      "detail": "",
+      "ms": 1277
+    },
+    {
+      "id": "IMP-03",
+      "titre": "Grille de héros anglaise",
+      "ok": true,
+      "detail": "",
+      "ms": 1788
+    },
+    {
+      "id": "IMP-04",
+      "titre": "Fiche française : héros, artefact, skin",
+      "ok": true,
+      "detail": "",
+      "ms": 1702
+    },
+    {
+      "id": "IMP-05",
+      "titre": "Quatre captures en une fois",
+      "ok": true,
+      "detail": "25 info(s) trouvée(s) en 6 s",
+      "ms": 5672
+    },
+    {
+      "id": "IMP-06",
+      "titre": "Seules les propositions cochées sont enregistrées",
+      "ok": true,
+      "detail": "",
+      "ms": 160
+    },
+    {
+      "id": "IMP-07",
+      "titre": "Image sans texte",
+      "ok": true,
+      "detail": "",
+      "ms": 1166
+    },
+    {
+      "id": "IMP-08",
+      "titre": "Aucune capture conservée",
+      "ok": true,
+      "detail": "profil 11 Ko ; bases IndexedDB : keyval-store (cache du moteur de lecture uniquement)",
+      "ms": 31
+    },
+    {
+      "id": "IMP-09",
+      "titre": "Pas de doublon au catalogue en réimportant",
+      "ok": true,
+      "detail": "",
+      "ms": 3511
+    },
+    {
+      "id": "IMP-10",
+      "titre": "Moteur de lecture indisponible",
+      "ok": true,
+      "detail": "",
+      "ms": 243
+    },
+    {
+      "id": "DON-01",
+      "titre": "Rechargement",
+      "ok": true,
+      "detail": "",
+      "ms": 144
+    },
+    {
+      "id": "DON-02",
+      "titre": "Copier puis charger la sauvegarde",
+      "ok": true,
+      "detail": "",
+      "ms": 991
+    },
+    {
+      "id": "DON-03",
+      "titre": "Texte invalide",
+      "ok": true,
+      "detail": "",
+      "ms": 965
+    },
+    {
+      "id": "DON-04",
+      "titre": "Migration d'un profil v1",
+      "ok": true,
+      "detail": "",
+      "ms": 285
+    },
+    {
+      "id": "DON-05",
+      "titre": "Stockage corrompu",
+      "ok": true,
+      "detail": "",
+      "ms": 132
+    },
+    {
+      "id": "DON-06",
+      "titre": "Effacer mon profil",
+      "ok": true,
+      "detail": "",
+      "ms": 601
+    },
+    {
+      "id": "DON-07",
+      "titre": "Poids d'un profil complet",
+      "ok": true,
+      "detail": "14.6 Ko pour 23 héros, 63 artefacts",
+      "ms": 1
+    },
+    {
+      "id": "UI-01",
+      "titre": "Pas de défilement horizontal (4 tailles × 5 onglets)",
+      "ok": true,
+      "detail": "",
+      "ms": 1910
+    },
+    {
+      "id": "UI-02",
+      "titre": "Thème noir, blanc, doré",
+      "ok": true,
+      "detail": "",
+      "ms": 109
+    },
+    {
+      "id": "UI-03",
+      "titre": "Contraste du texte secondaire",
+      "ok": true,
+      "detail": "secondaire 6.63:1, doré 10.60:1, tertiaire (indices « — ») 3.36:1",
+      "ms": 0
+    },
+    {
+      "id": "UI-04",
+      "titre": "Cibles tactiles ≥ 44 px",
+      "ok": true,
+      "detail": "",
+      "ms": 374
+    },
+    {
+      "id": "UI-05",
+      "titre": "Noms accessibles",
+      "ok": true,
+      "detail": "",
+      "ms": 363
+    },
+    {
+      "id": "UI-06",
+      "titre": "Champs en 16 px minimum",
+      "ok": true,
+      "detail": "",
+      "ms": 650
+    },
+    {
+      "id": "PWA-01",
+      "titre": "Manifest et icônes",
+      "ok": true,
+      "detail": "Knock Knock Manager, fond #000000",
+      "ms": 118
+    },
+    {
+      "id": "PWA-02",
+      "titre": "Hors ligne",
+      "ok": true,
+      "detail": "",
+      "ms": 747
+    },
+    {
+      "id": "PERF-01",
+      "titre": "Premier affichage",
+      "ok": true,
+      "detail": "92 ms",
+      "ms": 135
+    }
+  ]
+}
