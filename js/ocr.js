@@ -204,13 +204,14 @@ export async function lireEquipe(fichier, progression) {
   const m = await obtenirMoteur(progression);
   const couleur = await toile(fichier);
   const W = couleur.width, H = couleur.height;
+  try {
   const canvas = preparer(couleur, "clair");
   const { data } = await m.recognize(canvas);
   canvas.width = canvas.height = 0;
   const niv = (t) => { const x = String(t).replace(/(lv)[?'’`]/gi, "$1.").match(/lv\.?\s*(\d{1,3})/i); return x ? Number(x[1]) : null; };
   // Repère la rangée de l'équipe : les « Lv.68 » lus en haut de l'écran.
   const ys = (data.lines || []).filter((l) => l.bbox.y0 < H * 0.3 && (niv(l.text) !== null || /\b\d{1,2}[.,]\d{2}\b/.test(l.text))).map((l) => l.bbox.y0).sort((x, y) => x - y);
-  if (!ys.length) { couleur.width = couleur.height = 0; return []; }
+  if (!ys.length) return [];
   const y = ys[Math.floor(ys.length / 2)];
   // Niveaux déjà lus par la lecture d'ensemble, rattachés à leur carte.
   const lus = (data.lines || []).filter((l) => l.bbox.y0 < H * 0.3).map((l) => ({ cx: (l.bbox.x0 + l.bbox.x1) / 2, v: niv(l.text) })).filter((x) => x.v !== null && x.v >= 10);
@@ -244,6 +245,8 @@ export async function lireEquipe(fichier, progression) {
     if (r.niveau && median && (r.niveau > median * 1.5 || r.niveau < median / 1.5)) r.niveau = null; // « Lv267 » pour 67
     if (!r.niveau && median) { r.niveau = median; r.devine = true; }
   }
-  couleur.width = couleur.height = 0;
   return resultat;
+  } finally {
+    couleur.width = couleur.height = 0; // l'image n'est jamais conservée, même en cas d'erreur
+  }
 }

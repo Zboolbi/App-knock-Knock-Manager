@@ -236,7 +236,7 @@ pre.lu { white-space: pre-wrap; font: 12px/1.4 ui-monospace, "SF Mono", Menlo, m
 .logo .k { font: 900 26px/1 var(--police-titre); letter-spacing: 0.06em; color: var(--or); text-transform: uppercase; }
 .logo .m { font: 600 12px/1 var(--police); letter-spacing: 0.42em; color: var(--texte-2); text-transform: uppercase; margin-top: 6px; }
 .etoiles { color: var(--or); letter-spacing: 1px; font-size: 14px; }
-.rarete { --c: var(--r-commun); display: inline-grid; place-items: center; min-width: 38px; height: 22px; border-radius: 6px; font-size: 12px; font-weight: 800; flex: none;
+.rarete { --c: var(--r-commun); background: #2c2c2e; color: #fff; display: inline-grid; place-items: center; min-width: 38px; height: 22px; border-radius: 6px; font-size: 12px; font-weight: 800; flex: none;
   /* Pastille teintée façon iOS : couleur de rareté du jeu, texte ≥ 5:1 sur son fond (WCAG AA). */
   background: color-mix(in srgb, var(--c) 26%, #1c1c1e); color: color-mix(in srgb, var(--c) 62%, #fff); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent); }
 .segments.defilant { display: flex; overflow-x: auto; scrollbar-width: none; }

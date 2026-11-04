@@ -488,17 +488,20 @@ export function coachCurios(etat) {
 }
 
 /** Héros de l'équipe qui ne portent pas les pièces possédées de leur set conseillé. */
-export function curiosAChanger(etat, plan = coachCurios(etat)) {
-  const refs = new Map((etat?.inventaire || []).map((i) => [i.id, i.ref]));
+/** Pièces possédées d'un set à équiper (ids d'inventaire), de la plus rare à la moins rare, dans la limite des emplacements. */
+export function piecesAEquiper(etat, setId) {
   const parRef = new Map((etat?.inventaire || []).map((i) => [i.ref, i.id]));
-  const curios = (catalogue(etat).artefacts || []).filter((a) => a.set);
   const emplacements = Number(etat?.joueur?.emplacements) || 4;
+  return (catalogue(etat).artefacts || []).filter((c) => c.set === setId && parRef.has(c.id))
+    .sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete)).slice(0, emplacements).map((c) => parRef.get(c.id));
+}
+
+export function curiosAChanger(etat, plan = coachCurios(etat)) {
   return plan.filter((x) => {
-    if (!x.set) return false;
-    const voulus = curios.filter((c) => c.set === x.set && parRef.has(c.id)).sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete)).slice(0, emplacements).map((c) => c.id);
+    const voulus = x.set ? piecesAEquiper(etat, x.set) : [];
     if (!voulus.length) return false;
-    const portes = new Set(progression(etat, x.hero.id).artefacts.map((id) => refs.get(id)));
-    return voulus.some((ref) => !portes.has(ref));
+    const portes = new Set(progression(etat, x.hero.id).artefacts);
+    return voulus.some((id) => !portes.has(id));
   });
 }
 
@@ -539,9 +542,12 @@ export function coachJalons(etat) {
   const j = etat?.joueur || {};
   const jal = [];
   const coffre = Number(j.coffreCurios) || 0;
-  if (coffre && coffre < 400) jal.push({ titre: `Curio Vault ${coffre} → 400`, reste: pluriel(400 - coffre, "niveau", "niveaux"), gain: "DMG Boost +12 % et DMG Immunity +12 % pour toute l'équipe", proche: 400 - coffre <= 20 });
+  for (const pal of CURIO_VAULT.paliers) if (coffre && coffre < pal.niveau) jal.push({ titre: `Curio Vault ${coffre} → ${pal.niveau}`, reste: pluriel(pal.niveau - coffre, "niveau", "niveaux"), gain: `${pal.bonus} pour toute l'équipe`, proche: pal.niveau - coffre <= 20 });
   const etape = parseInt(String(j.etape || "").split("-")[0], 10);
-  if (etape && etape < 220) jal.push({ titre: `Main Stage ${etape} → 220`, reste: `${220 - etape} étapes`, gain: "3e place de bête déployée", proche: 220 - etape <= 30 });
+  for (const pl of PLACES_BETES.filter((x) => x.condition)) {
+    const cible = parseInt(pl.condition.replace(/\D+/g, ""), 10);
+    if (etape && etape < cible) jal.push({ titre: `Main Stage ${etape} → ${cible}`, reste: pluriel(cible - etape, "étape"), gain: `${pl.places}e place de bête déployée`, proche: cible - etape <= 30 });
+  }
   const n = coachNoyau(etat);
   if (n.cible && n.enRetard.length) jal.push({ titre: `Tout le noyau en P${n.cible.niveau}`, reste: n.enRetard.map((x) => `${x.hero.nom} P${x.promotion}`).join(", "), gain: n.cible.bonus, proche: n.enRetard.length <= 2 });
   const pieges = catalogue(etat).pieges || [];

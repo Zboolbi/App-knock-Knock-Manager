@@ -227,3 +227,29 @@ test("curios à changer : même calcul pour le plan et la pastille, à zéro une
   assert.equal(curiosAChanger(e).length, 0);
   assert.ok(!planProgression(e).some((x) => /meilleurs curios/.test(x.titre)));
 });
+
+test("pluriel : 0 et 1 au singulier, nombres bruts", async () => {
+  const { pluriel } = await import("../js/engine.js");
+  assert.equal(pluriel(0, "tirage"), "0 tirage");
+  assert.equal(pluriel(1, "place libre", "places libres"), "1 place libre");
+  assert.equal(pluriel(1000, "tirage"), "1000 tirages");
+});
+
+test("pièces à équiper : du plus rare au moins rare, limitées aux emplacements", async () => {
+  const { piecesAEquiper } = await import("../js/engine.js");
+  const e = etatAvec(["bride-wraith"]);
+  e.joueur.emplacements = 2;
+  ["ghost-lighter", "purgatory-oven", "dynamite-battery"].forEach((r, i) => e.inventaire.push({ id: `p${i}`, ref: r, etoiles: 1 }));
+  assert.deepEqual(piecesAEquiper(e, "sky-scorch"), ["p1", "p2"]); // CR puis UR
+  assert.deepEqual(piecesAEquiper(e, "wild-bloodlust"), []);
+});
+
+test("sauvegarde modifiée : les identifiants ne peuvent pas contenir de balisage", () => {
+  const e = etatInitial();
+  e.roster['x"><img src=x onerror=alert(1)>'] = { possede: true };
+  e.equipe = ['x"><img src=x onerror=alert(1)>'];
+  e.catalogue.heros.push({ id: 'h"><b>', nom: "Piège", rarete: "R" });
+  const f = fusionner(JSON.parse(JSON.stringify(e)));
+  const ids = [...Object.keys(f.roster), ...f.equipe, ...f.catalogue.heros.map((h) => h.id)];
+  assert.ok(ids.every((id) => /^[\w-]*$/.test(id)), ids.join(" "));
+});

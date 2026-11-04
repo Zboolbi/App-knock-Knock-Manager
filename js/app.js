@@ -7,7 +7,7 @@ import {
   progression, herosDe, artefactsResolus, porteurs, skinEquipe, composerEquipe, classerContre, conseilsCombat,
   configurationArtefacts, statsIdeales, analyseEquipe, equipeActuelle, planProgression, prochainPalier,
   conseilsSkins, offresActives, conseilsOffres, TAILLE_EQUIPE, setsIdeaux,
-  coachNoyau, coachCurios, coachBoss, coachDiamants, coachJalons, herosPrincipaux, curiosAChanger, pluriel,
+  coachNoyau, coachCurios, coachBoss, coachDiamants, coachJalons, herosPrincipaux, curiosAChanger, pluriel, piecesAEquiper,
 } from "./engine.js";
 import { charger, sauver, etatInitial, fusionner, nouvelId } from "./store.js";
 import { analyserTexte, ordonnerParCartes, lireProfil, lireEcrans } from "./capture.js";
@@ -218,7 +218,8 @@ function vueAccueil() {
   const j = etat.joueur;
   if (etat.quotidien.date !== aujourdhui()) etat.quotidien = { date: aujourdhui(), coches: {} };
   const equipe = equipeActuelle(etat);
-  const plan = planProgression(etat).slice(0, 4);
+  const planComplet = planProgression(etat);
+  const plan = ui.planComplet ? planComplet : planComplet.slice(0, 4);
   const ana = analyseEquipe(etat);
   const alertes = ana.notes.filter((n) => n.niveau === "alerte").length;
   const faites = TACHES.filter((_, i) => etat.quotidien.coches[i]).length;
@@ -255,13 +256,13 @@ function vueAccueil() {
 
   ${section("Ressources", `<div class="grille-res">${RESSOURCES.map((r) => `
     <button class="tuile-res" data-act="ouvrir" data-f="ressources"><small>${esc(r.nom.replace(/\s*\(.*\)$/, ""))}</small><b class="${etat.stock[r.id] == null ? "vide" : ""}">${esc(fmt(etat.stock[r.id]))}</b></button>`).join("")}</div>`,
-    { nu: true, pied: Number(etat.stock.diamants) >= 2200 ? `De quoi faire ${pluriel(fmt(Math.floor(etat.stock.diamants / 2200)), "tirage")} de 10.` : "" })}
+    { nu: true, pied: Number(etat.stock.diamants) >= 2200 ? `De quoi faire ${pluriel(Math.floor(etat.stock.diamants / 2200), "tirage")} de 10.` : "" })}
 
   ${section("Mon équipe", `<div class="rangee-equipe">${Array.from({ length: TAILLE_EQUIPE }, (_, i) => equipe[i]).map((h, i) => `
-    <button class="membre" data-act="ouvrir" data-f="${h ? "hero" : "equipe"}" data-id="${h ? h.id : ""}">${avatar(h || null)}<small>${h ? esc(h.nom) : `Place ${i + 1}`}</small></button>`).join("")}</div>
+    <button class="membre" data-act="ouvrir" data-f="${h ? "hero" : "equipe"}" data-id="${h ? esc(h.id) : ""}">${avatar(h || null)}<small>${h ? esc(h.nom) : `Place ${i + 1}`}</small></button>`).join("")}</div>
     ${equipe.length ? `<button class="ligne" data-act="onglet" data-id="strategie"><span class="corps"><b>${alertes ? `${pluriel(alertes, "point")} à corriger` : "Équipe équilibrée"}</b><small>Puissance moyenne ${ana.score}</small></span>${chevron()}</button>` : ""}`)}
 
-  ${section("À faire maintenant", etapes(plan), { lien: `<button class="lien" data-act="onglet" data-id="strategie">Tout voir</button>` })}
+  ${section("À faire maintenant", etapes(plan), { lien: planComplet.length > 4 ? `<button class="lien" data-act="plan-complet" aria-expanded="${!!ui.planComplet}">${ui.planComplet ? "Réduire" : `Tout voir (${planComplet.length})`}</button>` : "" })}
 
   ${section("Routine du jour", TACHES.map((t, i) => `<label class="ligne tache"><input type="checkbox" class="coche" data-quotidien="${i}" ${etat.quotidien.coches[i] ? "checked" : ""}><span class="corps"><b style="white-space:normal">${esc(t)}</b></span></label>`).join(""),
     { lien: `<span class="valeur" style="color:var(--texte-2);font-size:15px">${faites}/${TACHES.length}</span>` })}`;
@@ -280,7 +281,7 @@ function segEquipe() {
   const equipe = equipeActuelle(etat);
   const ana = analyseEquipe(etat);
   return `${section("", Array.from({ length: TAILLE_EQUIPE }, (_, i) => equipe[i]).map((h, i) => h
-    ? `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${h.id}">${avatar(h)}<span class="corps"><b>${esc(h.nom)}</b><small>${esc(resumeHero(h.id))} · ${esc(ROLES[h.role])}</small></span><span class="puce or tier">${esc(h.tier)}</span>${chevron()}</button>`
+    ? `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${esc(h.id)}">${avatar(h)}<span class="corps"><b>${esc(h.nom)}</b><small>${esc(resumeHero(h.id))} · ${esc(ROLES[h.role])}</small></span><span class="puce or tier">${esc(h.tier)}</span>${chevron()}</button>`
     : `<button class="ligne" data-act="ouvrir" data-f="equipe">${avatar(null)}<span class="corps"><b style="color:var(--or-vif)">Ajouter un héros</b><small>Place ${i + 1}</small></span></button>`).join(""))}
   <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn plein" data-act="ouvrir" data-f="equipe">Modifier l'équipe</button><button class="btn or plein" data-act="ouvrir" data-f="import-equipe">${ic("photo", 20)} Importer</button></div>
   ${equipe.length ? section("Analyse", notes(ana.notes)) : ""}
@@ -298,7 +299,7 @@ function segCollection() {
     .sort((a, b) => progression(etat, b.id).possede - progression(etat, a.id).possede || TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier) || a.nom.localeCompare(b.nom))]).filter(([, l]) => l.length);
   return `<input class="recherche" type="search" id="recherche-heros" placeholder="Rechercher un héros…" data-ui="filtre" value="${esc(ui.filtre)}" aria-label="Rechercher un héros">
   <div class="segments" role="tablist" aria-label="Filtre" style="margin-top:0"><button role="tab" aria-selected="${!ui.possedes}" data-act="possedes" data-id="0">Tous (${herosDe(etat).length})</button><button role="tab" aria-selected="${ui.possedes}" data-act="possedes" data-id="1">Les miens (${nb})</button></div>
-  ${groupes.map(([r, l]) => section(r, l.map((h) => `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${h.id}">${avatar(h, { terne: !progression(etat, h.id).possede })}
+  ${groupes.map(([r, l]) => section(r, l.map((h) => `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${esc(h.id)}">${avatar(h, { terne: !progression(etat, h.id).possede })}
     <span class="corps"><b>${esc(h.nom)}</b><small>${esc(resumeHero(h.id))}</small></span><span class="puce or tier">${esc(h.tier)}</span>${chevron()}</button>`).join(""))).join("")
     || `<div class="vide-etat"><b>Aucun héros</b>${ui.possedes ? "Ouvrez un héros dans « Tous » et activez « Je l'ai », ou importez une capture." : "Aucun nom ne correspond."}</div>`}
   <div style="margin-top:14px"><button class="btn plein" data-act="ouvrir" data-f="fiche-hero" data-id="">Ajouter un héros absent du catalogue</button></div>`;
@@ -319,12 +320,12 @@ function segArtefacts() {
       const a = parRef.get(c.id);
       const h = a ? heroParId(qui.get(a.id)) : null;
       return `<div class="ligne">${pastilleRarete(c.rarete)}
-        <button class="corps" style="border:0;background:none;text-align:left;padding:0;color:inherit" ${a ? `data-act="ouvrir" data-f="artefact" data-id="${a.id}"` : "disabled"}>
+        <button class="corps" style="border:0;background:none;text-align:left;padding:0;color:inherit" ${a ? `data-act="ouvrir" data-f="artefact" data-id="${esc(a.id)}"` : "disabled"}>
           <b style="${a ? "" : "color:var(--texte-3)"}">${esc(c.nom)}</b><small>${a ? `${etoilesTexte(a.etoiles) || "0 étoile"}${h ? ` · sur ${esc(h.nom)}` : ""}` : "Pas encore obtenu"}</small></button>
-        <input type="checkbox" class="interrupteur" data-curio="${c.id}" ${a ? "checked" : ""} aria-label="J'ai ${esc(c.nom)}"></div>`;
+        <input type="checkbox" class="interrupteur" data-curio="${esc(c.id)}" ${a ? "checked" : ""} aria-label="J'ai ${esc(c.nom)}"></div>`;
     }).join(""), { pied: esc(set.effet) });
   }).join("")}
-  ${autres.length ? section("Autres artefacts", autres.map((a) => `<button class="ligne" data-act="ouvrir" data-f="artefact" data-id="${a.id}">${pastilleRarete(a.rarete)}<span class="corps"><b>${esc(a.nom)}</b><small>${esc(STATS_ARTEFACT[a.stat] || "")} · niv. ${a.niveau}</small></span>${chevron()}</button>`).join("")) : ""}
+  ${autres.length ? section("Autres artefacts", autres.map((a) => `<button class="ligne" data-act="ouvrir" data-f="artefact" data-id="${esc(a.id)}">${pastilleRarete(a.rarete)}<span class="corps"><b>${esc(a.nom)}</b><small>${esc(STATS_ARTEFACT[a.stat] || "")} · niv. ${a.niveau}</small></span>${chevron()}</button>`).join("")) : ""}
   <div style="margin-top:12px;display:grid;gap:8px"><button class="btn or plein" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer le Curio Codex</button></div>`;
 }
 
@@ -351,9 +352,9 @@ function segSkins() {
   const skins = cat().skins;
   return `${skins.length ? section(pluriel(skins.length, "skin"), skins.map((s) => {
     const h = heroParId(s.heroId);
-    return `<div class="ligne">${avatar(h, { taille: 36 })}<button class="corps" style="border:0;background:none;text-align:left;padding:0;color:inherit" data-act="ouvrir" data-f="fiche-skin" data-id="${s.id}">
+    return `<div class="ligne">${avatar(h, { taille: 36 })}<button class="corps" style="border:0;background:none;text-align:left;padding:0;color:inherit" data-act="ouvrir" data-f="fiche-skin" data-id="${esc(s.id)}">
       <b>${esc(s.nom)}</b><small>${esc(h?.nom || "Héros inconnu")}${s.bonusValeur ? ` · +${esc(s.bonusValeur)} % ${esc(STATS_ARTEFACT[s.bonusStat] || "")}` : ""}${skinEquipe(etat, s.heroId)?.id === s.id ? " · porté" : ""}</small></button>
-      <input type="checkbox" class="interrupteur" data-skin="${s.id}" ${etat.skinsPossedes[s.id] ? "checked" : ""} aria-label="Je possède ${esc(s.nom)}"></div>`;
+      <input type="checkbox" class="interrupteur" data-skin="${esc(s.id)}" ${etat.skinsPossedes[s.id] ? "checked" : ""} aria-label="Je possède ${esc(s.nom)}"></div>`;
   }).join(""), { pied: "L'interrupteur indique si vous possédez le skin." }) : `<div class="vide-etat"><b>Aucun skin</b>Aucune liste publique des skins n'existe. Ajoutez les vôtres ou importez la capture de l'écran des skins.</div>`}
   <div style="margin-top:12px"><button class="btn or plein" data-act="ouvrir" data-f="fiche-skin" data-id="">Ajouter un skin</button></div>`;
 }
@@ -382,7 +383,7 @@ function stratNoyau() {
   const n = coachNoyau(etat);
   if (!n.postes.length) return sansEquipe();
   const pourquoi = Object.fromEntries(ORDRE_INVESTISSEMENT.map((o) => [o.poste, o.pourquoi]));
-  return `${section("Ordre d'investissement", n.postes.map((x) => `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${x.hero.id}" style="align-items:flex-start">
+  return `${section("Ordre d'investissement", n.postes.map((x) => `<button class="ligne" data-act="ouvrir" data-f="hero" data-id="${esc(x.hero.id)}" style="align-items:flex-start">
       <span class="etape-num">${x.ordre}</span>${avatar(x.hero, { taille: 38 })}
       <span class="corps"><b style="white-space:normal">${esc(x.hero.nom)} <span class="puce or" style="margin-left:4px">${esc(x.poste)}</span></b>
       <small class="multi">${etat.roster[x.hero.id]?.niveauInconnu ? "Niv. à saisir" : `Niv. ${x.niveau}`} · P${x.promotion}${x.palier ? ` → P${x.palier.niveau} : ${esc(x.palier.bonus)}` : " · palier maximal"}</small>
@@ -420,17 +421,24 @@ function stratBoss() {
 
 function stratInvestir() {
   const d = coachDiamants(etat);
-  const jalons = coachJalons(etat);
-  const skins = conseilsSkins(etat);
+  const diamantsConnus = etat.stock.diamants != null && etat.stock.diamants !== "";
+  if (!diamantsConnus) return `${section("Diamants", `<div class="note or">Indiquez vos diamants pour savoir quand faire votre prochain tirage de 10.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px"><button class="btn or plein" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer</button><button class="btn plein" data-act="ouvrir" data-f="ressources">Saisir</button></div>`)}${investirSuite()}`;
   return `${section("Diamants", `<div class="ligne"><span class="pastille-icone or">${ic("gemme", 18)}</span><span class="corps"><b>${fmt(d.stock)} diamants</b>
-      <small class="multi">${d.tirages ? `De quoi faire ${pluriel(d.tirages, "tirage")} de 10 (2 200 chacun).` : `Encore ${fmt(d.manque)} pour un tirage de 10${d.jours ? `, soit environ ${pluriel(d.jours, "jour")} avec vos passes (${d.parJour}/jour)` : ""}.`}</small></span></div>
+      <small class="multi">${d.tirages ? `De quoi faire ${pluriel(d.tirages, "tirage")} de 10 (2 200 chacun).` : `Encore ${fmt(d.manque)} pour un tirage de 10${d.jours ? `, soit environ ${pluriel(d.jours, "jour")} avec vos passes (${fmt(d.parJour)}/jour)` : ""}.`}</small></span></div>
     <div class="note or">${d.posteVise ? `Cible de vos prochains tirages : un héros CR pour le poste « ${esc(d.posteVise)} » qui manque à votre noyau.` : "Votre noyau est complet : ne tirez que sur une bannière qui améliore un poste (un CR plus fort que votre carry ou votre soutien)."}</div>
     <div class="note">Jamais de tirage simple ni de rafraîchissement de boutique en diamants : tout pour les tirages de 10 sur bannière à taux augmenté.</div>`)}
-  ${jalons.length ? section("Jalons du compte", jalons.map((x) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone${x.proche ? " or" : ""}">${ic("etoile", 18)}</span><span class="corps"><b>${esc(x.titre)}</b><small class="multi">Reste : ${esc(x.reste)}</small><small class="multi">Gain : ${esc(x.gain)}</small></span></div>`).join("")) : ""}
+  ${investirSuite()}`;
+}
+
+function investirSuite() {
+  const jalons = coachJalons(etat);
+  const skins = conseilsSkins(etat);
+  return `  ${jalons.length ? section("Jalons du compte", jalons.map((x) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone${x.proche ? " or" : ""}">${ic("etoile", 18)}</span><span class="corps"><b>${esc(x.titre)}</b><small class="multi">Reste : ${esc(x.reste)}</small><small class="multi">Gain : ${esc(x.gain)}</small></span></div>`).join("")) : ""}
   ${section("Principes du long terme", PRINCIPES.map((p) => `<div class="ligne" style="align-items:flex-start"><span class="corps"><b style="white-space:normal">${esc(p.titre)}</b><small class="multi">${esc(p.texte)}</small></span></div>`).join(""))}
   ${section("Où dépenser chaque ressource", RESSOURCES.map((r) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone">${ic(ICONE_RESSOURCE[r.id])}</span><span class="corps"><b style="white-space:normal">${esc(r.nom)} <span style="color:var(--texte-2);font-weight:400">${etat.stock[r.id] != null ? esc(fmt(etat.stock[r.id])) : ""}</span></b><small class="multi">${esc(r.conseil)}</small></span></div>`).join(""))}
   ${section("Passes et options payantes", notes(conseilsOffres(etat)))}
-  ${skins.length ? section("Skins", skins.map((x) => `<div class="ligne"><span class="corps"><b style="white-space:normal">${esc(x.texte)}</b></span><button class="lien" data-act="mettre-skin" data-id="${x.hero.id}" data-skin="${x.skin.id}">Équiper</button></div>`).join("")) : ""}
+  ${skins.length ? section("Skins", skins.map((x) => `<div class="ligne"><span class="corps"><b style="white-space:normal">${esc(x.texte)}</b></span><button class="lien" data-act="mettre-skin" data-id="${esc(x.hero.id)}" data-skin="${esc(x.skin.id)}">Équiper</button></div>`).join("")) : ""}
   <details class="section"><summary class="pied" style="cursor:pointer">Modes de jeu et astuces</summary>
     <div class="groupe" style="margin-top:6px">${MODES.map((m) => `<div class="ligne"><span class="corps"><b>${esc(m.nom)}</b><small class="multi">${esc(m.note)}</small></span></div>`).join("")}</div>
     <div class="groupe" style="margin-top:10px">${[...ASTUCES_JEU, ...CONSEILS_SOURCES].map((c) => `<div class="note or">${esc(c.texte)}</div>`).join("")}</div></details>`;
@@ -473,7 +481,7 @@ function vueBoss() {
   <input class="recherche" type="search" id="recherche-boss" placeholder="Rechercher un boss ou un chapitre…" data-ui="rechercheBoss" value="${esc(ui.rechercheBoss)}" aria-label="Rechercher un boss">
   ${liste.length ? section("", liste.map((b) => {
     const top = composerEquipe(herosDe(etat), b, etat, { mesHerosSeulement: ui.mesHeros && aDesHeros, taille: 3 });
-    return `<button class="ligne" data-act="ouvrir" data-f="boss" data-id="${b.id}" style="align-items:flex-start"><span class="pastille-icone" style="background:var(--e-saignement)">${ic("boss", 18)}</span>
+    return `<button class="ligne" data-act="ouvrir" data-f="boss" data-id="${esc(b.id)}" style="align-items:flex-start"><span class="pastille-icone" style="background:var(--e-saignement)">${ic("boss", 18)}</span>
       <span class="corps"><b>${esc(b.nom)}</b><small class="multi">${b.modele ? "Modèle" : b.chapitre ? `Chapitre ${esc(b.chapitre)}` : "Boss"} · Conseillés : ${esc(top.map((e) => e.hero.nom).join(", "))}</small>
       <div class="puces" style="margin-top:6px">${b.faiblesses.map((k) => `<span class="puce bon">${esc(nomCible(k))}</span>`).join("")}${b.resistances.map((k) => `<span class="puce mauvais">${esc(nomCible(k))}</span>`).join("")}${b.traits.map((k) => `<span class="puce">${esc(TRAITS[k])}</span>`).join("")}</div></span>
       ${chevron()}</button>`;
@@ -491,10 +499,10 @@ function vueBoutique() {
     const a = etat.abonnements[o.id] || {};
     const act = actives.find((x) => x.id === o.id);
     const reste = act?.joursRestants == null ? "" : act.joursRestants < 0 ? "Expirée" : `${act.joursRestants} j restants`;
-    return `<div class="ligne"><button class="corps" style="border:0;background:none;text-align:left;padding:0;color:inherit" data-act="ouvrir" data-f="offre" data-id="${o.id}">
+    return `<div class="ligne"><button class="corps" style="border:0;background:none;text-align:left;padding:0;color:inherit" data-act="ouvrir" data-f="offre" data-id="${esc(o.id)}">
         <b>${esc(o.nom)}</b><small>${esc(a.actif ? reste || "Active" : o.prix)}</small></button>
-        <input type="checkbox" class="interrupteur" data-offre="${o.id}" ${a.actif ? "checked" : ""} aria-label="J'ai souscrit ${esc(o.nom)}"></div>
-      ${a.actif ? `<div class="champ"><label for="fin-${o.id}">Fin</label><input type="date" id="fin-${o.id}" data-offre-fin="${o.id}" value="${esc(a.fin || "")}"></div>` : ""}`;
+        <input type="checkbox" class="interrupteur" data-offre="${esc(o.id)}" ${a.actif ? "checked" : ""} aria-label="J'ai souscrit ${esc(o.nom)}"></div>
+      ${a.actif ? `<div class="champ"><label for="fin-${o.id}">Fin</label><input type="date" id="fin-${o.id}" data-offre-fin="${esc(o.id)}" value="${esc(a.fin || "")}"></div>` : ""}`;
   }).join(""), { pied: "Seuls deux prix sont publiés par les stores (packs 0,99 $ et 2,99 $). Touchez une option pour voir son contenu ou la modifier." })}
   <div style="margin-top:10px"><button class="btn plein" data-act="ouvrir" data-f="offre" data-id="">Ajouter une option vue dans le jeu</button></div>
   ${section("Codes cadeaux", CODES_CADEAUX.map((c) => `<div class="ligne" style="padding-right:4px"><label style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;min-height:44px"><input type="checkbox" class="coche" data-code="${esc(c.code)}" ${etat.codesUtilises[c.code] ? "checked" : ""} aria-label="Code ${esc(c.code)} utilisé">
@@ -507,8 +515,8 @@ function vueBoutique() {
 
 const stepper = (cle, valeur, min = 0) => `<div class="stepper"><button type="button" data-act="pas" data-cle="${cle}" data-pas="-1" aria-label="Moins">−</button>
   <input type="number" inputmode="numeric" min="${min}" data-num="${cle}" value="${esc(valeur)}" aria-label="Valeur"><button type="button" data-act="pas" data-cle="${cle}" data-pas="1" aria-label="Plus">+</button></div>`;
-const champTexte = (id, label, cle, valeur, { type = "text", mode = "", ph = "" } = {}) => `<div class="champ"><label for="${id}">${label}</label>
-  <input id="${id}" type="${type}" ${mode ? `inputmode="${mode}"` : ""} data-joueur="${cle}" value="${esc(valeur)}" placeholder="${esc(ph)}"></div>`;
+const champTexte = (id, label, cle, valeur, { type = "text", mode = "", ph = "" } = {}) => `<div class="champ"><label for="${esc(id)}">${label}</label>
+  <input id="${esc(id)}" type="${type}" ${mode ? `inputmode="${mode}"` : ""} data-joueur="${cle}" value="${esc(valeur)}" placeholder="${esc(ph)}"></div>`;
 const champStepper = (label, cle, valeur, min = 0) => `<div class="champ"><span class="etiquette">${label}</span><span style="flex:1"></span>${stepper(cle, valeur, min)}</div>`;
 const champSaisie = "width:100%;background:var(--groupe-2);border:0;border-radius:8px;padding:8px 10px;font-size:16px";
 
@@ -532,7 +540,7 @@ function feuilleImport() {
     const nb = champsProfil.length + Object.keys(p.stock).length + p.heros.length + p.artefacts.length + p.skins.length + p.pieges.length + p.betes.length + p.abonnements.length + (p.tentativesTrain ? 1 : 0);
     const coche = (cle, x) => `<input type="checkbox" class="coche" data-imp-coche="${cle}" ${x.garder ? "checked" : ""} aria-label="Garder">`;
     const nombre = (cle, v, label) => `<label style="min-width:0;display:block"><small style="color:var(--texte-2);font-size:12px">${label}</small><input type="number" inputmode="numeric" enterkeyhint="done" min="0" data-imp="${cle}" value="${v ?? ""}" placeholder="—" style="${champSaisie}"></label>`;
-    const choixHero = (cle, id) => `<select data-imp="${cle}" aria-label="Héros" style="${champSaisie}"><option value="">Héros ?</option>${herosDe(etat).map((h) => `<option value="${h.id}" ${h.id === id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select>`;
+    const choixHero = (cle, id) => `<select data-imp="${cle}" aria-label="Héros" style="${champSaisie}"><option value="">Héros ?</option>${herosDe(etat).map((h) => `<option value="${esc(h.id)}" ${h.id === id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select>`;
     const champLibre = (cle, v, label) => `<input data-imp="${cle}" value="${esc(v)}" aria-label="${esc(label)}" style="${champSaisie}">`;
     return [pluriel(nb, "info trouvée", "infos trouvées"), `
       <p class="pied" style="padding-top:8px">${nb ? "Décochez ce qui est faux, corrigez si besoin, puis enregistrez. Les champs vides ne changent rien." : ""}</p>
@@ -733,7 +741,7 @@ function feuilleImportEquipe() {
       <p class="pied" style="padding-top:8px">Le jeu n'écrit pas le nom des héros de l'équipe : choisissez-le en face de chaque portrait. Le niveau lu est déjà rempli.</p>
       ${section("", impEquipe.cartes.map((c, i) => `<div class="ligne"><img src="${c.vignette}" alt="Carte ${i + 1}" style="width:58px;height:72px;object-fit:cover;border-radius:10px;flex:none">
         <span class="corps" style="display:grid;gap:6px"><select data-imp-eq="${i}" data-champ="heroId" aria-label="Héros de la carte ${i + 1}" style="${champSaisie}"><option value="">Choisir le héros…</option>
-          ${tri.map((h) => `<option value="${h.id}" ${h.id === c.heroId ? "selected" : ""}>${esc(h.nom)}${progression(etat, h.id).possede ? "" : " (non obtenu)"}</option>`).join("")}</select>
+          ${tri.map((h) => `<option value="${esc(h.id)}" ${h.id === c.heroId ? "selected" : ""}>${esc(h.nom)}${progression(etat, h.id).possede ? "" : " (non obtenu)"}</option>`).join("")}</select>
           <span style="display:flex;align-items:center;gap:8px"><small>Niveau</small><input type="number" inputmode="numeric" enterkeyhint="done" min="1" data-imp-eq="${i}" data-champ="niveau" value="${esc(c.niveau ?? "")}" style="${champSaisie};width:84px" aria-label="Niveau de la carte ${i + 1}">${c.devine ? `<small style="color:var(--or-vif)">à vérifier</small>` : ""}</span></span></div>`).join(""))}`,
       { act: "import-equipe-appliquer", libelle: "Utiliser cette équipe", court: "Utiliser" }];
   }
@@ -768,7 +776,7 @@ const FEUILLES = {
         { pied: "La Porte plafonne le Lit. Room Research relève les plafonds des deux. Les héros portent 4 curios : un set complet." })}`];
   },
   ressources() {
-    return ["Ressources", `${section("", RESSOURCES.map((r) => `<div class="champ"><label for="r-${r.id}">${esc(r.nom)}</label><input id="r-${r.id}" type="number" inputmode="numeric" min="0" data-stock="${r.id}" value="${esc(etat.stock[r.id] ?? "")}" placeholder="—"></div>`).join(""),
+    return ["Ressources", `${section("", RESSOURCES.map((r) => `<div class="champ"><label for="r-${r.id}">${esc(r.nom)}</label><input id="r-${r.id}" type="number" inputmode="numeric" min="0" data-stock="${esc(r.id)}" value="${esc(etat.stock[r.id] ?? "")}" placeholder="—"></div>`).join(""),
       { pied: "Remplies automatiquement par l'import de captures, modifiables ici." })}
       ${section("Comment les dépenser", RESSOURCES.map((r) => `<div class="ligne" style="align-items:flex-start"><span class="pastille-icone">${ic(ICONE_RESSOURCE[r.id])}</span><span class="corps"><b>${esc(r.nom)}</b><small class="multi">${esc(r.conseil)}</small></span></div>`).join(""))}`];
   },
@@ -777,7 +785,7 @@ const FEUILLES = {
     const tri = (a, b) => progression(etat, b.id).possede - progression(etat, a.id).possede || RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete) || a.nom.localeCompare(b.nom);
     const liste = herosDe(etat).filter((h) => !f || norm(h.nom).includes(f) || (h.alias || []).some((x) => norm(x).includes(f))).sort(tri);
     const ligne = (h) => `<label class="ligne">${avatar(h, { taille: 36, terne: !progression(etat, h.id).possede })}<span class="corps"><b>${esc(h.nom)}</b><small>${esc(resumeHero(h.id))} · ${esc(ROLES[h.role])}</small></span>
-        <input type="checkbox" class="coche" data-equipe="${h.id}" ${etat.equipe.includes(h.id) ? "checked" : ""}></label>`;
+        <input type="checkbox" class="coche" data-equipe="${esc(h.id)}" ${etat.equipe.includes(h.id) ? "checked" : ""}></label>`;
     const miens = liste.filter((h) => progression(etat, h.id).possede), autres = liste.filter((h) => !progression(etat, h.id).possede);
     return [`Équipe · ${etat.equipe.length}/${TAILLE_EQUIPE}`, `
       <div style="padding-top:8px"><button class="btn or plein" data-act="ouvrir" data-f="import-equipe">${ic("photo", 20)} Importer l'écran de mon équipe</button></div>
@@ -798,13 +806,13 @@ const FEUILLES = {
     const sel = (attrs, inner) => `<select ${attrs} style="flex:1;min-width:0;background:none;border:0;text-align:right;color:var(--texte-2);font-size:17px">${inner}</select>`;
     return [h.nom, `
       <div class="entete-fiche">${avatar(h, { terne: !p.possede })}<div style="min-width:0"><h3>${esc(h.nom)}</h3><div class="puces" style="margin-top:6px">${puces(h)}</div></div></div>
-      ${section("", `<label class="champ"><span class="etiquette">Je l'ai</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-roster="${id}" data-champ="possede" ${p.possede ? "checked" : ""}></label>
-        <label class="champ"><span class="etiquette">Dans mon équipe</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-equipe="${id}" ${etat.equipe.includes(id) ? "checked" : ""}></label>`)}
+      ${section("", `<label class="champ"><span class="etiquette">Je l'ai</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-roster="${esc(id)}" data-champ="possede" ${p.possede ? "checked" : ""}></label>
+        <label class="champ"><span class="etiquette">Dans mon équipe</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-equipe="${esc(id)}" ${etat.equipe.includes(id) ? "checked" : ""}></label>`)}
       ${p.possede ? section("Progression", `${champStepper("Niveau", `roster.${id}.niveau`, p.niveau, 1)}${champStepper("Promotion", `roster.${id}.promotion`, p.promotion)}${champStepper("Étoiles", `roster.${id}.etoiles`, p.etoiles)}`,
         { pied: pal ? `Prochain palier P${pal.niveau} : ${esc(pal.bonus)}.` : "Palier de promotion maximal atteint." }) : ""}
-      ${p.possede ? section("Équipement", `${Array.from({ length: empl }, (_, i) => `<div class="champ"><span class="etiquette">Curio ${i + 1}</span>${sel(`data-slot="${id}" data-index="${i}" aria-label="Curio ${i + 1}"`, `<option value="">Vide</option>${arts.map((a) => { const autre = qui.get(a.id); return `<option value="${a.id}" ${p.artefacts[i] === a.id ? "selected" : ""}>${esc(a.nom)} (${esc(STATS_ARTEFACT[a.stat])})${autre && autre !== id ? ` · sur ${esc(heroParId(autre)?.nom || "?")}` : ""}</option>`; }).join("")}`)}</div>`).join("")}
-        <div class="champ"><span class="etiquette">Skin</span>${sel(`data-hero-skin="${id}" aria-label="Skin"`, `<option value="">Aucun</option>${skins.map((s) => `<option value="${s.id}" ${p.skin === s.id ? "selected" : ""}>${esc(s.nom)}${etat.skinsPossedes[s.id] ? "" : " (non possédé)"}</option>`).join("")}`)}</div>
-        ${ligneNav("fiche-skin", "Ajouter un skin pour ce héros")}`.replace('data-f="fiche-skin" data-id=""', `data-f="fiche-skin" data-id="" data-hero="${id}"`),
+      ${p.possede ? section("Équipement", `${Array.from({ length: empl }, (_, i) => `<div class="champ"><span class="etiquette">Curio ${i + 1}</span>${sel(`data-slot="${esc(id)}" data-index="${i}" aria-label="Curio ${i + 1}"`, `<option value="">Vide</option>${arts.map((a) => { const autre = qui.get(a.id); return `<option value="${esc(a.id)}" ${p.artefacts[i] === a.id ? "selected" : ""}>${esc(a.nom)} (${esc(STATS_ARTEFACT[a.stat])})${autre && autre !== id ? ` · sur ${esc(heroParId(autre)?.nom || "?")}` : ""}</option>`; }).join("")}`)}</div>`).join("")}
+        <div class="champ"><span class="etiquette">Skin</span>${sel(`data-hero-skin="${esc(id)}" aria-label="Skin"`, `<option value="">Aucun</option>${skins.map((s) => `<option value="${esc(s.id)}" ${p.skin === s.id ? "selected" : ""}>${esc(s.nom)}${etat.skinsPossedes[s.id] ? "" : " (non possédé)"}</option>`).join("")}`)}</div>
+        ${ligneNav("fiche-skin", "Ajouter un skin pour ce héros")}`.replace('data-f="fiche-skin" data-id=""', `data-f="fiche-skin" data-id="" data-hero="${esc(id)}"`),
         { pied: `Sets de curios à viser : ${setsIdeaux(h).map((x) => esc(x.nom)).join(" › ")}.` }) : ""}
       ${section("Fiche", `${h.competences ? `<div class="ligne"><span class="corps"><small>Compétences</small><b style="white-space:normal;font-size:15px">${esc(h.competences)}</b></span></div>` : ""}
         ${h.aura ? `<div class="ligne"><span class="corps"><small>Aura</small><b style="white-space:normal;font-size:15px">${esc(h.aura)}</b></span></div>` : ""}
@@ -823,11 +831,11 @@ const FEUILLES = {
         <div class="champ bloc"><label for="fh-aura">Aura (déployé)</label><textarea id="fh-aura" name="aura" rows="2">${esc(h.aura)}</textarea></div>
         <div class="champ bloc"><label for="fh-note">Notes</label><textarea id="fh-note" name="note" rows="2">${esc(h.note)}</textarea></div>`)}
       <div style="display:grid;gap:8px;margin-top:16px"><button class="btn or plein" type="submit">Enregistrer</button>
-      ${id ? `<button class="btn danger plein" type="button" data-act="suppr-hero" data-id="${id}" data-confirmer="Touchez encore pour supprimer">Supprimer du catalogue</button>` : ""}</div></form>`];
+      ${id ? `<button class="btn danger plein" type="button" data-act="suppr-hero" data-id="${esc(id)}" data-confirmer="Touchez encore pour supprimer">Supprimer du catalogue</button>` : ""}</div></form>`];
   },
   "ajout-artefact"() {
     return ["Ajouter un artefact", `
-      <form data-form="artefact-inventaire">${section("Depuis le catalogue", `<div class="champ"><label for="aa-ref">Artefact</label><select id="aa-ref" name="ref">${cat().artefacts.map((a) => `<option value="${a.id}">${esc(a.nom)}</option>`).join("")}</select></div>
+      <form data-form="artefact-inventaire">${section("Depuis le catalogue", `<div class="champ"><label for="aa-ref">Artefact</label><select id="aa-ref" name="ref">${cat().artefacts.map((a) => `<option value="${esc(a.id)}">${esc(a.nom)}</option>`).join("")}</select></div>
         <div class="champ"><label>Rareté</label><select name="rarete">${optsListe(RARETES, "SSR")}</select></div>
         <div class="champ"><label for="aa-niv">Niveau</label><input id="aa-niv" name="niveau" type="number" inputmode="numeric" min="0" value="0"></div>`)}
         <div style="margin-top:10px"><button class="btn or plein" type="submit">Ajouter à mon inventaire</button></div></form>
@@ -846,11 +854,11 @@ const FEUILLES = {
     return [a.nom, `${section("", `${set ? `<div class="champ"><span class="etiquette">Set</span><span class="valeur" style="flex:1;text-align:right">${esc(set.nom)}</span></div>
       <div class="champ"><span class="etiquette">Rareté</span><span style="flex:1"></span>${pastilleRarete(a.rarete)}</div>${champStepper("Étoiles", `inv.${id}.etoiles`, a.etoiles)}`
       : `<div class="champ"><span class="etiquette">Stat</span><span class="valeur" style="flex:1;text-align:right">${esc(STATS_ARTEFACT[a.stat])}</span></div>
-      <div class="champ"><label>Rareté</label><select data-inv="${id}" data-champ="rarete">${optsListe(RARETES, a.rarete)}</select></div>${champStepper("Niveau", `inv.${id}.niveau`, a.niveau)}`}
+      <div class="champ"><label>Rareté</label><select data-inv="${esc(id)}" data-champ="rarete">${optsListe(RARETES, a.rarete)}</select></div>${champStepper("Niveau", `inv.${id}.niveau`, a.niveau)}`}
       ${a.effet ? `<div class="champ"><span class="etiquette">Effet</span><span class="valeur" style="flex:1;text-align:right;white-space:normal">${esc(a.effet)}</span></div>` : ""}
-      <div class="champ"><label for="porteur">Porté par</label><select id="porteur" data-porteur="${id}"><option value="">Personne</option>${herosDe(etat).filter((h) => progression(etat, h.id).possede).map((h) => `<option value="${h.id}" ${qui === h.id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select></div>`)}
+      <div class="champ"><label for="porteur">Porté par</label><select id="porteur" data-porteur="${esc(id)}"><option value="">Personne</option>${herosDe(etat).filter((h) => progression(etat, h.id).possede).map((h) => `<option value="${esc(h.id)}" ${qui === h.id ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select></div>`)}
       ${set ? `<p class="pied">Effet du set : ${esc(set.effet)}</p>` : ""}
-      <div style="margin-top:16px"><button class="btn danger plein" data-act="suppr-inv" data-id="${id}" data-confirmer="Touchez encore pour retirer">Je ne l'ai plus</button></div>`];
+      <div style="margin-top:16px"><button class="btn danger plein" data-act="suppr-inv" data-id="${esc(id)}" data-confirmer="Touchez encore pour retirer">Je ne l'ai plus</button></div>`];
   },
   compagnon(cle) {
     const [sorte, id] = cle.split(":");
@@ -868,13 +876,13 @@ const FEUILLES = {
     const s = cat().skins.find((x) => x.id === id) || { nom: "", heroId: extra || "", bonusStat: "", bonusValeur: "", obtention: "" };
     return [id ? s.nom : "Nouveau skin", `<form data-form="skin" data-id="${esc(id)}">
       ${section("", `<div class="champ bloc"><label for="fs-nom">Nom du skin</label><input id="fs-nom" name="nom" required value="${esc(s.nom)}"></div>
-        <div class="champ"><label>Héros</label><select name="heroId" required>${herosDe(etat).map((h) => `<option value="${h.id}" ${h.id === s.heroId ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select></div>
+        <div class="champ"><label>Héros</label><select name="heroId" required>${herosDe(etat).map((h) => `<option value="${esc(h.id)}" ${h.id === s.heroId ? "selected" : ""}>${esc(h.nom)}</option>`).join("")}</select></div>
         <div class="champ"><label>Bonus</label><select name="bonusStat"><option value="">Cosmétique</option>${opts(STATS_ARTEFACT, s.bonusStat)}</select></div>
         <div class="champ"><label for="fs-val">Valeur (%)</label><input id="fs-val" name="bonusValeur" type="number" inputmode="decimal" min="0" step="0.1" value="${esc(s.bonusValeur)}" placeholder="—"></div>
         <div class="champ"><label for="fs-obt">Obtention</label><input id="fs-obt" name="obtention" value="${esc(s.obtention)}" placeholder="Ex. événement"></div>
         <label class="champ"><span class="etiquette">Je l'ai</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" name="possede" ${etat.skinsPossedes[id] ? "checked" : ""}></label>`)}
       <div style="display:grid;gap:8px;margin-top:16px"><button class="btn or plein" type="submit">Enregistrer</button>
-      ${id ? `<button class="btn danger plein" type="button" data-act="suppr-skin" data-id="${id}" data-confirmer="Touchez encore pour supprimer">Supprimer</button>` : ""}</div></form>`];
+      ${id ? `<button class="btn danger plein" type="button" data-act="suppr-skin" data-id="${esc(id)}" data-confirmer="Touchez encore pour supprimer">Supprimer</button>` : ""}</div></form>`];
   },
   boss(id) {
     const b = bossParId(id);
@@ -892,7 +900,7 @@ const FEUILLES = {
       ${section("Équipe conseillée", `<label class="champ"><span class="etiquette">Mes héros seulement</span><span style="flex:1"></span><input type="checkbox" class="interrupteur" data-ui-coche="mesHeros" ${ui.mesHeros ? "checked" : ""}></label>
         ${equipe.map(({ hero, pourquoi }) => `<div class="ligne" style="align-items:flex-start">${avatar(hero, { taille: 36 })}<span class="corps"><b>${esc(hero.nom)}</b><ul class="raisons">${pourquoi.map((r) => `<li class="${r.startsWith("+") ? "plus" : r.startsWith("−") ? "moins" : ""}">${esc(r)}</li>`).join("")}</ul></span></div>`).join("")}`,
         { pied: ui.mesHeros && !aDesHeros ? "Aucun héros obtenu : l'équipe pioche dans tout le catalogue." : "" })}
-      <div style="margin-top:10px"><button class="btn or plein" data-act="equipe-boss" data-id="${b.id}">En faire mon équipe</button></div>
+      <div style="margin-top:10px"><button class="btn or plein" data-act="equipe-boss" data-id="${esc(b.id)}">En faire mon équipe</button></div>
       ${parFaiblesse.length ? section("Meilleurs héros par faiblesse", parFaiblesse.map(({ k, heros }) => `<div class="ligne"><span class="corps"><small>${esc(nomCible(k))}</small><b style="white-space:normal;font-size:15px">${heros.length ? esc(heros.map((c) => c.hero.nom).join(", ")) : `Aucun héros ${mes ? "obtenu " : ""}de ce type`}</b></span></div>`).join("")) : ""}
       ${section("Artefacts pour ce combat", conf.lignes.map((l) => `<div class="ligne"><span class="corps"><small>${esc(l.hero.nom)}</small><b style="white-space:normal;font-size:15px">${l.optimaux.length ? esc(l.optimaux.map((a) => a.nom).join(", ")) : `Cherchez ${esc(l.ideales.slice(0, 2).map((s) => s.libelle).join(" ou "))}`}</b></span></div>`).join(""))}
       ${section("", ligneNav("fiche-boss", "Modifier ce boss", "", { id: b.id }))}`];
@@ -908,7 +916,7 @@ const FEUILLES = {
       ${section("Traits", `<div class="champ bloc">${cases("traits", TRAITS, b.traits)}</div>`)}
       ${section("Description", `<div class="champ bloc"><label for="fb-for">Forces</label><textarea id="fb-for" name="forces" rows="2">${esc(b.forces)}</textarea></div><div class="champ bloc"><label for="fb-spe">Spécificités</label><textarea id="fb-spe" name="specificites" rows="3">${esc(b.specificites)}</textarea></div>`)}
       <div style="display:grid;gap:8px;margin-top:16px"><button class="btn or plein" type="submit">Enregistrer</button>
-      ${id ? `<button class="btn danger plein" type="button" data-act="suppr-boss" data-id="${id}" data-confirmer="Touchez encore pour supprimer">Supprimer</button>` : ""}</div></form>`];
+      ${id ? `<button class="btn danger plein" type="button" data-act="suppr-boss" data-id="${esc(id)}" data-confirmer="Touchez encore pour supprimer">Supprimer</button>` : ""}</div></form>`];
   },
   offre(id) {
     const o = cat().offres.find((x) => x.id === id) || { nom: "", categorie: "pack", prix: "", contenu: "", avantages: [] };
@@ -919,16 +927,16 @@ const FEUILLES = {
         <div class="champ bloc"><label for="fo-cont">Contenu</label><textarea id="fo-cont" name="contenu" rows="3">${esc(o.contenu)}</textarea></div>`, { pied: o.source ? `Source : ${esc(o.source)}` : "" })}
       ${section("Ce que ça débloque", `<div class="champ bloc"><div class="choix">${Object.entries(AVANTAGES).map(([k, v]) => `<label><input type="checkbox" name="avantages" value="${k}" ${(o.avantages || []).includes(k) ? "checked" : ""}>${esc(v)}</label>`).join("")}</div></div>`)}
       <div style="display:grid;gap:8px;margin-top:16px"><button class="btn or plein" type="submit">Enregistrer</button>
-      ${id ? `<button class="btn danger plein" type="button" data-act="suppr-offre" data-id="${id}" data-confirmer="Touchez encore pour supprimer">Supprimer</button>` : ""}</div></form>`];
+      ${id ? `<button class="btn danger plein" type="button" data-act="suppr-offre" data-id="${esc(id)}" data-confirmer="Touchez encore pour supprimer">Supprimer</button>` : ""}</div></form>`];
   },
   "cat-heros"() {
-    return ["Catalogue des héros", `${section(`${herosDe(etat).length} héros`, herosDe(etat).map((h) => `<button class="ligne" data-act="ouvrir" data-f="fiche-hero" data-id="${h.id}">${avatar(h, { taille: 36 })}<span class="corps"><b>${esc(h.nom)}</b><small>${esc(h.rarete)} · ${esc(TYPES[h.type])} · ${esc(ROLES[h.role])}${h.aVerifier ? " · à vérifier" : ""}</small></span>${chevron()}</button>`).join(""),
+    return ["Catalogue des héros", `${section(`${herosDe(etat).length} héros`, herosDe(etat).map((h) => `<button class="ligne" data-act="ouvrir" data-f="fiche-hero" data-id="${esc(h.id)}">${avatar(h, { taille: 36 })}<span class="corps"><b>${esc(h.nom)}</b><small>${esc(h.rarete)} · ${esc(TYPES[h.type])} · ${esc(ROLES[h.role])}${h.aVerifier ? " · à vérifier" : ""}</small></span>${chevron()}</button>`).join(""),
       { pied: "Le jeu annonce une centaine de héros ; seuls ceux cités par les guides sont listés. Ajoutez les autres : ils seront aussi reconnus à l'import." })}
       <div style="margin-top:10px"><button class="btn or plein" data-act="ouvrir" data-f="fiche-hero" data-id="">Ajouter un héros</button></div>`];
   },
   "cat-artefacts"() {
     return ["Catalogue des artefacts", `${section(`${cat().artefacts.length} artefacts`, cat().artefacts.map((a) => `<div class="ligne"><span class="corps"><b>${esc(a.nom)}</b><small>${esc(STATS_ARTEFACT[a.stat])}${a.effet ? ` · ${esc(a.effet)}` : ""}</small></span>
-      <button class="bouton-icone" style="color:var(--mauvais)" data-act="suppr-cat-artefact" data-id="${a.id}" data-confirmer="Sûr ?" aria-label="Supprimer ${esc(a.nom)}">${ic("corbeille", 20)}</button></div>`).join(""),
+      <button class="bouton-icone" style="color:var(--mauvais)" data-act="suppr-cat-artefact" data-id="${esc(a.id)}" data-confirmer="Sûr ?" aria-label="Supprimer ${esc(a.nom)}">${ic("corbeille", 20)}</button></div>`).join(""),
       { pied: "Aucune liste publique des artefacts n'existe : les « Artefact P.ATK »… sont génériques. Les vrais s'ajoutent à l'import ou depuis Héros › Artefacts." })}`];
   },
   promotions() {
@@ -999,7 +1007,9 @@ function rendreFeuille() {
   if (!ui.feuille) {
     $feuille.innerHTML = ""; delete $feuille.dataset.cle; document.body.classList.remove("feuille-ouverte");
     arrierePlanInerte(false);
-    if (ui.focusAvant?.isConnected) ui.focusAvant.focus({ preventScroll: true });
+    // Le bouton d'origine a pu être recréé par rendre() : on le retrouve par ses attributs.
+    const cible = ui.focusAvant?.el?.isConnected ? ui.focusAvant.el : ui.focusAvant?.sel ? document.querySelector(ui.focusAvant.sel) : null;
+    cible?.focus({ preventScroll: true });
     ui.focusAvant = null;
     return;
   }
@@ -1037,7 +1047,11 @@ function arrierePlanInerte(oui) {
 }
 function ouvrir(type, id = "", extra = "") {
   if (!FEUILLES[type]) return;
-  if (!ui.feuille) ui.focusAvant = document.activeElement !== document.body ? document.activeElement : null;
+  if (!ui.feuille) {
+    const a = document.activeElement;
+    const sel = a && a !== document.body ? ["act", "f", "id", "onglet"].filter((k) => a.dataset?.[k] !== undefined).map((k) => `[data-${k}="${CSS.escape(a.dataset[k])}"]`).join("") : "";
+    ui.focusAvant = a && a !== document.body ? { el: a, sel: sel || null } : null;
+  }
   if (ui.feuille) ui.pile.push(ui.feuille);
   ui.feuille = { type, id, extra, cle: `${type}:${id}:${ui.pile.length}` };
   rendreFeuille();
@@ -1218,16 +1232,19 @@ const ACTIONS = {
   seg: (b) => { ui.segHeros = b.dataset.id; rendre(); },
   possedes: (b) => { ui.possedes = b.dataset.id === "1"; rendre(); },
   pas: (b) => { const cle = b.dataset.cle; setCle(cle, Math.max(minimumDe(cle), getCle(cle) + Number(b.dataset.pas))); enregistrer(); },
+  "plan-complet": () => { ui.planComplet = !ui.planComplet; rendre(); },
   "seg-strat": (b) => { ui.segStrat = b.dataset.id; rendre(); remonter(); },
-  "equipe-type": (b) => { definirEquipe(b.dataset.id.split(",")); enregistrer(); toast("Équipe mise à jour"); },
+  // Équipe proposée par l'app : elle peut venir du catalogue entier, on ne touche pas à « Je l'ai ».
+  "equipe-type": (b) => { etat.equipe = b.dataset.id.split(",").filter((id) => heroParId(id)).slice(0, TAILLE_EQUIPE); enregistrer(); toast("Équipe mise à jour"); },
   "appliquer-sets": () => {
     const empl = Number(etat.joueur.emplacements) || 4;
-    const parRef = new Map(etat.inventaire.map((i) => [i.ref, i.id]));
+    const setDe = new Map(artefactsResolus(etat).map((a) => [a.id, a.set]));
     for (const x of coachCurios(etat)) {
-      const pieces = x.set ? cat().artefacts.filter((c) => c.set === x.set && parRef.has(c.id)) : [];
+      const pieces = x.set ? piecesAEquiper(etat, x.set) : [];
       if (!pieces.length) continue; // aucune pièce du set : on garde ce que le héros porte
+      const horsSet = fiche(x.hero.id).artefacts.filter((id) => !setDe.get(id));
       fiche(x.hero.id).artefacts = [];
-      pieces.sort((a, b) => RARETES.indexOf(b.rarete) - RARETES.indexOf(a.rarete)).slice(0, empl).forEach((c, i) => equiper(x.hero.id, i, parRef.get(c.id)));
+      [...pieces, ...horsSet].slice(0, empl).forEach((id, i) => equiper(x.hero.id, i, id));
     }
     enregistrer(); toast("Sets équipés : reproduisez-les dans le jeu");
   },
@@ -1238,7 +1255,7 @@ const ACTIONS = {
     etat.equipe = eq.heros.filter((id) => heroParId(id)).slice(0, TAILLE_EQUIPE); enregistrer(); toast(`Équipe ${eq.nom} sélectionnée`); },
   "equipe-boss": (b) => { const boss = bossParId(b.dataset.id);
     const aDesHeros = herosDe(etat).some((h) => progression(etat, h.id).possede);
-    definirEquipe(composerEquipe(herosDe(etat), boss, etat, { mesHerosSeulement: ui.mesHeros && aDesHeros }).map((e) => e.hero.id));
+    etat.equipe = composerEquipe(herosDe(etat), boss, etat, { mesHerosSeulement: ui.mesHeros && aDesHeros }).map((e) => e.hero.id);
     enregistrer(); toast("Équipe mise à jour"); },
   "suppr-hero": (b) => { supprimerCatalogue("heros", b.dataset.id); delete etat.roster[b.dataset.id]; etat.equipe = etat.equipe.filter((x) => x !== b.dataset.id); fermer(); enregistrer(); toast("Héros supprimé"); },
   "suppr-skin": (b) => { supprimerCatalogue("skins", b.dataset.id); delete etat.skinsPossedes[b.dataset.id];

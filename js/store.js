@@ -84,6 +84,14 @@ export function fusionner(d) {
     const connus = new Set(etat.catalogue[k].map((x) => x.id));
     for (const x of base.catalogue[k]) if (!connus.has(x.id) && !supprimes.has(x.id)) etat.catalogue[k].push(x);
   }
+  // Identifiants : uniquement lettres, chiffres, « - » et « _ ». Une sauvegarde collée ou modifiée
+  // à la main ne peut donc pas glisser de balisage dans l'interface (les ids vont dans des attributs HTML).
+  const propre = (id) => String(id ?? "").replace(/[^\w-]/g, "-");
+  for (const k of Object.keys(etat.catalogue)) for (const x of etat.catalogue[k]) { if (x && typeof x === "object") { x.id = propre(x.id); if (x.heroId) x.heroId = propre(x.heroId); } }
+  for (const k of ["roster", "pieges", "betes", "skinsPossedes", "abonnements"]) etat[k] = Object.fromEntries(Object.entries(etat[k]).map(([id, v]) => [propre(id), v]));
+  etat.equipe = etat.equipe.map(propre);
+  for (const i of etat.inventaire) { if (i && typeof i === "object") { i.id = propre(i.id); i.ref = propre(i.ref); } }
+  for (const r of Object.values(etat.roster)) if (r && Array.isArray(r.artefacts)) r.artefacts = r.artefacts.map(propre);
   // Anciennes raretés (Commun … Mythique) → raretés du jeu (R, SSR, UR, CR).
   const rarete = (r) => ANCIENNES_RARETES[r] || r;
   for (const k of ["heros", "artefacts", "pieges", "betes"]) for (const x of etat.catalogue[k]) x.rarete = rarete(x.rarete);

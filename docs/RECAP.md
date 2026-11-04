@@ -34,8 +34,8 @@
 | `js/capture.js` | Analyse du texte des captures (héros, curios, pièges, bêtes, profil, ressources, écrans à chiffres sans libellé) |
 | `js/ocr.js` | Tesseract.js embarqué (`vendor/`, eng+fra), **2 passes** (textes clairs / textes colorés), image jamais conservée |
 | `js/app.js` | Interface (vues, feuilles, import, événements) |
-| `tests/*.mjs` | 39 tests unitaires (`npm test`) |
-| `qa/campagne.cjs` | 102 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
+| `tests/*.mjs` | 42 tests unitaires (`npm test`) |
+| `qa/campagne.cjs` | 103 cas de test navigateur (`node qa/campagne.cjs passe-N`) |
 | `docs/qa/` | Cahier des tests, résultats, anomalies, diagnostic |
 | `outils/build.py` | Page unique + archive PWA (`dist/`) |
 
@@ -76,6 +76,7 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 | 04/11 | V1 : PWA 6 onglets (plan, héros, boss, artefacts, ressources, données). |
 | 04/11 | V2 : refonte façon Instagram, import OCR (eng+fra), publication GitHub Pages. |
 | 04/11 | V3 : refonte Apple noir/blanc/or, import complet du profil, campagne QA 71 cas (10 anomalies corrigées). |
+| 04/11 | V8.4 : revue Superpowers : plan complet dépliable sur l'accueil, « Jouer cette équipe » ne déclare plus obtenus des héros non possédés, focus restauré après re-rendu, `piecesAEquiper` partagé (les artefacts hors set restent), jalons lus dans data.js, diamants non renseignés signalés, identifiants nettoyés au chargement (anti-injection), image toujours libérée. QA 103/103. |
 | 04/11 | V8.3 : polish front et UX (skills impeccable, web-design-guidelines, ui-ux-pro-max, frontend-ui-engineering) : interrupteurs de nouveau verts une fois activés (régression V8.1), contraste AA partout, pastilles de rareté teintées, 5 héros visibles sur l'accueil, noms non superposés (Stratégie › Boss), libellés non tronqués, pluriels, focus clavier/VoiceOver dans les feuilles, cibles tactiles agrandies. QA 102/102. |
 | 04/11 | V8.2 : revue de code (10 corrections) : « Équiper ces sets » ne vide plus un héros sans pièce, moteur OCR toujours remis en lecture normale, plan d'accueil et pastille sur le même calcul (`curiosAChanger`), date locale (routine à minuit), héros joués marqués obtenus, code mort retiré. QA 99/99 (feuilles, routine, déploiements, limite d'équipe, mauvais écran d'équipe). |
 | 04/11 | V8.1 : interrupteurs (Je l'ai, Dans mon équipe…) remis à la taille iOS 51×31 (étirés par `.champ input`), QA 92/92. |

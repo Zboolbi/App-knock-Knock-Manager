@@ -498,12 +498,21 @@ async function main() {
       JSON.stringify({ bw: e.roster["bride-wraith"].artefacts, gc: e.roster["ghost-captain"].artefacts }));
     await p.ctx.close();
   });
-  await cas("STR-12", "« Jouer cette équipe » marque les héros joués comme obtenus", async () => {
+  await cas("STR-12", "« Jouer cette équipe » ne déclare pas obtenus des héros proposés par le catalogue", async () => {
     const p = await page(null);
     await p.click(".onglets [data-onglet=strategie]"); await p.click("[data-act=seg-strat][data-id=boss]");
     await p.click("[data-act=equipe-type] >> nth=0");
     const e = await p.etat();
-    verifier(e.equipe.length === 5 && e.equipe.every((id) => e.roster[id]?.possede && e.roster[id].niveauInconnu), JSON.stringify(e.equipe));
+    verifier(e.equipe.length === 5 && e.equipe.every((id) => !e.roster[id]?.possede), JSON.stringify(e.equipe));
+    await p.ctx.close();
+  });
+  await cas("STR-13", "Accueil : « Tout voir » déplie tout le plan, « Réduire » le replie", async () => {
+    const p = await page(avec((e) => { possede(e, ["spiker", "frosthealer", "poseidon", "cannon-girl", "archmage"], { promotion: 1 }); e.equipe = ["spiker", "frosthealer", "poseidon", "cannon-girl", "archmage"]; e.joueur.coffreCurios = 300; e.joueur.etape = "100"; }));
+    const plan = () => p.locator(".section", { hasText: "À faire maintenant" }).locator(".etape-num").count();
+    const avant = await plan();
+    await p.click("[data-act=plan-complet]"); const tout = await plan();
+    await p.click("[data-act=plan-complet]"); const apres = await plan();
+    verifier(avant === 4 && tout > 4 && apres === 4, JSON.stringify({ avant, tout, apres }));
     await p.ctx.close();
   });
   await cas("STR-09", "Noyau : ordre d'investissement et objectif de palier", async () => {
