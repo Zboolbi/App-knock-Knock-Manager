@@ -11,7 +11,9 @@
 - Pas de serveur, pas de compte : tout est dans `localStorage` (clé `kkrd-coach:v2`), ~15 Ko.
 
 ## 2. Design (demandé par l'utilisateur)
-- Style **Apple** (listes groupées, grands titres, feuilles modales, contrôle segmenté), pratique comme une app de gestion.
+- Style **Apple iOS épuré** (V9) : matière translucide au-dessus du filigrane (`--groupe` + `backdrop-filter`), séparateurs en retrait, rayons 16-22 px, barre d'onglets **flottante** en capsule (onglet actif = pastille dorée), feuilles en verre sombre, icônes SVG (pas de caractères Unicode). 5 onglets conservés (choix de l'utilisateur).
+- Accueil (V9) : logo, carte joueur compacte (Étape, Puissance, Diamants ; « Plus de chiffres » déplie Porte·Lit, Curio Vault, Gear, Train et ressources), **carte « Prochaine action »** (seul élément fort), plan dépliable, équipe, routine avec barre de progression, installation en bas. Import : icône appareil photo en haut (et carte « Pour bien démarrer » pour un nouveau joueur).
+- **Contraintes fixes** : filigrane citrouille (`assets/fond.jpg`) et logo du jeu (`assets/logo-jeu.png`).
 - **Fond noir, textes blancs, titres dorés** (`--or: #d8b45a`). Thème unique sombre.
 - Accessibilité (V8.3) : texte tertiaire `--texte-3: #8b8b92` (≥ 4,5:1), pastilles de rareté teintées (texte ≥ 5:1), libellés en casse de phrase (pas de majuscules espacées), cibles ≥ 44 px sauf contrôles natifs iOS, focus géré dans les feuilles (arrière-plan `inert`), libellés reliés aux champs (`associerLibelles`), accords au pluriel via `pluriel()` (engine.js). Vérifié : axe-core 0 violation (20 écrans), détecteur impeccable 0 constat, 320 → 1024 px sans débordement.
 - Logo : **logo du jeu fourni par l'utilisateur** (`assets/logo-jeu.png`, détouré) à la place du titre, « MANAGER » dessous. Fond : tête-citrouille (`assets/fond.jpg`) en transparence (22 %). Icône d'app (écran d'accueil uniquement) : « K » orange + tête-citrouille (`icons/`, 180/192/512 + maskable Android, coins comblés en #1f2125).
@@ -19,7 +21,7 @@
 ## 3. Onglets
 | Onglet | Contenu |
 |---|---|
-| Accueil | Logo, carte joueur (niveau, guilde, VIP, étape, Porte/Lit, puissance, Curio Vault, Gear, palier), **Importer**, ressources, équipe, « À faire maintenant », routine du jour. Réglages (roue dentée). |
+| Accueil | Logo, carte joueur compacte + « Plus de chiffres », « À faire maintenant » (prochaine action en carte forte, « Tout voir » déplie le plan), équipe, routine du jour, installation. Import (appareil photo) et Réglages (roue dentée) en haut. |
 | Héros | Segments **Équipe · Collection · Curios · Pièges · Bêtes · Skins**. Équipe : choix parmi **tous les héros** (recherche), **import de la capture d'équipe** (5 portraits + niveaux lus, héros à choisir). Fiche héros : obtenu, niveau, promotion, étoiles, 4 curios, skin. |
 | Stratégie | Coaching long terme en 4 segments : **Noyau** (postes Carry/Synergie/Soutien… dans l'ordre d'investissement, palier P6 commun, principes), **Curios** (un set par héros sans conflit, pièces manquantes, « Équiper ces sets »), **Boss** (6 types de boss → équipe à jouer, « Jouer cette équipe »), **Investir** (diamants → tirage ×10, jalons, ressources, skins, offres). Le plan « À faire maintenant » reste sur l'accueil. |
 | Boss | Faiblesses/résistances/traits, équipe conseillée argumentée, héros par faiblesse, curios du combat. |
@@ -76,6 +78,7 @@ Niveau 69 · puissance 1,6 M · Stage 176 · Curio Vault 392 · Gear +171 (Tier 
 | 04/11 | V1 : PWA 6 onglets (plan, héros, boss, artefacts, ressources, données). |
 | 04/11 | V2 : refonte façon Instagram, import OCR (eng+fra), publication GitHub Pages. |
 | 04/11 | V3 : refonte Apple noir/blanc/or, import complet du profil, campagne QA 71 cas (10 anomalies corrigées). |
+| 04/11 | V9 : refonte du front « iOS épuré » (skills frontend-design, impeccable, ui-ux-pro-max, web-design-guidelines, frontend-ui-engineering, superpowers) : matière translucide, barre d'onglets flottante, accueil réorganisé autour de la prochaine action, icônes SVG, mouvement discret. Filigrane et logo conservés. axe 0, détecteur 0, QA 103/103. |
 | 04/11 | V8.4 : revue Superpowers : plan complet dépliable sur l'accueil, « Jouer cette équipe » ne déclare plus obtenus des héros non possédés, focus restauré après re-rendu, `piecesAEquiper` partagé (les artefacts hors set restent), jalons lus dans data.js, diamants non renseignés signalés, identifiants nettoyés au chargement (anti-injection), image toujours libérée. QA 103/103. |
 | 04/11 | V8.3 : polish front et UX (skills impeccable, web-design-guidelines, ui-ux-pro-max, frontend-ui-engineering) : interrupteurs de nouveau verts une fois activés (régression V8.1), contraste AA partout, pastilles de rareté teintées, 5 héros visibles sur l'accueil, noms non superposés (Stratégie › Boss), libellés non tronqués, pluriels, focus clavier/VoiceOver dans les feuilles, cibles tactiles agrandies. QA 102/102. |
 | 04/11 | V8.2 : revue de code (10 corrections) : « Équiper ces sets » ne vide plus un héros sans pièce, moteur OCR toujours remis en lecture normale, plan d'accueil et pastille sur le même calcul (`curiosAChanger`), date locale (routine à minuit), héros joués marqués obtenus, code mort retiré. QA 99/99 (feuilles, routine, déploiements, limite d'équipe, mauvais écran d'équipe). |

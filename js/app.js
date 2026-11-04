@@ -77,6 +77,7 @@ const ICONES = {
   lien: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   corbeille: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   etoile: '<path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  crayon: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
   copier: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
 };
 const ic = (nom, taille) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"${taille ? ` style="width:${taille}px;height:${taille}px"` : ""}>${ICONES[nom] || ""}</svg>`;
@@ -225,47 +226,51 @@ function vueAccueil() {
   const faites = TACHES.filter((_, i) => etat.quotidien.coches[i]).length;
   const nouveau = !j.pseudo && !herosDe(etat).some((h) => progression(etat, h.id).possede);
   const meta = [j.niveau ? `Niv. ${j.niveau}` : "", j.guilde ? `Guilde ${j.guilde}` : "Sans guilde", j.vip ? `VIP ${j.vip}` : ""].filter(Boolean).join(" · ");
+  const [premiere, ...suite] = plan;
+  const chiffre = (lib, val, em = "") => `<div class="chiffre"><small>${lib}</small><b>${val}</b>${em ? `<em>${em}</em>` : ""}</div>`;
 
   return `
-  ${visuels.logo ? `<div class="logo-jeu"><img src="assets/logo-jeu.png" alt="Knock Knock Room Defense"><span>Manager</span></div>` : LOGO}
-  ${carteInstallation()}
-  <h1 class="grand-titre" style="margin-top:14px">Tableau de bord</h1>
+  <h1 class="grand-titre cache">Tableau de bord</h1>
+  ${visuels.logo ? `<div class="logo-jeu"><img src="assets/logo-jeu.png" alt="Knock Knock Room Defense" width="300" height="120"><span>Manager</span></div>` : LOGO}
   <p class="sous-titre">${j.majImport ? `Mis à jour par capture le ${esc(dateCourte(j.majImport))}` : "Importez une capture de votre profil pour tout remplir d'un coup."}</p>
+
+  ${nouveau ? `<section class="carte-une" aria-label="Pour bien démarrer">
+      <h2>Pour bien démarrer</h2>
+      <p>Profil, écran principal, héros et curios : l'app lit tout et remplit votre compte. Rien n'est envoyé.</p>
+      <button class="btn or plein" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer des captures</button>
+    </section>` : ""}
 
   <div class="carte-profil">
     <div class="haut"><div class="av">${esc(initiales(j.pseudo || "?"))}</div>
-      <div style="min-width:0"><h2>${esc(j.pseudo || "Joueur")}</h2><div class="meta">${esc(meta)}${j.idJoueur ? ` · ID ${esc(j.idJoueur)}` : ""}</div></div></div>
+      <div style="min-width:0;flex:1"><h2>${esc(j.pseudo || "Joueur")}</h2><div class="meta">${esc(meta)}${j.idJoueur ? ` · ID ${esc(j.idJoueur)}` : ""}</div></div>
+      <button class="bouton-icone" data-act="ouvrir" data-f="profil" aria-label="Modifier le profil">${ic("crayon", 20)}</button></div>
     <div class="chiffres">
-      <div class="chiffre"><small>Étape</small><b>${esc(j.etape || "—")}</b></div>
-      <div class="chiffre"><small>Puissance</small><b>${esc(fmt(j.puissance))}</b></div>
-      <div class="chiffre"><small>Porte · Lit</small><b>${j.porte > 1 || j.lit > 1 ? `${esc(j.porte || "—")} · ${esc(j.lit || "—")}` : "—"}</b></div>
-      <div class="chiffre"><small>Curio Vault</small><b>${esc(j.coffreCurios || "—")}</b></div>
-      <div class="chiffre"><small>Gear</small><b>${j.equipementNiveau ? `+${esc(j.equipementNiveau)}` : "—"}</b>${j.palierEquipement ? `<em>Tier ${esc(j.palierEquipement)}</em>` : ""}</div>
-      <div class="chiffre"><small>Train</small><b>${esc(j.arretTrain || "—")}</b>${j.arretTrain ? "<em>Stop</em>" : ""}</div>
+      ${chiffre("Étape", esc(j.etape || "—"))}${chiffre("Puissance", esc(fmt(j.puissance)))}${chiffre("Diamants", esc(fmt(etat.stock.diamants)), Number(etat.stock.diamants) >= 2200 ? `${pluriel(Math.floor(etat.stock.diamants / 2200), "tirage")} de 10` : "")}
     </div>
-    <div class="actions">
-      <button class="btn or" data-act="ouvrir" data-f="import">${ic("photo", 20)} Importer</button>
-      <button class="btn" data-act="ouvrir" data-f="profil">Modifier</button>
-    </div>
+    <details class="plus-chiffres"${ui.plusChiffres ? " open" : ""}><summary data-act="plus-chiffres">Plus de chiffres</summary>
+      <div class="chiffres">
+        ${chiffre("Porte · Lit", j.porte > 1 || j.lit > 1 ? `${esc(j.porte || "—")} · ${esc(j.lit || "—")}` : "—")}${chiffre("Curio Vault", esc(j.coffreCurios || "—"))}
+        ${chiffre("Gear", j.equipementNiveau ? `+${esc(j.equipementNiveau)}` : "—", j.palierEquipement ? `Tier ${esc(j.palierEquipement)}` : "")}${chiffre("Train", esc(j.arretTrain || "—"), j.arretTrain ? "Stop" : "")}
+      </div>
+      <div class="grille-res">${RESSOURCES.filter((r) => r.id !== "diamants").map((r) => `
+        <button class="tuile-res" data-act="ouvrir" data-f="ressources"><small>${esc(r.nom.replace(/\s*\(.*\)$/, ""))}</small><b class="${etat.stock[r.id] == null ? "vide" : ""}">${esc(fmt(etat.stock[r.id]))}</b></button>`).join("")}</div>
+    </details>
   </div>
 
-  ${nouveau ? section("Pour bien démarrer", `
-    <div class="note or">Dans le jeu, faites des captures de votre profil, de l'écran principal, de vos héros et de vos artefacts.</div>
-    <div class="note or">Touchez « Importer » et choisissez-les : l'app remplit tout.</div>
-    <div class="note or">Vérifiez et enregistrez : la Stratégie se met à jour toute seule.</div>`) : ""}
-
-  ${section("Ressources", `<div class="grille-res">${RESSOURCES.map((r) => `
-    <button class="tuile-res" data-act="ouvrir" data-f="ressources"><small>${esc(r.nom.replace(/\s*\(.*\)$/, ""))}</small><b class="${etat.stock[r.id] == null ? "vide" : ""}">${esc(fmt(etat.stock[r.id]))}</b></button>`).join("")}</div>`,
-    { nu: true, pied: Number(etat.stock.diamants) >= 2200 ? `De quoi faire ${pluriel(Math.floor(etat.stock.diamants / 2200), "tirage")} de 10.` : "" })}
+  ${premiere ? section("À faire maintenant", `<div class="ligne prochaine"><span class="etape-num">1</span><span class="corps"><small class="surtitre">Prochaine action</small><b>${esc(premiere.titre)}</b><small class="multi">${esc(premiere.detail)}</small>
+      ${premiere.action ? `<button class="btn or" style="margin-top:10px" data-act="equipe-proposee" data-id="${esc(premiere.action.ids.join(","))}">${esc(premiere.action.libelle)}</button>` : ""}</span></div>
+    ${suite.length ? etapes(suite).replace(/<span class="etape-num">(\d+)<\/span>/g, (_, n) => `<span class="etape-num">${Number(n) + 1}</span>`) : ""}`,
+    { lien: planComplet.length > 4 ? `<button class="lien" data-act="plan-complet" aria-expanded="${!!ui.planComplet}">${ui.planComplet ? "Réduire" : `Tout voir (${planComplet.length})`}</button>` : "" }) : ""}
 
   ${section("Mon équipe", `<div class="rangee-equipe">${Array.from({ length: TAILLE_EQUIPE }, (_, i) => equipe[i]).map((h, i) => `
     <button class="membre" data-act="ouvrir" data-f="${h ? "hero" : "equipe"}" data-id="${h ? esc(h.id) : ""}">${avatar(h || null)}<small>${h ? esc(h.nom) : `Place ${i + 1}`}</small></button>`).join("")}</div>
-    ${equipe.length ? `<button class="ligne" data-act="onglet" data-id="strategie"><span class="corps"><b>${alertes ? `${pluriel(alertes, "point")} à corriger` : "Équipe équilibrée"}</b><small>Puissance moyenne ${ana.score}</small></span>${chevron()}</button>` : ""}`)}
+    ${equipe.length ? `<button class="ligne" data-act="onglet" data-id="strategie"><span class="corps"><b>${alertes ? `${pluriel(alertes, "point")} à corriger` : "Équipe équilibrée"}</b><small>Puissance moyenne ${ana.score}</small></span>${chevron()}</button>` : ""}`,
+    { lien: `<button class="lien" data-act="ouvrir" data-f="equipe">Modifier</button>` })}
 
-  ${section("À faire maintenant", etapes(plan), { lien: planComplet.length > 4 ? `<button class="lien" data-act="plan-complet" aria-expanded="${!!ui.planComplet}">${ui.planComplet ? "Réduire" : `Tout voir (${planComplet.length})`}</button>` : "" })}
-
-  ${section("Routine du jour", TACHES.map((t, i) => `<label class="ligne tache"><input type="checkbox" class="coche" data-quotidien="${i}" ${etat.quotidien.coches[i] ? "checked" : ""}><span class="corps"><b style="white-space:normal">${esc(t)}</b></span></label>`).join(""),
-    { lien: `<span class="valeur" style="color:var(--texte-2);font-size:15px">${faites}/${TACHES.length}</span>` })}`;
+  ${section("Routine du jour", `<div class="routine-prog" role="progressbar" aria-label="Routine du jour" aria-valuemin="0" aria-valuemax="${TACHES.length}" aria-valuenow="${faites}"><i style="width:${Math.round((faites / TACHES.length) * 100)}%"></i></div>
+    ${TACHES.map((t, i) => `<label class="ligne tache"><input type="checkbox" class="coche" data-quotidien="${i}" ${etat.quotidien.coches[i] ? "checked" : ""}><span class="corps"><b style="white-space:normal">${esc(t)}</b></span></label>`).join("")}`,
+    { lien: `<span class="valeur" style="color:var(--texte-2);font-size:15px">${faites}/${TACHES.length}</span>` })}
+  ${carteInstallation()}`;
 }
 
 /* ---------- Héros ---------- */
@@ -1141,6 +1146,7 @@ document.querySelector(".onglets").addEventListener("click", (e) => {
   ui.onglet = b.dataset.onglet;
   rendre();
   remonter();
+  $vue.classList.remove("change"); void $vue.offsetWidth; $vue.classList.add("change");
 });
 
 document.addEventListener("input", (e) => {
@@ -1233,6 +1239,7 @@ const ACTIONS = {
   possedes: (b) => { ui.possedes = b.dataset.id === "1"; rendre(); },
   pas: (b) => { const cle = b.dataset.cle; setCle(cle, Math.max(minimumDe(cle), getCle(cle) + Number(b.dataset.pas))); enregistrer(); },
   "plan-complet": () => { ui.planComplet = !ui.planComplet; rendre(); },
+  "plus-chiffres": (b, e) => { e.preventDefault(); ui.plusChiffres = !ui.plusChiffres; rendre(); },
   "seg-strat": (b) => { ui.segStrat = b.dataset.id; rendre(); remonter(); },
   // Équipe proposée par l'app : elle peut venir du catalogue entier, on ne touche pas à « Je l'ai ».
   "equipe-type": (b) => { etat.equipe = b.dataset.id.split(",").filter((id) => heroParId(id)).slice(0, TAILLE_EQUIPE); enregistrer(); toast("Équipe mise à jour"); },

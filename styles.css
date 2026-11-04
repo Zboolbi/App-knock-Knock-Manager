@@ -3,7 +3,8 @@
    apps de gestion (tableau de bord, liste de tâches, détail en feuille). */
 :root {
   --fond: #000000;
-  --groupe: #1c1c1e;          /* cellules groupées */
+  --groupe: rgb(28 28 30 / 0.78);   /* cellules groupées : matière translucide au-dessus du filigrane */
+  --groupe-plein: #1c1c1e;
   --groupe-2: #2c2c2e;        /* champs, contrôles */
   --sep: #38383a;
   --texte: #ffffff;
@@ -22,7 +23,9 @@
   --e-aucun: #48484a; --e-brulure: #c2410c; --e-saignement: #a3172f; --e-poison: #248a3d; --e-gel: #0f6f99; --e-paralysie: #a07c00;
   --police: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --police-titre: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-  --rayon: 12px;
+  --rayon: 16px;
+  --flou: saturate(170%) blur(22px);
+  --ombre: 0 8px 24px rgb(0 0 0 / .35);
   color-scheme: dark;
 }
 
@@ -153,10 +156,10 @@ button.ligne:active, label.ligne:active { background: var(--groupe-2); }
 .tier { min-width: 30px; justify-content: center; }
 
 .note { display: flex; gap: 10px; padding: 11px 14px; font-size: 15px; align-items: flex-start; }
-.note::before { content: "•"; color: var(--texte-2); font-weight: 900; }
-.note.ok::before { content: "✓"; color: var(--bon); }
-.note.alerte::before { content: "!"; color: var(--mauvais); }
-.note.or::before { content: "★"; color: var(--or); }
+
+
+
+
 .plus { color: var(--bon); } .moins { color: var(--mauvais); }
 ul.raisons { margin: 4px 0 0; padding-left: 18px; font-size: 14px; color: var(--texte-2); }
 .barre-prog { height: 6px; border-radius: 3px; background: var(--groupe-2); overflow: hidden; margin-top: 6px; }
@@ -280,3 +283,110 @@ input, textarea { caret-color: var(--or); }
 .rangee-mini > span { display: grid; justify-items: center; gap: 3px; min-width: 0; }
 .rangee-mini small { font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texte-2); }
 details > summary.pied { min-height: 44px; display: flex; align-items: center; }
+
+/* ============================================================
+   V9 — Refonte « iOS épuré » (filigrane citrouille et logo conservés)
+   Matière translucide, séparateurs en retrait, barre d'onglets flottante,
+   une seule carte forte : la prochaine action.
+   ============================================================ */
+.groupe { background: var(--groupe); -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou); border-radius: var(--rayon); }
+/* Séparateurs en retrait, comme les listes iOS */
+.groupe > * + * { border-top: 0; position: relative; }
+.groupe > * + *::after { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: 0.5px solid var(--sep); pointer-events: none; }
+.groupe > .ligne:has(> .av) + .ligne::after, .groupe > .ligne:has(> .pastille-icone) + .ligne::after { left: 60px; }
+.section { margin: 28px 0 0; }
+.section-titre { padding: 0 4px 8px; }
+.section-titre h2 { font: 700 22px/1.2 var(--police-titre); letter-spacing: -0.01em; }
+.grand-titre { letter-spacing: -0.02em; }
+.sous-titre { margin: 2px 0 16px; }
+
+/* Icônes des notes (masques SVG, couleur = currentColor) */
+.note::before { content: ""; flex: none; width: 18px; height: 18px; margin-top: 2px; background: var(--texte-3);
+  -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat;
+  --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='4' fill='black'/%3E%3C/svg%3E"); }
+.note.ok::before { background: var(--bon); --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E"); }
+.note.alerte::before { background: var(--mauvais); --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5v.5'/%3E%3C/svg%3E"); }
+.note.or::before { background: var(--or); --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z'/%3E%3C/svg%3E"); }
+.note.info::before { background: var(--info); }
+
+/* Boutons : capsules, état pressé discret */
+.btn { border-radius: 14px; transition: transform .12s ease, opacity .12s ease; }
+.btn:active { opacity: 1; transform: scale(.97); }
+.btn:not(.or) { background: rgb(118 118 128 / .24); }
+.btn.or { box-shadow: 0 4px 12px rgb(0 0 0 / .35); }
+button.ligne, label.ligne { transition: background-color .15s ease; }
+
+/* Carte joueur : sobre, sur matière translucide */
+.carte-profil { background: var(--groupe); -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou); border: 0.5px solid rgb(255 255 255 / .08); border-radius: 20px; padding: 16px; box-shadow: var(--ombre); }
+.carte-profil .av { --t: 52px; }
+.carte-profil h2 { font-size: 20px; }
+.carte-profil .bouton-icone { margin-right: -8px; }
+.chiffre { background: rgb(255 255 255 / .05); border-radius: 12px; padding: 10px 12px; }
+.chiffre b { font-size: 20px; letter-spacing: -0.01em; }
+.plus-chiffres { margin-top: 10px; }
+.plus-chiffres > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; color: var(--or-vif); font-size: 15px; font-weight: 500; }
+.plus-chiffres > summary::-webkit-details-marker { display: none; }
+.plus-chiffres > summary::after { content: ""; width: 8px; height: 8px; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); transition: transform .2s ease; }
+.plus-chiffres[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+.plus-chiffres .chiffres { margin-top: 0; grid-template-columns: repeat(2, 1fr); }
+.plus-chiffres .grille-res { margin-top: 8px; }
+.plus-chiffres .tuile-res { background: rgb(255 255 255 / .05); border-radius: 12px; }
+
+/* Carte d'accueil d'un nouveau joueur */
+.carte-une { margin: 4px 0 18px; padding: 20px 18px 18px; border-radius: 22px; background: linear-gradient(165deg, rgb(216 180 90 / .20), rgb(28 28 30 / .82) 55%); -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou); border: 0.5px solid rgb(216 180 90 / .35); box-shadow: var(--ombre); }
+.carte-une h2 { font: 700 24px/1.2 var(--police-titre); color: var(--or); margin: 0 0 6px; letter-spacing: -0.01em; }
+.carte-une p { margin: 0 0 16px; color: var(--texte-2); font-size: 15px; text-wrap: pretty; }
+.carte-une-ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--or); color: var(--sur-or); }
+
+/* La carte forte : prochaine action */
+.ligne.prochaine { align-items: flex-start; padding: 16px; background: linear-gradient(165deg, rgb(216 180 90 / .16), transparent 70%); }
+.ligne.prochaine .etape-num { width: 30px; height: 30px; background: var(--or); color: var(--sur-or); }
+.ligne.prochaine .corps b { white-space: normal; font-size: 19px; font-weight: 600; line-height: 1.25; margin: 2px 0 4px; }
+.surtitre { color: var(--or-vif) !important; font-size: 13px !important; font-weight: 600; }
+
+/* Routine : barre de progression */
+.routine-prog { height: 4px; background: rgb(255 255 255 / .08); }
+.routine-prog > i { display: block; height: 100%; background: var(--or); border-radius: 0 2px 2px 0; transition: width .3s ease; }
+.groupe > .routine-prog + *::after { display: none; }
+.coche { transition: background-color .15s ease, border-color .15s ease; }
+
+/* Contrôle segmenté iOS : pastille surélevée */
+.segments { background: rgb(118 118 128 / .24); border-radius: 10px; }
+.segments button { border-radius: 8px; transition: background-color .18s ease; }
+.segments button[aria-selected="true"] { background: #636366; box-shadow: 0 3px 8px rgb(0 0 0 / .25); }
+.recherche { background-color: rgb(118 118 128 / .24); border-radius: 12px; }
+
+/* Barre d'onglets flottante (capsule translucide) */
+.onglets { position: absolute; left: 0; right: 0; bottom: 0; background: none; border-top: 0; -webkit-backdrop-filter: none; backdrop-filter: none;
+  padding: 0 max(12px, env(safe-area-inset-right, 0px)) max(10px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+.onglets-int { pointer-events: auto; max-width: 560px; background: rgb(30 30 32 / .72); -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou);
+  border: 0.5px solid rgb(255 255 255 / .10); border-radius: 26px; padding: 5px; box-shadow: 0 10px 30px rgb(0 0 0 / .45); }
+.onglets button { min-height: 52px; border-radius: 21px; padding: 6px 0 5px; color: var(--texte-2); transition: background-color .2s ease, color .2s ease; }
+.onglets button[aria-current="page"] { color: var(--or-vif); background: rgb(216 180 90 / .16); }
+.onglets button svg.ic { width: 24px; height: 24px; }
+.compteur { top: 2px; box-shadow: 0 0 0 2px rgb(30 30 32); }
+/* Le contenu défile sous la barre flottante */
+main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+#toast { border-radius: 999px; -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou); background: rgb(44 44 46 / .86); }
+
+/* Feuilles : verre sombre, grands rayons */
+.feuille { background: rgb(18 18 20 / .96); -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 40px rgb(0 0 0 / .5); }
+.feuille .groupe { background: rgb(44 44 46 / .55); }
+.voile { background: rgb(0 0 0 / .5); }
+
+/* Logo du jeu : centré, plus présent */
+.logo-jeu { justify-items: center; padding: 6px 0 4px; }
+.logo-jeu img { width: min(78%, 320px); }
+.logo-jeu span { padding-left: .42em; }
+.logo-jeu + .sous-titre { text-align: center; }
+
+/* Carte d'installation compacte */
+.carte-install { margin-top: 12px; background: var(--groupe); -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou); border: 0.5px solid rgb(255 255 255 / .08); border-radius: var(--rayon); }
+
+/* Mouvement : le contenu de l'onglet apparaît en fondu court */
+@keyframes apparait { from { opacity: 0; transform: translateY(6px); } }
+main.change { animation: apparait .22s cubic-bezier(.2, .8, .2, 1); }
+@media (prefers-reduced-motion: reduce) { main.change, .btn, .onglets button, .routine-prog > i { animation: none; transition: none; } }
+.carte-profil .chiffres { margin-top: 12px; }
+.carte-profil + .section { margin-top: 20px; }
+p, small.multi { text-wrap: pretty; }

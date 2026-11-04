@@ -177,13 +177,15 @@ async function main() {
   });
   await cas("PRO-04", "Ressources saisies et formatées", async () => {
     const p = await page(null);
-    await p.click(".tuile-res >> nth=0");
+    await p.click(".plus-chiffres > summary"); await p.click(".tuile-res >> nth=0");
     await p.fill("#r-diamants", "1234"); await p.press("#r-diamants", "Tab");
     await p.fill("#r-or", "1250000"); await p.press("#r-or", "Tab");
     await p.fill("#r-or", ""); await p.press("#r-or", "Tab");
     await p.fermerFeuille();
+    // Diamants : chiffre clé de la carte joueur ; les autres ressources : tuiles de « Plus de chiffres ».
+    const diamants = await p.locator(".chiffre", { hasText: "Diamants" }).locator("b").textContent();
     const tuiles = await p.$$eval(".tuile-res b", (els) => els.map((e) => e.textContent));
-    verifier(tuiles[0].replace(/\s/g, " ").replace(/ /g, " ") === "1 234" && tuiles[1] === "—", JSON.stringify(tuiles));
+    verifier(diamants.replace(/\s/g, " ") === "1 234" && tuiles[0] === "—", JSON.stringify({ diamants, tuiles }));
     await p.ctx.close();
   });
   await cas("PRO-05", "Tirages de 10 possibles", async () => {
@@ -194,7 +196,7 @@ async function main() {
   await cas("PRO-06", "Très grand nombre", async () => {
     const p = await page(avec((e) => { e.stock.or = 1e12; e.joueur.puissance = 123456789012; }));
     const larg = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-    const t = await p.textContent(".tuile-res >> nth=1");
+    await p.click(".plus-chiffres > summary"); const t = await p.textContent(".tuile-res >> nth=0");
     verifier(larg === 0 && /Md/.test(t), `défilement ${larg}, tuile « ${t} »`);
     await p.ctx.close();
   });
