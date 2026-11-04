@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Room Defense Coach</title>
+  <meta name="description" content="Coach de progression pour Knock Knock: Room Defense : équipe, artefacts, skins, boss et options payantes.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="RD Coach">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="haut">
+    <div class="haut-int"><h1 id="titre">Room Defense Coach</h1><div id="actions-haut"></div></div>
+  </header>
+
+  <main id="vue"></main>
+
+  <nav class="onglets" aria-label="Sections">
+    <div class="onglets-int">
+      <button data-onglet="profil" aria-label="Profil" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
+      <button data-onglet="strategie" aria-label="Stratégie"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg><span class="pastille" id="pastille-strategie" hidden></span></button>
+      <button data-onglet="boss" aria-label="Boss"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M14 5h5v5M5 5l14 14M5 14v5h5"/></svg></button>
+      <button data-onglet="boutique" aria-label="Options payantes"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></button>
+      <button data-onglet="plus" aria-label="Plus"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
+  </nav>
+
+  <div id="feuille"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
